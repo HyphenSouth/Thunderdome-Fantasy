@@ -39,7 +39,7 @@ function inRangeOfCheck(tP){
 					peaceChance += 75;
 				if(tP.moral == 'Chaotic')
 					fightChance += 100;
-				if(tP.weapon.name == "🗡"){
+				if(tP.weapon.name == "nanasatsu"){
 					peaceChance = 1;
 					fightChance = 19;
 				}
@@ -73,6 +73,7 @@ function rollDmg(tP){
 }
 function damage(tP,oP){
 	let dmg = 0;
+    //if attacker is a player
 	switch(tP.constructor.name){
 		case "Char":
 		dmg = rollDmg(tP);
@@ -80,7 +81,7 @@ function damage(tP,oP){
 			dmg = oP.health;
 		oP.health -= dmg;
 		tP.exp += dmg;
-		if(tP.weapon.name == "🗡"){
+		if(tP.weapon.name == "nanasatsu"){
 			console.log(tP.health + "before");
 			console.log(dmg);
 			tP.health += Math.pow(dmg,0.66);
@@ -104,13 +105,14 @@ function damage(tP,oP){
 						dmg = tP.health;
 					tP.health -= dmg;
 					oP.exp += dmg;
-					if(oP.weapon.name == "🗡"){
+					if(oP.weapon.name == "nanasatsu"){
 						console.log(oP.health + "before");
 						console.log(dmg);
 						oP.health += Math.pow(dmg,0.66);
 						oP.weapon.fightBonus += dmg/1000;
 						console.log(oP.health + "after");
 					}
+                    //use up weapon uses
 					if(oP.weapon){
 						oP.weapon.uses--;
 						if(oP.weapon.uses == 0)
@@ -121,14 +123,15 @@ function damage(tP,oP){
 						oP.kills++;
 						tP.death = "killed by " + oP.name;
 						//messages.push([tP," kills <img src='" + oP.img + "'></img>",day,hour]);
-						if(tP.weapon.name == "🗡" && Math.random() > 0.1){
+                        //pass on sex sword
+						if(tP.weapon.name == "nanasatsu" && Math.random() > 0.1){
 							oP.weapon = tP.weapon;
 							tP.weapon = "";
 						}
 					} else {
 						oP.lastAction = "fights " + tP.name;
 						if(oP.weapon)
-							oP.lastAction = "attacks " + tP.name + " with a " + oP.weapon.name;
+							oP.lastAction = "attacks " + tP.name + " with a " + oP.weapon.icon;
 						//messages.push([oP," fights back against <img src='" + tP.img + "'></img> for " + Math.round(dmg) + " dmg",day,hour]);
 					}
 				} else {
@@ -147,7 +150,7 @@ function damage(tP,oP){
 			}
 		} else {
 			tP.kills++;
-			if(oP.weapon.name == "🗡" && Math.random() > 0.1){
+			if(oP.weapon.name == "nanasatsu" && Math.random() > 0.1){
 				tP.weapon = oP.weapon;
 				oP.weapon = "";
 			}
@@ -170,14 +173,14 @@ function damage(tP,oP){
 		if(oP.health <= 0){
 			tP.owner.kills++;
 			switch(tP.name){
-				case "💣":
+				case "bomb":
 					if(oP == tP.owner){
 						oP.death = "blown up by their own bomb";
 					} else {
 						oP.death = "blown up by " + tP.owner.name;
 					}
 					break;
-				case "🕳":
+				case "trap":
 					if(oP == tP.owner){
 						oP.death = "fell into their own trap";
 					} else {
@@ -187,7 +190,7 @@ function damage(tP,oP){
 			}
 		} else {
 			switch(tP.name){
-				case "🕳":
+				case "trap":
 					if(oP == tP.owner){
 						oP.lastAction = "fell into their own trap";
 					} else {
