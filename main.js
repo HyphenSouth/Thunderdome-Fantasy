@@ -20,7 +20,7 @@ var lastT = 0;	//no clue what this does
 var timerClicks = {};
 var messages = [];
 var lastMessage = -1;
-
+var players_ready=0;
 
 $( document ).ready(function(){
 	Init();
@@ -111,9 +111,11 @@ function auto(){
 }
 //progress turn for each player
 function turn(){
+    console.log('start of turn')
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
+        console.log('turn')
 		if(chara.finishedAction)
 			numReady++;
 	});
@@ -147,17 +149,30 @@ function turn(){
 			//timerClick("plan " + chara.name);
 		});
 	}
+    action()
 }
-//
+//some sort of action
 function action(){
 	let numReady = 0;//number of players that are ready
+    let numNotReady =0;
+    players_ready++;
+    //wait for all players to have an action planned
+    /*
 	players.forEach(function(chara,index){
-		//check if the player has an action planned
-		if(chara.plannedAction)
+        if(chara.plannedAction){
+            
 			numReady++;
-	});
+        }
+        else{
+            numNotReady++;
+         }
+	});*/
+    //console.log(numReady)
+    //console.log(numNotReady)
+    
 	//if all players are ready
-	if(numReady == players.length){
+	//if(players_ready == players.length){
+        players_ready = 0;
 		//perform actions for each player
 		players.forEach(function(chara,index){
 			//timerClick("do " + chara.name);
@@ -173,10 +188,11 @@ function action(){
 		$('#day').text("Day " + day + " Hour " + hour);
 		//update the info tables
 		updateTable();
-	}
+        console.log('end of turn')
+	//}
 }
 function MapResize(){
-	
+	//why is this even here
 }
 
 //check if a coordinate is in bounds

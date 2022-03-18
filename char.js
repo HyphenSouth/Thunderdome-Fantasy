@@ -123,17 +123,20 @@ class Char {
 					this.health = 0;
 					this.death = "Died by their own spear";
 					this.die();
-					action();
+                    console.log(this.name + ' killed by lance')
+					//action();
 					return;
 				}
 			} else if (this.weapon.name == "nanasatsu"){
                 //lose health
-				this.health -= (this.weapon.fightBonus - 1.5 - this.kills/20);
+				//this.health -= (this.weapon.fightBonus - 1.5 - this.kills/20);
+				this.health -= (this.weapon.fightBonus +2000);
                 //death message
 				if(this.health <= 0){
 					this.death = "Succumbed to SEX SWORD";
 					this.die();
-					action();
+                    console.log(this.name + ' killed by sword')
+					//action();
 					return;
 				}
 			}
@@ -149,7 +152,7 @@ class Char {
 			this.awareOf = [];
 			this.inRangeOf = [];
 		} 
-        //get opponets that are in sight and in range
+        //get opponents that are in sight and in range
         else {
 			//Opponents in sight
 			this.awareOf = awareOfCheck(this);
@@ -217,9 +220,11 @@ class Char {
 				}
 			}
 		}
-		action();
+        console.log('finished planning action')
+		//action();
 	}
     //perform action
+    //called by action in main
 	doAction(){
 		//timerClick(this.name + " " + this.plannedAction);
 		//removing red fighting border
@@ -274,7 +279,7 @@ class Char {
     //action functions
     //attempt to escape trap
 	escapeTrap(){
-		console.log("Escape");
+		console.log(this.name + "attempts escape");
 
 		timerClick("escape");
 		if (Math.floor(Math.random() * 10) > 8){
@@ -339,7 +344,7 @@ class Char {
 					if(!this.weapon){
 						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bomb",5],["trap",10],["bow",20],["Nothing",500]];
 						if(sexSword){
-							weaponOdds.push(["nanasatsu",1]);
+							weaponOdds.push(["nanasatsu",1000]);
 						}
 						this.weapon = new Item(roll(weaponOdds),this);
                         //failed weapon roll

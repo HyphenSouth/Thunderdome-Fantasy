@@ -1,3 +1,5 @@
+//functions for actions that require more than one char, such as combat and range
+
 function awareOfCheck(tP){
 	let tempArr = [];
 	players.forEach(function(oP,index){
