@@ -8,6 +8,7 @@ var item_data = {
     "trap" : ["🕳",0, 0,0,0,"doodad"],
     "nanasatsu" : ["🗡",0, 0,2,99999,"melee"]
 }
+
 //class to hold data for items
 class Item {
 	constructor(name, wielder){
