@@ -20,7 +20,8 @@ var lastT = 0;	//no clue what this does
 var timerClicks = {};
 var messages = [];
 var lastMessage = -1;
-var players_ready=0;
+
+var log_msg=true
 
 $( document ).ready(function(){
 	Init();
@@ -111,11 +112,10 @@ function auto(){
 }
 //progress turn for each player
 function turn(){
-    console.log('start of turn')
+    log_message('start of turn');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
-        console.log('turn')
 		if(chara.finishedAction)
 			numReady++;
 	});
@@ -153,42 +153,23 @@ function turn(){
 }
 //some sort of action
 function action(){
-	let numReady = 0;//number of players that are ready
-    let numNotReady =0;
-    players_ready++;
-    //wait for all players to have an action planned
-    /*
+    players_ready = 0;
+	//perform actions for each player
 	players.forEach(function(chara,index){
-        if(chara.plannedAction){
-            
-			numReady++;
-        }
-        else{
-            numNotReady++;
-         }
-	});*/
-    //console.log(numReady)
-    //console.log(numNotReady)
-    
-	//if all players are ready
-	//if(players_ready == players.length){
-        players_ready = 0;
-		//perform actions for each player
-		players.forEach(function(chara,index){
-			//timerClick("do " + chara.name);
-			chara.doAction();
-			//timerClick("do " + chara.name);
-		});
-		//progress time
-		hour++;
-		if(hour == 24){
-			hour = 0;
-			day++;
-		}
-		$('#day').text("Day " + day + " Hour " + hour);
-		//update the info tables
-		updateTable();
-        console.log('end of turn')
+		//timerClick("do " + chara.name);
+		chara.doAction();
+		//timerClick("do " + chara.name);
+	});
+	//progress time
+	hour++;
+	if(hour == 24){
+		hour = 0;
+		day++;
+	}
+	$('#day').text("Day " + day + " Hour " + hour);
+	//update the info tables
+	updateTable();
+    log_message('end of turn');
 	//}
 }
 function MapResize(){
@@ -461,4 +442,10 @@ function timerClick(val){
 		timerClicks[val] = d.getTime();
 		console.log(val + " started");
 	}
+}
+
+function log_message(msg){
+    if(log_msg==true){
+        console.log(msg);
+    }    
 }

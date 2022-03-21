@@ -22,8 +22,10 @@ function awareOfCheck(tP){
 	});
 	return tempArr;
 }
+//check agro for player
 function inRangeOfCheck(tP){
 	let tempArr = [];
+    tP.calc_bonuses();
 	players.forEach(function(oP,index){
 		if(oP.name != tP.name){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
@@ -41,10 +43,18 @@ function inRangeOfCheck(tP){
 					peaceChance += 75;
 				if(tP.moral == 'Chaotic')
 					fightChance += 100;
+                /*
 				if(tP.weapon.name == "nanasatsu"){
 					peaceChance = 1;
 					fightChance = 19;
 				}
+                */
+                fightChance=fightChance+tP.fightB;
+                peaceChance=peaceChance+tP.peaceB;
+                if(fightChance<1)
+                    fightChance=1;
+                if(peaceChance<1)
+                    peaceChance=1;
 				//console.log("Fight check");
 				//console.log(tP);
 				//console.log(oP);
@@ -73,16 +83,36 @@ function doodadCheck(tP){
 function rollDmg(tP){
 	return Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
 }
-function damage(tP,oP){
+
+
+function attack(attacker, defender){
+    let dmg = 0;
+    dmg = rollDmg(attacker);
+	if(dmg > defender.health)
+		dmg = defender.health;
+    //apply weapon effects
+	if(attacker.weapon){
+        attacker.weapon.weapon_effect("attack",{"opponent":defender, "damage":dmg});
+    }
+	if(defender.weapon){
+        defender.weapon.weapon_effect("defend",{"opponent":attacker, "damage":dmg});
+    }
+    defender.health -= dmg;
+	attacker.exp += dmg;
+}
+
+function fight_target(tP,oP){
 	let dmg = 0;
     //if attacker is a player
 	switch(tP.constructor.name){
+        //tp has the initiative 
 		case "Char":
+        attack(tP,oP);
+        /*
 		dmg = rollDmg(tP);
 		if(dmg > oP.health)
 			dmg = oP.health;
-		oP.health -= dmg;
-		tP.exp += dmg;
+
 		if(tP.weapon.name == "nanasatsu"){
 			console.log(tP.health + "before");
 			console.log(dmg);
@@ -90,18 +120,29 @@ function damage(tP,oP){
 			tP.weapon.fightBonus += dmg/1000;
 			console.log(tP.health + "after");
 		}
+
 		if(tP.weapon){
+            tP.weapon.weapon_effect("attack",{"opponent":oP, "damage":dmg});
+
 			tP.weapon.uses--;
 			if(tP.weapon.uses == 0)
 				tP.weapon = "";
+
 		}
+		oP.health -= dmg;
+		tP.exp += dmg;
+        */
+        
 		oP.lastAttacker = tP;
+        //opponent turn
 		if(oP.health > 0){
 			tP.lastAction = "fights " + oP.name;
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(oP.awareOf.indexOf(tP)>=0){
 				//messages.push([tP," hurts <img src='" + oP.img + "'></img> for " + Math.round(dmg) + " dmg",day,hour]);
+                //check if in range
 				if(oP.fightRange + oP.fightRangeB >= dist){
+                    /*
 					let dmg = rollDmg(oP);
 					if(dmg > tP.health)
 						dmg = tP.health;
@@ -120,16 +161,26 @@ function damage(tP,oP){
 						if(oP.weapon.uses == 0)
 							oP.weapon = "";
 					}
+                    */
+                    attack(oP,tP);
 					if(tP.health <= 0){
 						oP.lastAction = "kills " + tP.name;
 						oP.kills++;
 						tP.death = "killed by " + oP.name;
 						//messages.push([tP," kills <img src='" + oP.img + "'></img>",day,hour]);
                         //pass on sex sword
+                        /*
 						if(tP.weapon.name == "nanasatsu" && Math.random() > 0.1){
 							oP.weapon = tP.weapon;
 							tP.weapon = "";
 						}
+                        */
+                        if(oP.weapon){
+                            op.weapon.weapon_effect("win",{"opponent":tP});
+                        }
+                        if(tP.weapon){
+                            tP.weapon.weapon_effect("lose",{"opponent":oP});
+                        }
 					} else {
 						oP.lastAction = "fights " + tP.name;
 						if(oP.weapon)
@@ -152,10 +203,17 @@ function damage(tP,oP){
 			}
 		} else {
 			tP.kills++;
+            /*
 			if(oP.weapon.name == "nanasatsu" && Math.random() > 0.1){
 				tP.weapon = oP.weapon;
 				oP.weapon = "";
-			}
+			}*/
+            if(tP.weapon){
+                tP.weapon.weapon_effect("win",{"opponent":oP});
+            }
+            if(oP.weapon){
+                oP.weapon.weapon_effect("lose",{"opponent":tP});
+            }
 			if(tP.personality == oP.personality && tP.personality != 'Neutral'){
 				tP.lastAction = "betrays " + oP.name;
 				oP.death = "betrayed by " + tP.name;

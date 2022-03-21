@@ -1,9 +1,9 @@
 var doodad_data = {
-                //icon, range, dmg, triggerRange
-    "bomb" : ["💣",100,100,24],
-    "trap" : ["🕳",24,[0,50],24]
+                //icon, range, dmg, triggerRange, type
+    "bomb" : ["💣",100,100,24, "explosive"],
+    "trap" : ["🕳",24,[0,50],24, "none"]
 }
-
+//any item that appears on the map
 class Doodad {
 	constructor(name,x,y,owner){
 		this.name = name;
@@ -16,7 +16,8 @@ class Doodad {
         this.range = 0;
 		this.dmg = 0;
 		this.triggerRange = 0;
-        
+        this.type=""
+
         if(name in doodad_data){
             let data = doodad_data[name];
             for(var i = 1;i<=3;i++){
@@ -28,6 +29,7 @@ class Doodad {
             this.range = data[1];
             this.dmg = data[2];
             this.triggerRange = data[3];
+            this.type = data[4];
         }        
         /*
 		switch(this.name){

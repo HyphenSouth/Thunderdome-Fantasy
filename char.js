@@ -32,11 +32,25 @@ class Char {
 		//damage dealt
 		this.fightDmg = 25;
 		this.fightDmgB = 1.00;
+        
+		this.fightDesire = 100;
+		this.peaceDesire = 100;
+        this.peaceB = 0;
+        this.fightB = 0;
+        
 		//how visible they are
 		this.visibility = 100;
         
 		//the current actions
 		this.currentAction = {};
+        //the action performed in the previous turn
+        //used to plan current action
+        this.lastAction="";
+        //if the normal actions of the player is being overridden by something
+        this.actionOverridden = false;
+        //action message to be displayed
+        this.actionMessage = "";
+        
 		//players they are aware of
 		this.awareOf = [];
 		//if their current action is complete
@@ -45,8 +59,6 @@ class Char {
 		this.goal = "";
 		this.moveSpeed = mapSize / 40;
 		//Modifiers
-		this.fightDesire = 100;
-		this.peaceDesire = 100;
 		this.moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
 		this.personality = rollSpecialP(this.name);
 		this.personality = roll([['Evil',1],['Neutral',2],['Good',1]]);
@@ -86,9 +98,7 @@ class Char {
 		this.fightDmgB = 1;
         //apply weapon bonuses
 		if(this.weapon){
-			this.sightRangeB += this.weapon.sightBonus;
-			this.fightRangeB += this.weapon.rangeBonus;
-			this.fightDmgB *= this.weapon.fightBonus;
+            this.weapon.calc_bonuses();
 		}
         //apply experience bonuses
 		this.fightDmgB *= Math.pow(this.killExp,this.exp/100);
@@ -110,11 +120,27 @@ class Char {
 				break;
 		} 
 	}
+    //check effects for items in inventory
+    inv_effects(state, wep_data={}, offhand_data={}){
+        if(this.weapon){
+            this.weapon.weapon_effect(state, wep_data)
+        }
+        if(this.offhand){
+            if(this.offhand_data){
+                this.offhand.item_effect(state, offhand_data)
+            }
+            else{
+                this.offhand.item_effect(state, wep_data)
+            }
+        }
+    }
     //plan the next action
 	planAction(){
         //calculate bonuses
 		this.calc_bonuses();
 		//weapon check
+        this.inv_effects("turn start")
+        /*
 		if(this.weapon){
             //Lancer check
 			if(this.weapon.name == "lance"){
@@ -123,19 +149,19 @@ class Char {
 					this.health = 0;
 					this.death = "Died by their own spear";
 					this.die();
-                    console.log(this.name + ' killed by lance')
+                    log_message(this.name + ' killed by lance')
 					//action();
 					return;
 				}
 			} else if (this.weapon.name == "nanasatsu"){
                 //lose health
-				//this.health -= (this.weapon.fightBonus - 1.5 - this.kills/20);
-				this.health -= (this.weapon.fightBonus +2000);
+				this.health -= (this.weapon.fightBonus - 1.5 - this.kills/20);
+				//this.health -= (this.weapon.fightBonus +2000);
                 //death message
 				if(this.health <= 0){
 					this.death = "Succumbed to SEX SWORD";
 					this.die();
-                    console.log(this.name + ' killed by sword')
+                    log_message(this.name + ' killed by sword')
 					//action();
 					return;
 				}
@@ -146,7 +172,9 @@ class Char {
 			} else {
 				this.div.removeClass("sexSword");
 			}
+            
 		}
+        */
         //if previously sleeping or trapped, clear aware and range list
 		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){
 			this.awareOf = [];
@@ -185,12 +213,41 @@ class Char {
             else if(this.currentAction.name){
 				this.plannedAction = this.currentAction.name;
 			}else {
+                
                 //clear current actions
 				this.currentAction = {};
-				let sexSwordNearby = false;
-				let tP = this;
+                //if sword is not found
+
+                //add moving and fighting as options
+				options.push(["move",100]);
+				if(this.inRangeOf.length > 0)
+					options.push(["fight",100]);
+                   //if it is night add sleep as an option
+				if((hour >= 22 || hour < 5) && this.lastAction != "woke up" && terrainCheck(this.x,this.y) != "w")
+					options.push(["sleep",100]);
+				this.plannedAction = roll(options);
+                   //if fight is chosen
+				if(this.plannedAction == "fight"){
+                       //set target to the first player in range
+					this.plannedTarget = this.inRangeOf[0];
+					this.inRangeOf[0].plannedAction = "fight";
+				}
+                //check nearby weapon effects
+				this.inRangeOf.forEach(function(oP,index){  
+                    if(oP.weapon){
+                        oP.weapon.weapon_effect("planning",{"opponent":this});
+                    }
+                });
+                
+                /*
+				//let sexSwordNearby = false;
+				//let tP = this;
                 //check if sword is in range
 				this.inRangeOf.forEach(function(oP,index){
+                    if(oP.weapon){
+                        oP.weapon.combat_effect("planning",this);
+                    }
+                    /*
 					if(oP.weapon.name == "nanasatsu"){
                         //if sword is found set wielder to target and have both fight
 						if (Math.random() > 0.3){
@@ -200,9 +257,10 @@ class Char {
 							oP.plannedAction = "fight";
 						}
 					}
+
 				});
                 //if sword is not found
-				if(!sexSwordNearby){
+				if(this.plannedAction!="fight_special"){
                     //add moving and fighting as options
 					options.push(["move",100]);
 					if(this.inRangeOf.length > 0)
@@ -218,6 +276,7 @@ class Char {
 						this.inRangeOf[0].plannedAction = "fight";
 					}
 				}
+                */
 			}
 		}
         console.log('finished planning action')
@@ -240,6 +299,9 @@ class Char {
 					this.move();
 					break;
 				case "fight":
+					this.fight();
+					break;
+                case "fight_special":
 					this.fight();
 					break;
 				case "sleep":
@@ -306,7 +368,7 @@ class Char {
 			let oP = this.plannedTarget;
 			oP.calc_bonuses();
             //calculate damage for both fighters
-			damage(this,oP);
+			fight_target(this,oP);
 		}
 		this.energy -= 20;
 		if(this.energy < 0){
@@ -340,75 +402,67 @@ class Char {
 					this.energy += Math.floor(Math.random() * 30+30);
 					this.health += Math.floor(Math.random() * 5);
 					this.lastAction = "forage success";
-                    //randomly find a weapon
+					//randomly find a weapon
 					if(!this.weapon){
-						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bomb",5],["trap",10],["bow",20],["Nothing",500]];
+						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bomb",5],["trap",10],["bow",20],["Nothing",0]];//nothing was 500
 						if(sexSword){
-							weaponOdds.push(["nanasatsu",1000]);
+							weaponOdds.push(["nanasatsu",1]);
 						}
-						this.weapon = new Item(roll(weaponOdds),this);
-                        //failed weapon roll
-						if(this.weapon.name == "Nothing")
-							this.weapon = "";
-                        //sex sword no longer able to be found
-						if(this.weapon.name == "nanasatsu")
-							sexSword = false;
-                        //add weapon to equipped
+						let w = roll(weaponOdds)
+						//this.weapon = new Item(w,this);
+						log_message(this.name +" found "+ w);
+						this.weapon = create_item(w,this);
+
+						//if(this.weapon.name == "Nothing")
+						//	this.weapon = "";
+						//sex sword no longer able to be found
+						//if(this.weapon.name == "nanasatsu")
+						//	sexSword = false;
+						//add weapon to equipped
 						if(this.weapon){
-							this.lastAction = "found " + this.weapon.name;
+							/*this.lastAction = "found " + this.weapon.name;
 							if(this.weapon.name == "nanasatsu"){
 								this.plannedAction = "Find sex sword";
 								this.lastAction = "<span style='color:red'>found SEX SWORD</span>";
 							}
-							this.calc_bonuses();
+							this.calc_bonuses();*/
+							//equip weapon
+							this.weapon.weapon_effect("equip");
 						}
 					}
 					break;
-                //failed forage
+				//failed forage
 				case "fail":
 					this.lastAction = "forage fail";
 					break;
-                //rip
+				//rip
 				case "poisoned":
 					this.health = 0;
 					this.death = "death from poisoned berries";
 					break;
 			}
-            //clear current action
+			//clear current action
 			this.currentAction = {};
 		}
 	}
-    //move
+	//move
 	move(){
 		//timerClick("move");
-        //if not current moving
+		//if not current moving
 		if(this.currentAction.name != "move"){
-            //set current action to moving
+			//set current action to moving
 			this.currentAction = {};
 			let newX = 0;
 			let newY = 0;
-			let sexSwordNearby = false;
-			let tP = this;
-            //check if nearby player has sex sword
-			this.awareOf.forEach(function(oP,index){
-				if(oP.weapon.name == "nanasatsu" && Math.random() > 0.1){
-                    //if found start moving towards sex sword
-					sexSwordNearby = true;
-					newX = oP.x;
-					newY = oP.y;
-					tP.lastAction = "following SEX SWORD";
-					tP.currentAction.name = "";
-				}
-			});
-			if(!sexSwordNearby){
-                //follow first player they are aware of
+//			if(!sexSwordNearby){
+				//follow first player they are aware of
 				if(Math.random() > players.length/100 && this.awareOf.length){
 					newX = this.awareOf[0].x;
 					newY = this.awareOf[0].y;
 					this.lastAction = "following " + this.awareOf[0].name;
 					this.currentAction.name = "";
 				} else {
-                    //get new cords to move to
+					//get new cords to move to
 					let tries = 0;
 					do {
 						newX = Math.floor(Math.random()*mapSize);
@@ -418,7 +472,26 @@ class Char {
 					this.lastAction = "moving";
 					this.currentAction.name = "move";
 				}
+//			}
+			//let sexSwordNearby = false;
+			//let tP = this;
+			//check if nearby player has sex sword
+			this.awareOf.forEach(function(oP,index){ 
+			if(oP.weapon){
+	            oP.weapon.weapon_effect("moving",{"opponent":this});
+            }
+                
+            /*
+			if(oP.weapon.name == "nanasatsu" && Math.random() > 0.1){
+                   //if found start moving towards sex sword
+                sexSwordNearby = true;
+                newX = oP.x;
+				newY = oP.y;
+				tP.lastAction = "following SEX SWORD";
+				tP.currentAction.name = "";
 			}
+            */
+			});
             //move to new location
 			this.currentAction.targetX = newX;
 			this.currentAction.targetY = newY;

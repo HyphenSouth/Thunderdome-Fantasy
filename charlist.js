@@ -1,4 +1,4 @@
-var charlist = [
+var charlist_2020 = [
 	["Saki","https://cdn.myanimelist.net/images/characters/7/75506.jpg"],
 	["Nodoka","https://cdn.myanimelist.net/images/characters/12/75583.jpg"],
 	["Shizuno","https://cdn.myanimelist.net/images/characters/5/144823.jpg"],
@@ -181,7 +181,7 @@ var charlist = [
 	["TK","https://cdn.myanimelist.net/images/characters/10/91153.jpg"],
 	["Shiina","https://cdn.myanimelist.net/images/characters/5/96113.jpg"]
 ];
-charlist = [
+var charlist_2021 = [
 	["Liru","https://cdn.myanimelist.net/images/characters/4/54606.jpg"],
 	["Pachira","https://cdn.myanimelist.net/images/characters/4/54605.jpg"],
 	["Uma","https://cdn.myanimelist.net/images/characters/5/54607.jpg"],
@@ -291,7 +291,7 @@ charlist = [
 	["AHN","https://static.wikia.nocookie.net/anneofgreengables/images/1/18/A_39_AnneHat.jpg/revision/latest/top-crop/width/360/height/450?cb=20140809164431"],
 	["SEX SWORD","https://media.discordapp.net/attachments/214033499814887425/760334351367405629/x3a5ri.png"]
 ];
-/*charlist = [
+var charlist_bkt = [
    [
       "_North",
       "https://witcheffect.com/sprites/pixels/Madotsuki%20v3%20Witch.gif"
@@ -464,4 +464,13 @@ charlist = [
 	   "MaiNigguDesu",
       "https://witcheffect.com/sprites/pixels/Shiro%20v3.png"
    ]
-];*/
+];
+
+var charlist_test = [
+	["Liru","https://cdn.myanimelist.net/images/characters/4/54606.jpg"],
+	["Pachira","https://cdn.myanimelist.net/images/characters/4/54605.jpg"],
+	["Uma","https://cdn.myanimelist.net/images/characters/5/54607.jpg"],
+	["Aiko","https://cdn.myanimelist.net/images/characters/16/167291.jpg"],
+	["Ange","https://cdn.myanimelist.net/images/characters/7/329716.jpg"]]
+
+var charlist = charlist_test;
