@@ -31,20 +31,6 @@ class Doodad {
             this.triggerRange = data[3];
             this.type = data[4];
         }        
-        /*
-		switch(this.name){
-			case "bomb":
-				this.range = 100;
-				this.dmg = 100;
-				this.triggerRange = 24;
-				break;
-			case "trap":
-				this.range = 24;
-				this.dmg = Math.floor(Math.random() * 50);
-				this.triggerRange = 24;
-				break;
-		}
-        */
 	}
 	draw(){
 		let doodDiv = $('#doodad_' + this.id);
@@ -60,6 +46,7 @@ class Doodad {
 			let dist = hypD(oP.x - tD.x,oP.y - tD.y);
 			if(dist <= tD.range){
 				damage(tD,oP);
+                log_message(oP.name + " is trapped");
 				if(oP.health > 0 && tD.name == "trap"){
 					oP.lastAction = "trapped";
 					oP.currentAction.name = "trapped";

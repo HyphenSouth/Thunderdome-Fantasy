@@ -112,7 +112,7 @@ function auto(){
 }
 //progress turn for each player
 function turn(){
-    log_message('start of turn');
+    log_message('================================== start of turn ==================================');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
@@ -144,21 +144,17 @@ function turn(){
 		players.forEach(chara => chara.finishedAction = false);
 		//plan an action for each player
 		players.forEach(function(chara,index){
-			//timerClick("plan " + chara.name);
 			chara.planAction();
-			//timerClick("plan " + chara.name);
 		});
 	}
     action()
 }
 //some sort of action
 function action(){
-    players_ready = 0;
+    log_message("performing actions");
 	//perform actions for each player
 	players.forEach(function(chara,index){
-		//timerClick("do " + chara.name);
 		chara.doAction();
-		//timerClick("do " + chara.name);
 	});
 	//progress time
 	hour++;
@@ -169,8 +165,8 @@ function action(){
 	$('#day').text("Day " + day + " Hour " + hour);
 	//update the info tables
 	updateTable();
-    log_message('end of turn');
-	//}
+    log_message('================================== end of turn ==================================');
+
 }
 function MapResize(){
 	//why is this even here
@@ -219,14 +215,16 @@ function updateTable(){
 			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/100)*100 + "%");
 			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/100)*100 + "%");
 			if(chara.weapon){
-				$("#char_" + chara.id + " .charWeap").text(chara.weapon.icon);
+				//$("#char_" + chara.id + " .charWeap").text(chara.weapon.icon);
+				$("#char_" + chara.id + " .charWeap").html(chara.weapon.icon);
 			} else {
 				$("#char_" + chara.id + " .charWeap").text("");
 			}
 			$("#tbl_" + chara.id + " .status").html(chara.lastAction);
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
 			if(chara.weapon){
-				$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				//$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				$("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
 			} else {
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
@@ -234,7 +232,8 @@ function updateTable(){
 		dedPlayers.forEach(function(chara,index){
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
 			if(chara.weapon){
-				$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				//$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				$("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
 			} else {
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
@@ -248,8 +247,8 @@ function updateTable(){
 		});
 		dedPlayers.forEach(function(chara,index){
 			if(!chara.diedMessage){
-				$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
-				chara.diedMessage = "Done";
+                $('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
+                chara.diedMessage = "Done";
 			}
 		});
 		/*if(messages.length - 1 > lastMessage){

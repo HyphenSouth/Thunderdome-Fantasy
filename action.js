@@ -43,12 +43,6 @@ function inRangeOfCheck(tP){
 					peaceChance += 75;
 				if(tP.moral == 'Chaotic')
 					fightChance += 100;
-                /*
-				if(tP.weapon.name == "nanasatsu"){
-					peaceChance = 1;
-					fightChance = 19;
-				}
-                */
                 fightChance=fightChance+tP.fightB;
                 peaceChance=peaceChance+tP.peaceB;
                 if(fightChance<1)
@@ -91,14 +85,12 @@ function attack(attacker, defender){
 	if(dmg > defender.health)
 		dmg = defender.health;
     //apply weapon effects
-	if(attacker.weapon){
-        attacker.weapon.weapon_effect("attack",{"opponent":defender, "damage":dmg});
-    }
-	if(defender.weapon){
-        defender.weapon.weapon_effect("defend",{"opponent":attacker, "damage":dmg});
-    }
+    attacker.inv_effects_other("attack", defender, {"damage":dmg})
+    attacker.inv_effects_other("defend", attacker, {"damage":dmg})
+    
     defender.health -= dmg;
 	attacker.exp += dmg;
+    log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
 }
 
 function fight_target(tP,oP){
@@ -108,112 +100,51 @@ function fight_target(tP,oP){
         //tp has the initiative 
 		case "Char":
         attack(tP,oP);
-        /*
-		dmg = rollDmg(tP);
-		if(dmg > oP.health)
-			dmg = oP.health;
-
-		if(tP.weapon.name == "nanasatsu"){
-			console.log(tP.health + "before");
-			console.log(dmg);
-			tP.health += Math.pow(dmg,0.66);
-			tP.weapon.fightBonus += dmg/1000;
-			console.log(tP.health + "after");
-		}
-
-		if(tP.weapon){
-            tP.weapon.weapon_effect("attack",{"opponent":oP, "damage":dmg});
-
-			tP.weapon.uses--;
-			if(tP.weapon.uses == 0)
-				tP.weapon = "";
-
-		}
-		oP.health -= dmg;
-		tP.exp += dmg;
-        */
         
 		oP.lastAttacker = tP;
         //opponent turn
 		if(oP.health > 0){
 			tP.lastAction = "fights " + oP.name;
+            if(oP.weapon){
+                tP.lastAction = "attacks " + oP.name + " with a " + tP.weapon.icon;
+            }
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(oP.awareOf.indexOf(tP)>=0){
-				//messages.push([tP," hurts <img src='" + oP.img + "'></img> for " + Math.round(dmg) + " dmg",day,hour]);
                 //check if in range
 				if(oP.fightRange + oP.fightRangeB >= dist){
-                    /*
-					let dmg = rollDmg(oP);
-					if(dmg > tP.health)
-						dmg = tP.health;
-					tP.health -= dmg;
-					oP.exp += dmg;
-					if(oP.weapon.name == "nanasatsu"){
-						console.log(oP.health + "before");
-						console.log(dmg);
-						oP.health += Math.pow(dmg,0.66);
-						oP.weapon.fightBonus += dmg/1000;
-						console.log(oP.health + "after");
-					}
-                    //use up weapon uses
-					if(oP.weapon){
-						oP.weapon.uses--;
-						if(oP.weapon.uses == 0)
-							oP.weapon = "";
-					}
-                    */
                     attack(oP,tP);
+                    //tP killed by oP 
 					if(tP.health <= 0){
+                        log_message(oP.name + " kills " + tP.name);
 						oP.lastAction = "kills " + tP.name;
 						oP.kills++;
-						tP.death = "killed by " + oP.name;
-						//messages.push([tP," kills <img src='" + oP.img + "'></img>",day,hour]);
-                        //pass on sex sword
-                        /*
-						if(tP.weapon.name == "nanasatsu" && Math.random() > 0.1){
-							oP.weapon = tP.weapon;
-							tP.weapon = "";
-						}
-                        */
-                        if(oP.weapon){
-                            op.weapon.weapon_effect("win",{"opponent":tP});
-                        }
-                        if(tP.weapon){
-                            tP.weapon.weapon_effect("lose",{"opponent":oP});
-                        }
+						tP.death = "killed by " + oP.name + "'s counterattack";
+                        oP.inv_effects_other("win",tP);
+                        tP.inv_effects_other("lose",oP);
 					} else {
 						oP.lastAction = "fights " + tP.name;
 						if(oP.weapon)
 							oP.lastAction = "attacks " + tP.name + " with a " + oP.weapon.icon;
-						//messages.push([oP," fights back against <img src='" + tP.img + "'></img> for " + Math.round(dmg) + " dmg",day,hour]);
 					}
 				} else {
-					//messages.push([oP," is out of range and can't fight back",day,hour]);
 					oP.lastAction = "is attacked out of range";
-					//console.log(oP.fightRange + " " + oP.fightRangeB + " " + dist);
 				}
 			} else {
 				if(oP.lastAction == "sleeping"){
-					//messages.push([tP," attacks <img src='" + oP.img + "'></img> in their sleep for " + Math.round(dmg) + " dmg",day,hour]);
 					oP.lastAction = "was attacked in their sleep";
 				} else {
-					//messages.push([tP," hurts <img src='" + oP.img + "'></img> for " + Math.round(dmg) + " dmg",day,hour]);
 					oP.lastAction = "is caught offguard";
 				}
 			}
-		} else {
+		}
+        //oP killed by tP        
+        else {
+            
+            log_message(tP.name + " kills " + oP.name);
 			tP.kills++;
-            /*
-			if(oP.weapon.name == "nanasatsu" && Math.random() > 0.1){
-				tP.weapon = oP.weapon;
-				oP.weapon = "";
-			}*/
-            if(tP.weapon){
-                tP.weapon.weapon_effect("win",{"opponent":oP});
-            }
-            if(oP.weapon){
-                oP.weapon.weapon_effect("lose",{"opponent":tP});
-            }
+            tP.inv_effects_other("win",oP);
+            oP.inv_effects_other("lose", tP);
+
 			if(tP.personality == oP.personality && tP.personality != 'Neutral'){
 				tP.lastAction = "betrays " + oP.name;
 				oP.death = "betrayed by " + tP.name;
