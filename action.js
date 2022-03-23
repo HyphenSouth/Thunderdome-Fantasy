@@ -22,7 +22,36 @@ function awareOfCheck(tP){
 	});
 	return tempArr;
 }
-//check agro for player
+
+function aggroCheck(tP, oP){
+	let fightChance = 50;
+	let peaceChance = 50;
+	if(tP.personality == oP.personality){
+		peaceChance += 40;
+		fightChance -= 20;
+	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+		fightChance += 40;
+		peaceChance -= 20;
+	}
+	if(tP.moral == 'Lawful')
+		peaceChance += 75;
+	if(tP.moral == 'Chaotic'){
+		fightChance += 100;
+    }
+    fightChance=fightChance+tP.aggroB;
+    peaceChance=peaceChance+tP.peaceB;
+    if(fightChance<1)
+        fightChance=1;
+    if(peaceChance<1)
+        peaceChance=1;
+    
+	//console.log("Fight check");
+	//console.log(tP);
+	//console.log(oP);                
+	let rollResult = roll([['fight',fightChance],['peace',peaceChance]]);
+       return rollResult;  
+}
+//get opponents for the specific player
 function inRangeOfCheck(tP){
 	let tempArr = [];
     tP.calc_bonuses();
@@ -30,30 +59,8 @@ function inRangeOfCheck(tP){
 		if(oP.name != tP.name){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
-				let fightChance = 50;
-				let peaceChance = 50;
-				if(tP.personality == oP.personality){
-					peaceChance += 40;
-					fightChance -= 20;
-				} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
-					fightChance += 40;
-					peaceChance -= 20;
-				}
-				if(tP.moral == 'Lawful')
-					peaceChance += 75;
-				if(tP.moral == 'Chaotic')
-					fightChance += 100;
-                fightChance=fightChance+tP.fightB;
-                peaceChance=peaceChance+tP.peaceB;
-                if(fightChance<1)
-                    fightChance=1;
-                if(peaceChance<1)
-                    peaceChance=1;
-				//console.log("Fight check");
-				//console.log(tP);
-				//console.log(oP);
-				let rollResult = roll([['fight',fightChance],['peace',peaceChance]]);
-				//console.log(fightChance + " " + peaceChance + " " + rollResult);
+				let rollResult = aggroCheck(tP,oP);
+                log_message(rollResult)
 				if(rollResult == 'fight')
 					tempArr.push(oP);
 			}
@@ -86,7 +93,7 @@ function attack(attacker, defender){
 		dmg = defender.health;
     //apply weapon effects
     attacker.inv_effects_other("attack", defender, {"damage":dmg})
-    attacker.inv_effects_other("defend", attacker, {"damage":dmg})
+    defender.inv_effects_other("defend", attacker, {"damage":dmg})
     
     defender.health -= dmg;
 	attacker.exp += dmg;
@@ -100,53 +107,67 @@ function fight_target(tP,oP){
         //tp has the initiative 
 		case "Char":
         attack(tP,oP);
-        
+        tP.finishedAction = true
 		oP.lastAttacker = tP;
         //opponent turn
 		if(oP.health > 0){
-			tP.lastAction = "fights " + oP.name;
-            if(oP.weapon){
-                tP.lastAction = "attacks " + oP.name + " with a " + tP.weapon.icon;
+            // tP.lastAction = "fights " + oP.name;
+            tP.statusMessage = "fights " + oP.name;
+            if(tP.weapon){
+                // tP.lastAction = "attacks " + oP.name + " with a " + tP.weapon.icon;
+                tP.statusMessage = "attacks " + oP.name + " with a " + tP.weapon.icon;
             }
-			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
+            //awareness check
 			if(oP.awareOf.indexOf(tP)>=0){
                 //check if in range
+                let dist = hypD(oP.x - tP.x,oP.y - tP.y);
+                //opponent counter attack
 				if(oP.fightRange + oP.fightRangeB >= dist){
                     attack(oP,tP);
+                    oP.finishedAction = true;
                     //tP killed by oP 
 					if(tP.health <= 0){
-                        log_message(oP.name + " kills " + tP.name);
-						oP.lastAction = "kills " + tP.name;
+                        log_message(oP.name + " kills " + tP.name +" (counterattack)");
+						// oP.lastAction = "kills " + tP.name;
+						oP.statusMessage = "kills " + tP.name;
 						oP.kills++;
 						tP.death = "killed by " + oP.name + "'s counterattack";
                         oP.inv_effects_other("win",tP);
                         tP.inv_effects_other("lose",oP);
 					} else {
-						oP.lastAction = "fights " + tP.name;
+						// oP.lastAction = "fights " + tP.name;
+						oP.statusMessage = "fights " + tP.name;
 						if(oP.weapon)
-							oP.lastAction = "attacks " + tP.name + " with a " + oP.weapon.icon;
+							// oP.lastAction = "attacks " + tP.name + " with a " + oP.weapon.icon;
+							oP.statusMessage = "attacks " + tP.name + " with a " + oP.weapon.icon;
 					}
 				} else {
-					oP.lastAction = "is attacked out of range";
-				}
-			} else {
-				if(oP.lastAction == "sleeping"){
-					oP.lastAction = "was attacked in their sleep";
-				} else {
-					oP.lastAction = "is caught offguard";
+					// oP.lastAction = "is attacked out of range";
+					oP.statusMessage = "is attacked out of range";
 				}
 			}
+            //unaware
+            else {
+				if(oP.lastAction == "sleeping"){
+					// oP.lastAction = "was attacked in their sleep";
+                    oP.statusMessage = "was attacked in their sleep";
+				} else {
+					// oP.lastAction = "is caught offguard";
+					oP.statusMessage = "is caught offguard";
+				}
+                oP.currentAction = {}
+			}
 		}
-        //oP killed by tP        
+        // oP killed by tP        
         else {
-            
             log_message(tP.name + " kills " + oP.name);
 			tP.kills++;
             tP.inv_effects_other("win",oP);
             oP.inv_effects_other("lose", tP);
 
 			if(tP.personality == oP.personality && tP.personality != 'Neutral'){
-				tP.lastAction = "betrays " + oP.name;
+				// tP.lastAction = "betrays " + oP.name;
+				tP.statusMessage = "betrays " + oP.name;
 				oP.death = "betrayed by " + tP.name;
 			} else {
 				tP.lastAction = "kills " + oP.name;
@@ -157,6 +178,8 @@ function fight_target(tP,oP){
 				}
 			}
 		}
+        pushMessage(tP, tP.statusMessage);
+        pushMessage(oP, oP.statusMessage);
 		break;
 	case "Doodad":
 		dmg = Math.floor(Math.random() * tP.dmg);
@@ -183,9 +206,11 @@ function fight_target(tP,oP){
 			switch(tP.name){
 				case "trap":
 					if(oP == tP.owner){
-						oP.lastAction = "fell into their own trap";
+						oP.lastAction = "trapped";
+						oP.statusMessage = "fell into their own trap";
 					} else {
-						oP.lastAction = "fell into " + tP.owner.name + "'s trap";
+						oP.lastAction = "trapped";
+						oP.statusMessage = "fell into " + tP.owner.name + "'s trap";
 					}
 					break;
 			}

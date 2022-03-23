@@ -7,7 +7,7 @@ var weapon_data = {
     "bomb" : ["💣", 0, 0, 0, 0, 0, 0, "doodad"],
     "trap" : ["🕳", 0, 0, 0, 0, 0, 0, "doodad"],
     //"nanasatsu" : ["🗡", 0, 0, 2, 1000, 0, 99999, "melee"]
-    "nanasatsu" : ['<img src="./icons/nanasatsu.png"></img>', 0, 0, 2, 1000, -10, 99999, "melee"]
+    "nanasatsu" : ['<img style="width:20px;height:20px;" src="./icons/nanasatsu.png"></img>', 0, 0, 2, 1000, -1000, 99999, "melee"]
 }
 var weapon_data_2 = {
     //icon, sightBonus, rangeBonus, fightBonus, aggroBonus, peaceBonus, uses, type
@@ -81,7 +81,7 @@ class Weapon {
 		this.wielder.fightRangeB += this.rangeBonus;
 		this.wielder.fightDmgB *= this.fightBonus;
         this.wielder.peaceB += this.peaceBonus;
-		this.wielder.fightB *= this.aggroBonus;
+		this.wielder.aggroB += this.aggroBonus;
     }
     /*
     Effects on wielder:
@@ -97,14 +97,14 @@ class Weapon {
         switch(state){
             case "equip":
                 this.wielder.weapon = this;
-                this.wielder.lastAction = "found " + this.name;
+                // this.wielder.lastAction = "found " + this.name;
                 this.calc_bonuses();
                 break;
             case "unequip":
                 this.wielder.weapon="";
                 this.wielder="";
                 break;
-            case "turn start":
+            case "planning":
                 this.wielder.div.removeClass("sexSword");
                 break;
             case "use":
@@ -114,7 +114,7 @@ class Weapon {
                 }
                 break;
             case "break":
-                log_message(this.wielder +"'s " + this.name+" breaks");
+                log_message(this.wielder.name +"'s " + this.name+" breaks");
                 this.wielder.weapon = "";   
                 this.wielder.wielder = "";
                 break;
@@ -155,6 +155,7 @@ class Lance extends Weapon {
                     this.wielder.die();
                     log_message(this.wielder.name + ' killed by lance')
                 }
+                break;
             default:
                 super.self_effect(state, data);
                 break;
@@ -173,8 +174,10 @@ class Nanasatsu extends Weapon {
             case "equip":
                 super.self_effect("equip")
                 sexSword = false;
-                this.wielder.plannedAction = "Find sex sword";
-                this.wielder.lastAction = "<span style='color:red'>found SEX SWORD</span>";
+                // this.wielder.plannedAction = "Find sex sword";
+                this.wielder.statusMessage = "<span style='color:red'>found SEX SWORD</span>";
+                pushMessage(this.wielder,this.wielder.name +  "<span style='color:red'> found SEX SWORD</span>");
+                break;
             //turn start
             case "planning":
                 this.wielder.div.addClass("sexSword");
@@ -199,13 +202,15 @@ class Nanasatsu extends Weapon {
             //killing an opponent
             case "win":
                 this.kills++;  
+                break;
             case "attack":
                 let dmg=data['damage'];
-                log_message(this.wielder.name + "SEX SWORD attack")
-                log_message(this.wielder.health + "before");
+                log_message(this.wielder.name + " SEX SWORD attack")
+                log_message(this.wielder.health + " before");
+                log_message(dmg);
                 this.wielder.health += Math.pow(dmg,0.66);
                 this.fightBonus += dmg/1000;
-                log_message(this.wielder.health + "after");
+                log_message(this.wielder.health + " after");
                 break;
             //killed by opponent
             case "lose":
@@ -216,11 +221,14 @@ class Nanasatsu extends Weapon {
                     this.self_effect("equip");
                     log_message("sex sword is passed onto " + oP.name);
                 }
+                break;
             //if seen by moving player
             case "aware":
+                // if (Math.random() > 1000){
                 if (Math.random() > 0.1){
                     //if found start moving towards sex sword
-					oP.lastAction = "following SEX SWORD";
+					oP.lastAction = "following";
+					oP.statusMessage = "following SEX SWORD";
 					oP.currentAction.name = "";
 					let newX = this.wielder.x;
 					let newY = this.wielder.y;
@@ -228,13 +236,14 @@ class Nanasatsu extends Weapon {
                     oP.currentAction.targetY = newY;
                 }
                 break;
-            //if in range of another player
+            //if in fighting range of another player
             case "in range":
+                // if (Math.random() > 100){
                 if (Math.random() > 0.3){
-					oP.plannedTarget = this.wielder;
-					oP.plannedAction = "fight";
-                    //oP.actionPriority=10;
-					this.wielder.plannedAction = "fight";
+                    if(oP.setPlannedAction("fight", 7)){
+                        oP.plannedTarget = this.wielder;
+                        this.wielder.setPlannedAction("fight", 5);
+                    }
 				}
                 break;
             default:

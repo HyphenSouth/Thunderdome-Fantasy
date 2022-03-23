@@ -20,6 +20,7 @@ var lastT = 0;	//no clue what this does
 var timerClicks = {};
 var messages = [];
 var lastMessage = -1;
+var events = [];
 
 var log_msg=true
 
@@ -76,6 +77,8 @@ function startGame(){
 	});
 	//clear the player table
 	$('#table').html('');
+    $('#table').css('display','block');
+	$('#messages').css('display','none');
 	//go through charlist
 	for(var i = 0;i<charlist.length;i++){
 		//get a random starting point for the player
@@ -112,7 +115,7 @@ function auto(){
 }
 //progress turn for each player
 function turn(){
-    log_message('================================== start of turn ==================================');
+    log_message('=================== start of turn ===================');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
@@ -140,7 +143,7 @@ function turn(){
 		}
 		//randomize the player list
 		players.sort(() => Math.random() - 0.5);
-		players.forEach(chara => chara.plannedAction = "");
+		// players.forEach(chara => chara.plannedAction = "");
 		players.forEach(chara => chara.finishedAction = false);
 		//plan an action for each player
 		players.forEach(function(chara,index){
@@ -151,10 +154,14 @@ function turn(){
 }
 //some sort of action
 function action(){
-    log_message("performing actions");
+    log_message("=================== performing actions ===================");
 	//perform actions for each player
 	players.forEach(function(chara,index){
 		chara.doAction();
+	});
+    //check death
+    players.forEach(function(chara,index){
+		chara.limitCheck();        //check if player is dead
 	});
 	//progress time
 	hour++;
@@ -165,8 +172,8 @@ function action(){
 	$('#day').text("Day " + day + " Hour " + hour);
 	//update the info tables
 	updateTable();
-    log_message('================================== end of turn ==================================');
-
+    log_message('=================== end of turn ===================');
+    log_message("   ")
 }
 function MapResize(){
 	//why is this even here
@@ -194,33 +201,43 @@ function boundsCheck(x,y){
 }
 //toggle the info being displayed
 function infoDisplay(){
-	//block = display players
-	//none = deaths
+	//switch from ststus to events
 	if($('#table').css('display')=='block'){
 		$('#table').css('display','none');
 		$('#messages').css('display','block');
-	} else {
+	} 
+    //switch from events to status
+    else {
 		$('#table').css('display','block');
 		$('#messages').css('display','none');
 	}
 	
 }
+
+function pushMessage(chara, msg){
+    events.push({"chara": chara, "message":msg});
+}
+
 //update the info tables
 function updateTable(){
 	//list status
-	if($('#table').css('display')=='block'){
+	// if($('#table').css('display')=='block'){
 		players.forEach(function(chara,index){
+            //health bars
 			$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/100)*100 + "%");
 			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/100)*100 + "%");
 			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/100)*100 + "%");
 			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/100)*100 + "%");
+            //weapon
 			if(chara.weapon){
 				//$("#char_" + chara.id + " .charWeap").text(chara.weapon.icon);
 				$("#char_" + chara.id + " .charWeap").html(chara.weapon.icon);
 			} else {
 				$("#char_" + chara.id + " .charWeap").text("");
 			}
-			$("#tbl_" + chara.id + " .status").html(chara.lastAction);
+            //action
+			$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
+            //kills
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
 			if(chara.weapon){
 				//$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
@@ -228,6 +245,7 @@ function updateTable(){
 			} else {
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
+
 		});
 		dedPlayers.forEach(function(chara,index){
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
@@ -238,26 +256,41 @@ function updateTable(){
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
 		});
-	} else {//list status
-		$('#messages td').css('opacity','0.3');
+        //turn existing messages transparent
+        $('#messages td').css('opacity','0.3');
+        /*
+        //add relevant messages
 		players.forEach(function(chara,index){
 			if(chara.plannedAction != "move" && chara.plannedAction != "sleep" && chara.plannedAction != "forage"){
-				$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.name + " " + chara.lastAction + "</td>>");
+				$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.name + " " + chara.statusMessage + "</td>>");
 			}
 		});
+        */
+        events.forEach(function(msg,index){
+            let chara = msg.chara;
+            let message = msg.message;
+            $('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + message + "</td>>");
+        });
+        events=[];
+        //list deaths
 		dedPlayers.forEach(function(chara,index){
 			if(!chara.diedMessage){
                 $('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
                 chara.diedMessage = "Done";
 			}
 		});
-		/*if(messages.length - 1 > lastMessage){
+    /*
+    if($('#table').css('display')=='block'){
+	} else {//list events
+        //
+		if(messages.length - 1 > lastMessage){
 			for(let i = lastMessage + 1;i < messages.length;i++){
 				$('#messages tbody').prepend("<tr><td>Day " + messages[i][2] + " " + messages[i][3] + ":00</td><td><img src='" + messages[i][0].img + "'></img>" + messages[i][1] + "</td>>");
 			}
 			lastMessage = messages.length - 1;
-		}*/
+		}
 	}
+    */
 }
 //remove value from an array
 function arrayRemove(arr, value) { 
@@ -281,6 +314,17 @@ function terrainCheck(x,y){
 			return terrain[roundX][roundY].type;
 		} else {
 			return "Index error";
+		}
+	}
+}
+function getTerrain(x,y){
+	let roundX = Math.round(x/25)*25;
+	let roundY = Math.round(y/25)*25;
+	if(terrain[roundX]){
+		if(terrain[roundX][roundY]){
+			return terrain;
+		} else {
+			return "";
 		}
 	}
 }

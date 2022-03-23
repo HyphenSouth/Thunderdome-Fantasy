@@ -45,11 +45,12 @@ class Doodad {
 		players.forEach(function(oP,index){
 			let dist = hypD(oP.x - tD.x,oP.y - tD.y);
 			if(dist <= tD.range){
-				damage(tD,oP);
+				fight_target(tD,oP);
                 log_message(oP.name + " is trapped");
 				if(oP.health > 0 && tD.name == "trap"){
 					oP.lastAction = "trapped";
 					oP.currentAction.name = "trapped";
+                    oP.actionPriority = 10;
 				}
 			}
 		});
