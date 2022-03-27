@@ -3,7 +3,7 @@ var terrain_icons = {
 	//"w":"💧",
 	"t":"🌳",
 	"m":"⛰️",
-    "f":"🔥"
+	"f":"🔥"
 }
 class Terrain {
 	constructor(type,x,y){

@@ -1,5 +1,6 @@
 var players = []; 			//list of players
 var dedPlayers = []; 		//list of dead players
+var total_players = 0		//total players
 var terrain = [];			//2d array for terrain objects
 var doodads = [];			//list of items
 var riverSpawns = [];		//rivers?
@@ -36,7 +37,7 @@ function Init(){
 	if($('body').width() > $('body').height()){
 		$('#map').width($('#map').height());
 		$('#map').height($('#map').width());
-		$('#side').width("calc(100% - 40px - " + ($('#map').width() + 100) + "px)");
+		$('#side').width("calc(100% - 40px - " + ($('#map').width() + 5) + "px)");
 		$('#side').css({'max-height':'100%','overflow-y':'scroll'});
 	} else {
 		$('#map').width('calc(100% - 40px)');
@@ -77,7 +78,7 @@ function startGame(){
 	});
 	//clear the player table
 	$('#table').html('');
-    $('#table').css('display','block');
+	$('#table').css('display','block');
 	$('#messages').css('display','none');
 	//go through charlist
 	for(var i = 0;i<charlist.length;i++){
@@ -115,7 +116,7 @@ function auto(){
 }
 //progress turn for each player
 function turn(){
-    log_message('=================== start of turn ===================');
+	log_message('======= start of turn =======');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
@@ -150,18 +151,18 @@ function turn(){
 			chara.planAction();
 		});
 	}
-    action()
+	action()
 }
 //some sort of action
 function action(){
-    log_message("=================== performing actions ===================");
+	log_message("======= performing actions =======");
 	//perform actions for each player
 	players.forEach(function(chara,index){
 		chara.doAction();
 	});
-    //check death
-    players.forEach(function(chara,index){
-		chara.limitCheck();        //check if player is dead
+	//check death
+	players.forEach(function(chara,index){
+		chara.limitCheck();		//check if player is dead
 	});
 	//progress time
 	hour++;
@@ -172,11 +173,11 @@ function action(){
 	$('#day').text("Day " + day + " Hour " + hour);
 	//update the info tables
 	updateTable();
-    log_message('=================== end of turn ===================');
-    log_message("   ")
+	log_message('======= end of turn=======');
+	log_message("   ")
 }
 function MapResize(){
-	//why is this even here
+	//oh god i dont even want to imagine what this does
 }
 
 //check if a coordinate is in bounds
@@ -206,8 +207,8 @@ function infoDisplay(){
 		$('#table').css('display','none');
 		$('#messages').css('display','block');
 	} 
-    //switch from events to status
-    else {
+	//switch from events to status
+	else {
 		$('#table').css('display','block');
 		$('#messages').css('display','none');
 	}
@@ -215,36 +216,76 @@ function infoDisplay(){
 }
 
 function pushMessage(chara, msg){
-    events.push({"chara": chara, "message":msg});
+	events.push({"chara": chara, "message":msg});
 }
 
 //update the info tables
 function updateTable(){
 	//list status
 	// if($('#table').css('display')=='block'){
-		players.forEach(function(chara,index){
-            //health bars
-			$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/100)*100 + "%");
-			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/100)*100 + "%");
-			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/100)*100 + "%");
-			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/100)*100 + "%");
-            //weapon
+		players.forEach(function(chara,index){		
+		
+			let wep_text=""
+			if(chara.weapon){
+				wep_text+=chara.weapon.icon;
+			}
+			if(chara.offhand){
+				wep_text+=chara.offhand.icon;
+			}
+
+			let status_text=""
+			let icon_status_text = "<br>";
+			let icon_count=0;
+			chara.status_effects.forEach(function(eff,index){		
+				status_text+=eff.icon;
+				if(icon_count<3){
+					if(eff.icon){
+						icon_status_text=icon_status_text+eff.icon + "<br>";
+						icon_count++;
+					}			
+				}
+			});
+			
+			//character icons
+			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+			
+			
+			$("#char_" + chara.id + " .charEff").html(icon_status_text);
+
+			/*
 			if(chara.weapon){
 				//$("#char_" + chara.id + " .charWeap").text(chara.weapon.icon);
 				$("#char_" + chara.id + " .charWeap").html(chara.weapon.icon);
 			} else {
 				$("#char_" + chara.id + " .charWeap").text("");
 			}
-            //action
+			*/
+			$("#char_" + chara.id + " .charWeap").html(wep_text);
+			
+			
+			//info bar
+			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+			$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+			
+			//action
 			$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
-            //kills
+			
+			//kills
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
+			/*
 			if(chara.weapon){
-				//$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				// $("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
 				$("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
 			} else {
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
+			*/
+
+			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
+			$("#tbl_" + chara.id + " .effects").html(status_text);
+			log_message(chara.name +" status txt " + status_text);
+
 
 		});
 		dedPlayers.forEach(function(chara,index){
@@ -256,33 +297,33 @@ function updateTable(){
 				$("#tbl_" + chara.id + " .weapon").text("");
 			}
 		});
-        //turn existing messages transparent
-        $('#messages td').css('opacity','0.3');
-        /*
-        //add relevant messages
+		//turn existing messages transparent
+		$('#messages td').css('opacity','0.3');
+		/*
+		//add relevant messages
 		players.forEach(function(chara,index){
 			if(chara.plannedAction != "move" && chara.plannedAction != "sleep" && chara.plannedAction != "forage"){
 				$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.name + " " + chara.statusMessage + "</td>>");
 			}
 		});
-        */
-        events.forEach(function(msg,index){
-            let chara = msg.chara;
-            let message = msg.message;
-            $('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + message + "</td>>");
-        });
-        events=[];
-        //list deaths
+		*/
+		events.forEach(function(msg,index){
+			let chara = msg.chara;
+			let message = msg.message;
+			$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + message + "</td>>");
+		});
+		events=[];
+		//list deaths
 		dedPlayers.forEach(function(chara,index){
 			if(!chara.diedMessage){
-                $('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
-                chara.diedMessage = "Done";
+				$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
+				chara.diedMessage = "Done";
 			}
 		});
-    /*
-    if($('#table').css('display')=='block'){
+	/*
+	if($('#table').css('display')=='block'){
 	} else {//list events
-        //
+		//
 		if(messages.length - 1 > lastMessage){
 			for(let i = lastMessage + 1;i < messages.length;i++){
 				$('#messages tbody').prepend("<tr><td>Day " + messages[i][2] + " " + messages[i][3] + ":00</td><td><img src='" + messages[i][0].img + "'></img>" + messages[i][1] + "</td>>");
@@ -290,7 +331,7 @@ function updateTable(){
 			lastMessage = messages.length - 1;
 		}
 	}
-    */
+	*/
 }
 //remove value from an array
 function arrayRemove(arr, value) { 
@@ -413,7 +454,6 @@ function generateRiver(river,recursive){
 		if(terrain[currX]){
 			if(terrain[currX][currY]){
 				terrain[currX][currY].type = "w";
-				//terrain[currX][currY].icon = "🔹"
 				terrain[currX][currY].draw();
 				//generate forks
 				if(i == split && recursive){
@@ -461,7 +501,7 @@ function rollSpecialH(tempName){
 }
 //roll a range
 function roll_range(min, max){
-    return Math.floor(Math.random() * (max-min)) + min
+	return Math.floor(Math.random() * (max-min)) + min
 }
 
 function roll(options){
@@ -488,7 +528,7 @@ function timerClick(val){
 }
 
 function log_message(msg){
-    if(log_msg==true){
-        console.log(msg);
-    }    
+	if(log_msg==true){
+		console.log(msg);
+	}	
 }
