@@ -86,6 +86,7 @@ class Char {
 		//_______________text_______________
 		//action message to be displayed
 		this.statusMessage = "";
+		this.statusMessageLv = 0;
 		//if their current action is complete
 		this.finishedAction = true;
 
@@ -173,7 +174,7 @@ class Char {
 			case "t":
 				this.sightRangeB -= 50;
 				this.fightRangeB -= 4;
-				this.visibility
+				this.visibilityB -= 10;
 				break;
 			case "w":
 				this.fightRangeB = 0;
@@ -217,6 +218,13 @@ class Char {
 			eff.effect(state, data);
 		});		
 	}	
+	
+	apply_all_effects(state, data={}){
+		this.apply_inv_effects(state, data);
+		this.apply_status_effects(state, data);
+	}
+	
+	/*
 	//apply effects to others
 	apply_inv_effects_other(state, oP, wep_data={}, offhand_data={}){
 		if(this.weapon){
@@ -240,6 +248,7 @@ class Char {
 			eff.effect(state, data);
 		});		
 	}
+	*/
 	
 	//equipping an item
 	equip_item(item, slot){
@@ -313,6 +322,7 @@ class Char {
 			log_message(this.name +"'s " + status_eff.name+ " stacked");
 		}
 		else{
+			//add new effect into list
 			this.status_effects.push(status_eff);
 			status_eff.afflict(this);
 			this.apply_inv_effects("new status", {"eff": status_eff});
@@ -352,8 +362,40 @@ class Char {
 		this.actionPriority=0;
 		this.plannedAction="";
 		this.currentAction = {};
+		this.prevTarget = this.plannedTarget;
 		this.plannedTarget = "";
 	}
+	
+	//check for aware and in range players
+	checkSurroundingPlayers(){
+		//get opponents that are in sight 
+		this.awareOf = awareOfCheck(this);		//Opponents in sight
+		//if previously sleeping or trapped, clear aware list	
+		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){this.awareOf = [];}
+		log_message(this.name + " aware "+this.awareOf.length)
+		//apply effects from those in sight
+		let temp_this=this;
+		this.awareOf.forEach(function(oP,index){
+			// oP.apply_inv_effects_other("op aware", temp_this);
+			// oP.apply_status_effects_other("op aware", temp_this);
+			oP.apply_all_effects("op aware", {"opponent":temp_this});
+		});
+
+		//get opponents that player can fight
+		this.inRangeOf = inRangeOfCheck(this);	//Opponents in range
+		//if previously sleeping or trapped, clear in range list	
+		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){this.awareOf = [];}
+		log_message(this.name + " in range "+this.inRangeOf.length)		
+		//apply effects from those in range
+		temp_this=this;
+		this.inRangeOf.forEach(function(oP,index){
+			// oP.apply_inv_effects("op in range", {"opponent":temp_this});
+			// oP.apply_status_effects_other("op in range", temp_this);
+			oP.apply_all_effects("op in range", {"opponent":temp_this});
+		});
+
+	}
+	
 	//plan the next action
 	/*
 	calculate bonuses
@@ -366,8 +408,9 @@ class Char {
 		this.calc_bonuses();
 		
 	 	//apply turn start effects
-		this.apply_inv_effects("turn start");
-		this.apply_status_effects("turn start");
+		// this.apply_inv_effects("turn start");
+		// this.apply_status_effects("turn start");
+		this.apply_all_effects("turn start");
 		
 		//update some counters
 		if(this.lastAction!="sleeping"){
@@ -381,28 +424,7 @@ class Char {
 			this.lastFight=0;
 		}
 		
-		//get opponents that are in sight and in range
-		this.awareOf = awareOfCheck(this);		//Opponents in sight
-		this.inRangeOf = inRangeOfCheck(this);	//Opponents in range
-		//awareness check	  
-		//if previously sleeping or trapped, clear aware and range list
-		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){
-			this.awareOf = [];
-			this.inRangeOf = [];
-		}
-				
-		
-		//apply effects from those in range
-		let temp_this=this;
-		this.inRangeOf.forEach(function(oP,index){
-			oP.apply_inv_effects_other("op in range", temp_this);
-			oP.apply_status_effects_other("op in range", temp_this);
-		});
-		//apply effects from those in sight
-		this.awareOf.forEach(function(oP,index){
-			oP.apply_inv_effects_other("op aware", temp_this);
-			oP.apply_status_effects_other("op aware", temp_this);
-		});
+		this.checkSurroundingPlayers();
 		
 		//plan next action
 		/*
@@ -431,7 +453,7 @@ class Char {
 			options.push(["fight",100 + (this.aggroB - this.peaceB)]);
 		//follow
 		if(this.awareOf.length > 0)
-			options.push(["follow",50]);
+			options.push(["follow",90]);
 		//if it is night add sleep as an option
 		if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=5 && terrainCheck(this.x,this.y) != "w")
 			options.push(["sleep",90+2*this.lastSlept]);
@@ -440,7 +462,7 @@ class Char {
 		let o = roll(options);
 		if(o == "fight"){
 			//set target to the first player in range
-			if(this.setPlannedAction("fight",2)){
+			if(this.setPlannedAction("fight",4)){
 				this.plannedTarget = this.inRangeOf[0];	   
 				log_message(this.name + " targets attack "+this.plannedTarget.name)
 				if(this.plannedTarget.setPlannedAction("attacked", 4)){
@@ -462,8 +484,9 @@ class Char {
 		}
 		
 		//apply effects
-		this.apply_inv_effects("plan action");
-		this.apply_status_effects("plan action");
+		// this.apply_inv_effects("plan action");
+		// this.apply_status_effects("plan action");
+		this.apply_all_effects("plan action");
 				
 		log_message(this.name+" plans to "+ this.plannedAction)
 	}
@@ -471,8 +494,11 @@ class Char {
 	//perform action
 	//called by action in main
 	doAction(){
-		this.apply_inv_effects("do action");
-		this.apply_status_effects("do action");
+		this.div.find('.charName').removeClass('trapped');
+		// this.apply_inv_effects("do action");
+		// this.apply_status_effects("do action");
+		// this.apply_all_effects("do action");
+		
 		//perform planned action
 		if(this.health > 0 && !this.finishedAction){
 			//console.log(this.name + " " + this.plannedAction);
@@ -497,13 +523,16 @@ class Char {
 				case "sleep":
 					this.action_sleep();
 					break;
+				/*
 				case "trapped":
 					this.action_escapeTrap();
 					break;
+				*/
 				default:
 					//console.log(this.name + " has no planned action");
-					this.statusMessage = "Does nothing";
-					this.resetPlannedAction();
+					// this.statusMessage = "Does nothing";
+					// this.resetPlannedAction();
+					this.apply_all_effects(this.plannedAction);
 					break;
 			}
 		}
@@ -521,8 +550,9 @@ class Char {
 		}		
 		//action completed
 		this.finishedAction = true;
-		this.apply_inv_effects("end turn");
-		this.apply_status_effects("end turn");
+		// this.apply_inv_effects("end turn");
+		// this.apply_status_effects("end turn");
+		this.apply_all_effects("end turn");
 	}
 	
 	//action functions
@@ -541,14 +571,12 @@ class Char {
 			log_message(this.name + " fails to escape");
 			if(this.health <= 0) 
 				this.death = "died escaping a trap";
-		};
+		}
 	}
 	
 	//fight
 	action_fight(){
-		log_message(this.name + " fights");
-		//calculate bonuses
-		this.calc_bonuses();
+		log_message(this.name + " fights back");
 		//add red fighting border
 		//this.div.addClass("fighting");
 		//fight planned target
@@ -557,11 +585,8 @@ class Char {
 			
 			if(this.plannedTarget.health>0){
 				this.lastAction = "fighting";
-				
-				let oP = this.plannedTarget;
-				oP.calc_bonuses();
 				//calculate damage for both fighters
-				fight_target(this,oP);
+				fight_target(this,this.plannedTarget);
 			}
 			//if target is already dead
 			else{
@@ -622,9 +647,9 @@ class Char {
 					//roll weapon
 					if(!this.weapon || loot_type=="wep"){
 						// let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20], ["bomb",5],["trap",10],["Nothing",500]];//nothing was 500
-						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20], ["Nothing",0]];//nothing was 500
+						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 2000], ["Nothing",0]];//nothing was 500
 						if(sexSword){
-							// weaponOdds.push(["nanasatsu",10000]);
+							// weaponOdds.push(["nanasatsu",1]);
 							weaponOdds.push(["nanasatsu",10000]);
 						}
 						let w = roll(weaponOdds)
@@ -686,8 +711,10 @@ class Char {
 		this.currentAction.targetX = newX;
 		this.currentAction.targetY = newY;
 		
-		this.plannedTarget.apply_inv_effects_other("follow target", this);
-		this.plannedTarget.apply_status_effects_other("follow target", this);
+		// this.plannedTarget.apply_inv_effects_other("follow target", this);
+		// this.plannedTarget.apply_status_effects_other("follow target", this);
+		this.plannedTarget.apply_all_effects("follow target", {"opponent":this});
+		
 		this.moveToTarget();
 		log_message(this.name +" following "+this.plannedTarget.name);
 		log_message(this.plannedTarget.name +" at ("+this.plannedTarget.x+","+this.plannedTarget.y+")");
@@ -888,8 +915,9 @@ class Char {
 	//action on death
 	die(){
 		this.health=0;
-		this.apply_inv_effects("death");
-		this.apply_status_effects("death");
+		// this.apply_inv_effects("death");
+		// this.apply_status_effects("death");
+		this.apply_all_effects("death");
 		players = arrayRemove(players,this);
 		dedPlayers.push(this);
 		$("#tbl_" + this.id).addClass("dead");

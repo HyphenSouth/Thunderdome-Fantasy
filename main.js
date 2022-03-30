@@ -284,7 +284,7 @@ function updateTable(){
 
 			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
 			$("#tbl_" + chara.id + " .effects").html(status_text);
-			log_message(chara.name +" status txt " + status_text);
+			// log_message(chara.name +" status txt " + status_text);
 
 
 		});
