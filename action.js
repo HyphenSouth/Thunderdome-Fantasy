@@ -9,9 +9,9 @@ function awareOfCheck(tP){
 		if(oP.name != tP.name){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			//check if tP has special aggro effects
-			tP.apply_all_effects("aware check", {"opponent":oP});
+			tP.apply_all_effects("awareCheck", {"opponent":oP});
 			//check if oP forces tP to aggro
-			oP.apply_all_effects("aware check others", {"opponent":tP});
+			oP.apply_all_effects("awareCheckOthers", {"opponent":tP});
 			let op_vis = oP.visibility + oP.visibilityB;
 			if(op_vis<0){op_vis=0;}
 			if(dist <= tp_sight){
@@ -52,9 +52,9 @@ function aggroCheck(tP, oP){
 	// oP.apply_status_effects_other("aggro check", tP);
 
 	//check if tP has special aggro effects
-	tP.apply_all_effects("aggro check", {"opponent":oP});
+	tP.apply_all_effects("aggroCheck", {"opponent":oP});
 	//check if oP forces tP to aggro
-	oP.apply_all_effects("aggro check others", {"opponent":tP});
+	oP.apply_all_effects("aggroCheckOthers", {"opponent":tP});
 	
 	fightChance=fightChance+tP.aggroB;
 	peaceChance=peaceChance+tP.peaceB;
@@ -97,31 +97,42 @@ function doodadCheck(tP){
 	doodads.forEach(function(tD,index){
 		let dist = hypD(tP.x - tD.x, tP.y - tD.y);
 		if(dist <= tD.triggerRange){
-			let triggerChance = 1;
-			let triggerNoChance = 3;
+			let triggerChance = 5 + tD.triggerChance;
+			let triggerNoChance = 15;
 			if(tD.owner == tP)
-				triggerNoChance += 20;
+				triggerNoChance += 100;
 			if(roll([["yes",triggerChance],["no",triggerNoChance]]) == 'yes')
 				tD.trigger();
 		}
 	});
 }
 function rollDmg(tP){
-	return Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
+	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
+	log_message(dmg);
+	log_message(tP.fightDmgB);
+	return dmg;
 }
 
 
 function attack(attacker, defender, counter){
 	let dmg = 0;
+	let dmg_type="melee"
+	
+	if(attacker.weapon){
+		dmg_type = attacker.weapon.dmg_type;
+	}
 	attacker.calc_bonuses();
 	defender.calc_bonuses();
 	
+
 	//apply pre damage functions
 	// attacker.apply_inv_effects_other("attack", {"damage":dmg, "counter":counter});
 	// defender.apply_inv_effects_other("defend", {"damage":dmg, "counter":counter});	
 	attacker.statusMessage = "fights " + defender.name;
-	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter});
-	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter});
+	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type});
+	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type});
+
+
 	if(attacker.fightDmgB<0){
 		attacker.fightDmgB=0;
 	}
@@ -133,15 +144,24 @@ function attack(attacker, defender, counter){
 	if(dmg > defender.health)
 		dmg = defender.health;
 	
-	defender.health -= dmg;
+	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type});
+	// defender.apply_all_effects("takeDmg", {"source":attacker, "damage":dmg, "dmg_type":dmg_type});
+	
+	// defender.health -= dmg;
+	defender.take_damage(dmg, attacker, dmg_type)
+	log_message(attacker.name + " exp before ")
+	log_message(attacker.exp)
 	attacker.exp += dmg;
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
-	
+	log_message(dmg)
+	log_message(attacker.name + " exp after ")
+	log_message(attacker.exp)
+	log_message(attacker.name+" bonus ")
+	log_message(attacker.fightDmgB)
 	//apply weapon effects after dealing damage
 	// attacker.apply_inv_effects_other("deal dmg", defender, {"damage":dmg, "counter":counter});
 	// defender.apply_inv_effects_other("take dmg", attacker, {"damage":dmg, "counter":counter});	
-	attacker.apply_all_effects("deal dmg", {"opponent":defender, "damage":dmg, "counter":counter});
-	defender.apply_all_effects("take dmg", {"opponent":attacker, "damage":dmg, "counter":counter});
+
 	
 
 }
@@ -167,7 +187,7 @@ function fight_target(tP,oP){
 		}
 		*/
 		//awareness check
-		if(oP.awareOf.indexOf(tP)>=0){
+		if(!oP.incapacitated && oP.awareOf.indexOf(tP)>=0){
 			//check if in range
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			//opponent counter attack
@@ -196,10 +216,10 @@ function fight_target(tP,oP){
 				// oP.lastAction = "was attacked in their sleep";
 				oP.statusMessage = "was attacked in their sleep";
 			} 
-			else if(oP.lastAction == "trapped"){
-				pushMessage(oP, oP.name + " unable to fight back against " + tP.name);
+			else if(oP.incapacitated){
+				oP.statusMessage = "unable to fight back against " + tP.name;
 			}
-			else{
+			else {
 				// oP.lastAction = "is caught offguard";
 				oP.statusMessage = "is caught offguard";
 			}
@@ -234,21 +254,22 @@ function fight_target(tP,oP){
 	
 	oP.resetPlannedAction();
 }
-function doodadDmg(tP, oP){
-	dmg = Math.floor(Math.random() * tP.dmg);
+/*
+function doodadDmg(tD, oP){
+	dmg = Math.floor(Math.random() * tD.dmg);
 	oP.health -= dmg;
 	if(oP.health <= 0){
-		tP.owner.kills++;
-		switch(tP.name){
+		tD.owner.kills++;
+		switch(tD.name){
 			case "bomb":
-				if(oP == tP.owner){
+				if(oP == tD.owner){
 					oP.death = "blown up by their own bomb";
 				} else {
-					oP.death = "blown up by " + tP.owner.name;
+					oP.death = "blown up by " + tD.owner.name;
 				}
 				break;
 			case "trap":
-				if(oP == tP.owner){
+				if(oP == tD.owner){
 					oP.death = "fell into their own trap";
 				} else {
 					oP.death = "fell into " + tP.owner.name + "'s trap";
@@ -270,3 +291,4 @@ function doodadDmg(tP, oP){
 	}
 }
 
+*/

@@ -20,7 +20,7 @@ class StatusEffect{
 
 	effect(state, data={}){
 		switch(state){			
-			case "turn start":
+			case "turnStart":
 				this.duration-=1;
 				if(this.duration <=0){
 					this.wear_off();
@@ -71,29 +71,52 @@ ph3.test_data="test3"
 
 
 class Trapped extends StatusEffect{
-	constructor(level){
+	constructor(level, owner){
 		super("trapped");
 		this.icon="🕳"
 		this.duration=20;
 		this.turns_trapped=0;
 	}
+	
+	afflict(player){
+		super.afflict(player)
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		this.player.lastAction = "trapped";
+		this.player.currentAction.name = "trapped";
+	}
+	
+	//cannot be stacked
+	stack_effect(new_eff){
+		return false;
+	}
+	
 	effect(state, data={}){
 		let oP="";
 		switch(state){
-			case "turn start":
+			case "turnStart":
 				if(this.player.lastAction=="escaped"){
 					this.wear_off();
 				}
+				else{
+					this.player.lastAction="trapped";
+					this.player.unaware = true;
+					this.player.incapacitated = true;
+					this.player.currentAction.name="trapped"
+				}
 				break;
-			case "plan action":
+			case "planAction":
 				// if(this.player.lastAction="trapped"){
-					this.player.setPlannedAction("escape", 10);
+				log_message(this.player.name + " escape planning")
+				this.player.setPlannedAction("escape", 10);
+				this.player.awareOf=[];
+				this.player.inRangeOf=[];
 				// }
 				break;
 			case "escape":
-				log_message(this.player.name + "escape attempt")
+				log_message(this.player.name + " escape attempt")
 				this.player.currentAction.name="escape";
-				if (Math.floor(Math.random() * 10) > 8){
+				if (roll_range(0,10) > 800){
 					//escape successful
 					log_message(this.player.name+" escapes");
 					this.player.statusMessage = "escaped a trap";
@@ -105,11 +128,13 @@ class Trapped extends StatusEffect{
 				else{
 					//escape failed
 					this.player.energy -= 10;
-					this.player.health -= Math.floor(Math.random() * 5);
+					this.player.take_damage(Math.floor(Math.random() * 5), this, "none")
+					// this.player.health -= Math.floor(Math.random() * 5);
 					this.player.lastAction = "trapped";
-					this.player.statusMessage = "tried escape a trap";
+					this.player.statusMessage = "tried to escape a trap";
+					this.turns_trapped++;
 					log_message(this.player.name + " fails to escape");
-					if(this.health <= 0) 
+					if(this.player.health <= 0) 
 						this.player.death = "died escaping a trap";		
 					this.player.finishedAction = true;
 				}
@@ -153,7 +178,7 @@ class Charm extends StatusEffect{
 	effect(state, data={}){
 		let oP="";
 		switch(state){
-			case "plan action":
+			case "planAction":
 				log_message(this.player.name + " charm planning");
 				//force player to attack target
 				if(this.aggro && this.player.inRangeOfPlayer(this.target)){
@@ -171,7 +196,7 @@ class Charm extends StatusEffect{
 					}
 				}
 				break;
-			case "aggro check":
+			case "aggroCheck":
 				oP=data['opponent'];
 				log_message("charm aggro check");
 				//if target is in range, force aggro onto them

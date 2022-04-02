@@ -458,7 +458,7 @@ var charlist_bkt = [
    ],
    [
 	   "spanon",
-      ""
+      "https://a.uguu.se/igQmtBKm.gif"
    ],
    [
 	   "MaiNigguDesu",
@@ -473,4 +473,5 @@ var charlist_test = [
 	["Aiko","https://cdn.myanimelist.net/images/characters/16/167291.jpg"],
 	["Ange","https://cdn.myanimelist.net/images/characters/7/329716.jpg"]]
 
-var charlist = charlist_test;
+// var charlist = charlist_test;
+var charlist = charlist_bkt;

@@ -160,10 +160,15 @@ function action(){
 	players.forEach(function(chara,index){
 		chara.doAction();
 	});
+	
+	//update doodads
+	DoodadUpdate();
+	
 	//check death
 	players.forEach(function(chara,index){
 		chara.limitCheck();		//check if player is dead
 	});
+	
 	//progress time
 	hour++;
 	if(hour == 24){
@@ -176,6 +181,13 @@ function action(){
 	log_message('======= end of turn=======');
 	log_message("   ")
 }
+
+function DoodadUpdate(){
+	doodads.forEach(function(tD,index){
+		tD.update();		//check if player is dead
+	});
+}
+
 function MapResize(){
 	//oh god i dont even want to imagine what this does
 }
@@ -218,6 +230,10 @@ function infoDisplay(){
 function pushMessage(chara, msg){
 	events.push({"chara": chara, "message":msg});
 }
+
+
+var dayColors = ["#282828","#474747"];
+var currentDayColor=0;
 
 //update the info tables
 function updateTable(){
@@ -273,14 +289,7 @@ function updateTable(){
 			
 			//kills
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
-			/*
-			if(chara.weapon){
-				// $("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
-				$("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
-			} else {
-				$("#tbl_" + chara.id + " .weapon").text("");
-			}
-			*/
+
 
 			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
 			$("#tbl_" + chara.id + " .effects").html(status_text);
@@ -307,11 +316,15 @@ function updateTable(){
 			}
 		});
 		*/
+		
 		events.forEach(function(msg,index){
 			let chara = msg.chara;
 			let message = msg.message;
-			$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + message + "</td>>");
+			$('#eventMsg tbody').prepend("<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img>" + message + "</td>>");
 		});
+		if(events.length>0){
+			currentDayColor = (currentDayColor+1)%dayColors.length;
+		}
 		events=[];
 		//list deaths
 		dedPlayers.forEach(function(chara,index){
@@ -493,9 +506,9 @@ function rollSpecialP(tempName){
 }
 function rollSpecialH(tempName){
 	if (tempName == 'Evil'){
-		return "250";
+		return 250;
 	} else {
-		return "100";
+		return 100;
 	}
 	
 }

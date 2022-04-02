@@ -106,6 +106,9 @@ class Char {
 		this.recentlySeen = [];
 		this.goal = "";
 
+		this.unaware = false;
+		this.incapacitated = false;
+		
 	}
 	draw() {
 		let charDiv = $('#char_' + this.id);
@@ -259,9 +262,7 @@ class Char {
 					item.equip(this);
 					return true;
 				}
-				else{
-					return false;
-				}
+				else{return false;}
 			}
 			else{
 				this.weapon=item;
@@ -276,9 +277,7 @@ class Char {
 					item.equip(this);
 					return true;
 				}
-				else{
-					return false;
-				}
+				else{return false;}
 			}
 			else{
 				this.offhand=item;
@@ -296,9 +295,7 @@ class Char {
 					this.weapon=""
 					return true;
 				}
-				else{
-					return false;
-				}
+				else{return false;}
 			}
 		}
 		if(slot=="off"){
@@ -307,11 +304,14 @@ class Char {
 					this.offhand=""
 					return true;
 				}
-				else{
-					return false;
-				}
+				else{return false;}
 			}
 		}
+	}
+	
+	take_damage(dmg, source, dmg_type){
+		this.apply_all_effects("takeDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type});
+		this.health -= dmg;
 	}
 	
 	//adding status effect
@@ -368,30 +368,39 @@ class Char {
 	
 	//check for aware and in range players
 	checkSurroundingPlayers(){
-		//get opponents that are in sight 
-		this.awareOf = awareOfCheck(this);		//Opponents in sight
-		//if previously sleeping or trapped, clear aware list	
-		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){this.awareOf = [];}
+		if(this.lastAction == 'sleeping'){this.unaware = true;}
+		if(!this.unaware){
+			//get opponents that are in sight 
+			this.awareOf = awareOfCheck(this);		
+		}
+		else{
+			this.awareOf = [];
+		}
 		log_message(this.name + " aware "+this.awareOf.length)
 		//apply effects from those in sight
 		let temp_this=this;
 		this.awareOf.forEach(function(oP,index){
 			// oP.apply_inv_effects_other("op aware", temp_this);
 			// oP.apply_status_effects_other("op aware", temp_this);
-			oP.apply_all_effects("op aware", {"opponent":temp_this});
+			oP.apply_all_effects("opAware", {"opponent":temp_this});
 		});
 
-		//get opponents that player can fight
-		this.inRangeOf = inRangeOfCheck(this);	//Opponents in range
-		//if previously sleeping or trapped, clear in range list	
-		if(this.lastAction == 'sleeping' || this.lastAction == 'trapped'){this.awareOf = [];}
-		log_message(this.name + " in range "+this.inRangeOf.length)		
-		//apply effects from those in range
+
+		if(this.lastAction == 'sleeping'){this.incapacitated = true;}
+		if(!this.incapacitated){
+			//get opponents that are in sight 
+			this.inRangeOf = inRangeOfCheck(this);
+		}
+		else{
+			this.inRangeOf = [];
+		}
+		log_message(this.name + " in range "+this.inRangeOf.length)
+		//apply effects from those in sight
 		temp_this=this;
 		this.inRangeOf.forEach(function(oP,index){
 			// oP.apply_inv_effects("op in range", {"opponent":temp_this});
 			// oP.apply_status_effects_other("op in range", temp_this);
-			oP.apply_all_effects("op in range", {"opponent":temp_this});
+			oP.apply_all_effects("opInRange", {"opponent":temp_this});
 		});
 
 	}
@@ -406,11 +415,13 @@ class Char {
 	planAction(){
 		//calculate bonuses
 		this.calc_bonuses();
+		this.unaware = false;
+		this.incapacitated = false;
 		
 	 	//apply turn start effects
 		// this.apply_inv_effects("turn start");
 		// this.apply_status_effects("turn start");
-		this.apply_all_effects("turn start");
+		this.apply_all_effects("turnStart");
 		
 		//update some counters
 		if(this.lastAction!="sleeping"){
@@ -486,7 +497,7 @@ class Char {
 		//apply effects
 		// this.apply_inv_effects("plan action");
 		// this.apply_status_effects("plan action");
-		this.apply_all_effects("plan action");
+		this.apply_all_effects("planAction");
 				
 		log_message(this.name+" plans to "+ this.plannedAction)
 	}
@@ -497,7 +508,7 @@ class Char {
 		this.div.find('.charName').removeClass('trapped');
 		// this.apply_inv_effects("do action");
 		// this.apply_status_effects("do action");
-		// this.apply_all_effects("do action");
+		// this.apply_all_effects("doAction");
 		
 		//perform planned action
 		if(this.health > 0 && !this.finishedAction){
@@ -552,7 +563,7 @@ class Char {
 		this.finishedAction = true;
 		// this.apply_inv_effects("end turn");
 		// this.apply_status_effects("end turn");
-		this.apply_all_effects("end turn");
+		this.apply_all_effects("endTurn");
 	}
 	
 	//action functions
@@ -660,20 +671,17 @@ class Char {
 							this.equip_item(temp_wep, "wep");
 						}
 					}
-					/*
+					
 					else if(!this.offhand || loot_type=="off"){
-						let offhandOdds = [];//nothing was 500
+						let offhandOdds = [["bomb",250],["trap",300],["Nothing",5]];
 						let off = roll(offhandOdds)
 						log_message(this.name +" found "+ off);
 						let temp_off = create_offhand(off); 
 						//add weapon to equipped
 						if(temp_off){
-							if(temp_off.equip(this)){
-								this.offhand = temp_off;
-							}
+							this.equip_item(temp_off, "off");
 						}
 					}
-					*/
 					
 					//restore health and energy
 					// this.energy += Math.floor(Math.random() * 30+30);
@@ -713,7 +721,7 @@ class Char {
 		
 		// this.plannedTarget.apply_inv_effects_other("follow target", this);
 		// this.plannedTarget.apply_status_effects_other("follow target", this);
-		this.plannedTarget.apply_all_effects("follow target", {"opponent":this});
+		this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
 		
 		this.moveToTarget();
 		log_message(this.name +" following "+this.plannedTarget.name);
@@ -757,20 +765,9 @@ class Char {
 		else{
 			log_message(this.name + " movement not finished");
 		}
+		
 	}
-		/*
-		//using doodads
-		if(this.weapon){
-			//if((this.weapon.name == "bomb" || this.weapon.name == "trap") && roll([['use',20],['notuse',100]]) == 'use'){
-			if(this.weapon.type == "doodad" && roll([['use',20],['notuse',100]]) == 'use'){
-				let tempDoodad = new Doodad(this.weapon.name,this.x,this.y,this);
-				tempDoodad.draw();
-				doodads.push(tempDoodad);
-				this.weapon = "";
-				log_message(this.name + " sets a trap");
-			}
-		}
-		*/
+
 	//move towards target through regular means
 	moveToTarget(){
 		//Calculating distance from target
@@ -838,7 +835,7 @@ class Char {
 		log_message(this.name +" moves to (" +this.x +","+ this.y+")");
 		
 		//look for doodads
-		doodadCheck(this);
+		//doodadCheck(this);
 		
 		this.energy -= Math.floor(Math.random()*5+2);
 		
@@ -868,6 +865,7 @@ class Char {
 			}
 		}
 		//timerClick("move");
+		this.apply_all_effects("endMove");
 	}
 	//sleep
 	action_sleep(){
@@ -876,6 +874,8 @@ class Char {
 			this.currentAction.name = "sleep";
 			this.currentAction.turnsLeft = roll_range(5,8);
 			log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
+			this.unaware=true;
+			this.incapacitated=true;
 		}
 		//regain health and energy
 		this.currentAction.turnsLeft--;
@@ -895,6 +895,11 @@ class Char {
 	}
 	//check if player is supposed to die
 	limitCheck(){
+		if (isNaN(this.health) || isNaN(this.energy)) {
+			this.death = this.name + " glitched to death"
+			this.die();
+			return;
+		}
 		if(this.energy <= 0){
 			//if(!this.death) this.death = "death from exhaustion";
 			//this.die();
@@ -927,15 +932,5 @@ class Char {
 		$('#table .container.alive').last().after($("#tbl_" + this.id));
 		moralNum[this.moral]--;
 		personalityNum[this.personality]--;
-		if(this.weapon){
-			//drop bomb on death
-			if(this.weapon.name == "bomb"){
-				let tempBomb = new Doodad("bomb",this.x,this.y,this);
-				tempBomb.draw();
-				doodads.push(tempBomb);
-				tempBomb.trigger();
-				this.weapon = "";
-			}
-		}
 	}
 }

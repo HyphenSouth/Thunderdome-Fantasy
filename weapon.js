@@ -63,9 +63,6 @@ var weapon_data = {
 
 */
 
-// "bomb" : ["💣", 0, 0, 0, 0, 0, 0, "doodad"],
-// "trap" : ["🕳", 0, 0, 0, 0, 0, 0, "doodad"],
-
 
 function create_weapon(weapon_name){
 	switch(weapon_name){
@@ -91,7 +88,6 @@ function create_weapon(weapon_name){
 			}
 			break;		
 	}
-
 }
 
 //class to hold data for items
@@ -169,7 +165,7 @@ class Weapon extends Item{
 		let oP="";
 		let counter="";
 		switch(state){			
-			case "turn start":
+			case "turnStart":
 				this.wielder.div.removeClass("sexSword");
 				break;
 			case "death":
@@ -181,7 +177,7 @@ class Weapon extends Item{
 				this.use();
 				break;
 			//after dealing damage
-			case "deal damage":
+			case "dealDmg":
 				break;
 			case "win":
 				oP=data['opponent'];
@@ -203,8 +199,8 @@ class Lance extends Weapon {
 	}
 	effect(state, data={}){
 		switch(state){
-			case "turn start":
-				super.effect("turn start", data);
+			case "turnStart":
+				super.effect("turnStart", data);
 				if(roll([["die",1],["live",20000]]) == "die"){
 					this.wielder.health = 0;
 					this.wielder.death = "Died by their own spear";
@@ -285,7 +281,7 @@ class Nanasatsu extends Weapon {
 		let oP="";
 		switch(state){
 			//turn start
-			case "turn start":
+			case "turnStart":
 				this.wielder.div.addClass("sexSword");
 				//lose health
 				this.wielder.health -= (this.fightBonus - 1.5 - this.kills/20);
@@ -302,16 +298,18 @@ class Nanasatsu extends Weapon {
 				this.wielder.statusMessage = "attacks " + oP.name + " with SEX SWORD";
 				break;
 			//dealing damage
-			case "deal dmg":
+			case "dealDmg":
 				oP=data['opponent'];
 				dmg=data['damage'];			
 				//heal on hit
 				log_message(this.wielder.name + " SEX SWORD attack")
 				// log_message(this.wielder.health + " before");
-				// log_message(dmg);
+				log_message(this.fightBonus + " before");
+				log_message(dmg);
 				this.wielder.health += Math.pow(dmg,0.66);
 				this.fightBonus += dmg/1000;
 				// log_message(this.wielder.health + " after");
+				log_message(this.fightBonus + " after");
 				break;
 			//killing an opponent
 			case "win":
@@ -337,7 +335,7 @@ class Nanasatsu extends Weapon {
 				//}				
 				break;
 			//seen by player
-			case "op aware":
+			case "opAware":
 				oP=data['opponent'];
 				// if (Math.random() > 0.3){
 					let temp_charm = new Charm(this.wielder);
@@ -347,7 +345,7 @@ class Nanasatsu extends Weapon {
 				// }
 				break;
 			//followed by another player
-			case "follow target":
+			case "followTarget":
 				oP=data['opponent'];
 				oP.statusMessage = "following SEX SWORD";
 				break;
