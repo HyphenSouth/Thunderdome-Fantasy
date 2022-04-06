@@ -6,6 +6,14 @@ var offhand_data = {
 	"trap" : {
 		"icon":"🕳", 
 		"uses" : 1		
+	},
+	"shield" : {
+		// "icon":"🛡️",
+		"icon" : "./icons/shield.png",
+		"icon_type" : "img",
+		"uses": [2,5],
+		"dmgReductionB":0.7,
+		"useStates":["defend"]
 	}
 }
 function create_offhand(offhand_name){
@@ -32,8 +40,9 @@ function create_offhand(offhand_name){
 class Offhand extends Item{
 	constructor(name){
 		super(name);
+		//when to use item
+		this.useStates = [];
 
-		
 		if(name in offhand_data){
 			let data = offhand_data[name];
 			
@@ -58,7 +67,7 @@ class Offhand extends Item{
 			if("moveSpeedB" in data){this.moveSpeedB = processDataNum(data["moveSpeedB"])}
 			
 			if("uses" in data){this.uses = processDataNum(data["uses"])}
-			
+			if("useStates" in data){this.useStates = data["useStates"]}
 		}		
 	}
 	
@@ -97,6 +106,10 @@ class Offhand extends Item{
 		lose
 	*/		
 	effect(state, data={}){
+		if(this.useStates.includes(state)){
+			log_message(this.wielder.name +" uses "+this.name)
+			this.use();
+		}
 		let oP="";
 		switch(state){			
 			case "turnStart":
@@ -108,7 +121,7 @@ class Offhand extends Item{
 	}
     destroy(){
 		log_message(this.wielder.name +"'s " + this.name+" breaks");
-		this.wielder.offhand_data = "";   
+		this.wielder.offhand = "";   
 		this.wielder.wielder = "";
 	}
 	
@@ -129,9 +142,22 @@ class Bomb extends Offhand {
 	
 	effect(state, data={}){
 		let oP="";
-		switch(state){			
+		let tempBomb="";
+		switch(state){		
+			case "defend":
+				if(Math.random()<0.1){
+					oP=data["opponent"];
+					pushMessage(this.wielder, this.wielder.name + "'s bomb is knocked out of their hands by "+oP.name);
+					tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
+					tempBomb.maxDuration=1;
+					tempBomb.draw();
+					doodads.push(tempBomb);
+					this.wielder.offhand="";				
+					this.wielder="";
+				}				
+				break;
 			case "endMove":
-				if(roll([['use',20],['notuse',100]]) == 'use'){
+				if(roll([['use',5],['notuse',100]]) == 'use'){
 					log_message(this.wielder.name + " plants a bomb");
 					pushMessage(this.wielder, this.wielder.name + " plants a bomb")
 					this.use();
@@ -139,7 +165,8 @@ class Bomb extends Offhand {
 				break;
 			case "death":
 				//drop bomb on death
-				let tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
+				pushMessage(this.wielder, this.wielder.name + " drops their bomb as they die");
+				tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
 				tempBomb.draw();
 				tempBomb.trigger("");
 				doodads.push(tempBomb);
@@ -168,9 +195,9 @@ class Trap extends Offhand {
 	
 	effect(state, data={}){
 		let oP="";
-		switch(state){			
+		switch(state){		
 			case "endMove":
-				if(roll([['use',20],['notuse',100]]) == 'use'){
+				if(roll([['use',10],['notuse',100]]) == 'use'){
 					log_message(this.wielder.name + " sets a trap");
 					pushMessage(this.wielder, this.wielder.name + " sets a trap")
 					this.use();

@@ -31,8 +31,7 @@ class Char {
 		this.stamina = 100;	
 		
 		this.status_effects = []
-		
-		
+
 		//_______________stats_______________
 		//combat stats. B stands for bonus
 		//how far they can see
@@ -63,7 +62,6 @@ class Char {
 		this.killExp = 1.1;
 		this.exp = 0;
 		
-		
 		//_______________actions_______________
 		//the current actions
 		this.currentAction = {};
@@ -74,14 +72,13 @@ class Char {
 
 		//the priority of current action
 		//0   : no action
-		//1-3 : regular actions
-		//4-6 : self serving actions
-		//7-9 : mind controlling actions
-		//10+ : physically disabling actions
+		//1-5 : regular actions
+		//6-10 : self serving actions
+		//11-19 : mind controlling actions
+		//20+ : physically disabling actions
 		this.actionPriority = 0;
 		this.lastSlept=0;
 		this.lastFight=0;
-		
 		
 		//_______________text_______________
 		//action message to be displayed
@@ -90,11 +87,11 @@ class Char {
 		//if their current action is complete
 		this.finishedAction = true;
 
-		
 		//_______________surrounding players_______________
 		//players they are aware of
 		this.awareOf = [];
 		this.inRangeOf = [];
+		this.attackers = [];
 		
 		//_______________inventory_______________
 		this.weapon = "";
@@ -166,6 +163,9 @@ class Char {
 			eff.calc_bonuses();
 		});
 		
+		//apply global aggro
+		this.aggroB += globalAggro;
+		
 		//apply experience bonuses
 		this.fightDmgB *= Math.pow(this.killExp,this.exp/100);
 		//apply terrain bonuses
@@ -201,6 +201,10 @@ class Char {
 		}
 		return false;
 	}
+	//get all the players within a certain distance
+	nearbyPlayers(dist){
+		return arrayRemove(nearbyPlayers(this.x, this.y, dist), this);
+	}
 	//apply effects to self
 	apply_inv_effects(state, wep_data={}, offhand_data={}){
 		if(this.weapon){
@@ -226,33 +230,7 @@ class Char {
 		this.apply_inv_effects(state, data);
 		this.apply_status_effects(state, data);
 	}
-	
-	/*
-	//apply effects to others
-	apply_inv_effects_other(state, oP, wep_data={}, offhand_data={}){
-		if(this.weapon){
-			wep_data.opponent = oP
-			this.weapon.effect(state, wep_data)
-		}
-		if(this.offhand){
-			if(this.offhand_data){
-				offhand_data.opponent = oP
-				this.offhand.effect(state, oP,offhand_data)
-			}
-			else{
-				wep_data.opponent = oP
-				this.offhand.effect(state, oP, wep_data)
-			}
-		}
-	}
-	apply_status_effects_other(state, oP, data={}){
-		data.opponent=oP;
-		oP.status_effects.forEach(function(eff,index){
-			eff.effect(state, data);
-		});		
-	}
-	*/
-	
+		
 	//equipping an item
 	equip_item(item, slot){
 		if(slot=="wep"){
@@ -344,18 +322,27 @@ class Char {
 		this.status_effects = arrayRemove(this.status_effects, status_eff);
 	}
 	
-	
 	//action planning
 	setPlannedAction(action, actionPriority){
+		let replace=false;
+		//chance to replace if prority is same
+		if(actionPriority==this.actionPriority){
+			if(Math.random()<0.05){
+				replace=true;
+			}
+		}
 		if(actionPriority>this.actionPriority){
+			replace=true;
+		}
+		if(replace){
 			log_message(this.name +"'s "+ this.plannedAction +" replaced with " +action+ " " +actionPriority);
 			this.actionPriority = actionPriority;
 			this.plannedAction = action;
 			this.currentAction = {};
-			return true;
+			return replace;
 		}
 		log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action);
-		return false;
+		return replace;
 	}
 	//reset planned action
 	resetPlannedAction(){
@@ -380,8 +367,6 @@ class Char {
 		//apply effects from those in sight
 		let temp_this=this;
 		this.awareOf.forEach(function(oP,index){
-			// oP.apply_inv_effects_other("op aware", temp_this);
-			// oP.apply_status_effects_other("op aware", temp_this);
 			oP.apply_all_effects("opAware", {"opponent":temp_this});
 		});
 
@@ -398,8 +383,6 @@ class Char {
 		//apply effects from those in sight
 		temp_this=this;
 		this.inRangeOf.forEach(function(oP,index){
-			// oP.apply_inv_effects("op in range", {"opponent":temp_this});
-			// oP.apply_status_effects_other("op in range", temp_this);
 			oP.apply_all_effects("opInRange", {"opponent":temp_this});
 		});
 
@@ -415,12 +398,14 @@ class Char {
 	planAction(){
 		//calculate bonuses
 		this.calc_bonuses();
+		//reset variables
+		this.current_turn_fights = 0
 		this.unaware = false;
 		this.incapacitated = false;
+		this.attackers = [];
+		this.statusMessage = "does nothing";
 		
 	 	//apply turn start effects
-		// this.apply_inv_effects("turn start");
-		// this.apply_status_effects("turn start");
 		this.apply_all_effects("turnStart");
 		
 		//update some counters
@@ -439,64 +424,95 @@ class Char {
 		
 		//plan next action
 		/*
-			low health/energy and alone: forage
+			out of bounds: move to center
+			low health/energy: forage
 			another action planned: continue action
 			choose options:
 				move, fight, sleep
 		*/		
+		//force rest if no energy
+		if(this.energy==0){
+			this.setPlannedAction("rest", 20);
+		}
+		//force movement to center
+		if(!safeBoundsCheck(this.x, this.y)){
+			this.setPlannedAction("move", 9)
+			this.currentAction.targetX=mapSize/2;
+			this.currentAction.targetY=mapSize/2;
+			log_message(this.name +" moving to center")
+		}
+
+		//forage if energy is low
+		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && terrainCheck(this.x,this.y) != "w" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
+			let forageLv=2;
+			let energy_percent = (this.energy/this.maxEnergy) *100;
+			if(energy_percent<20){forageLv = 7;}
+			if(energy_percent < 10){forageLv = 14;}
+			if(energy_percent < 5){forageLv = 19;}
+			this.setPlannedAction("forage", forageLv);
+		}
+		//forage if health is low and alone
+		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& terrainCheck(this.x,this.y) != "w")
+		{
+			this.setPlannedAction("forage", 2);
+		}
+		
 		//continue with current action if there is one
 		if(this.currentAction.name){
 			log_message(this.name + " continues with " + this.currentAction.name+" "+this.actionPriority);
 			this.plannedAction = this.currentAction.name;
 		}
-		//forage if energy is low, health is low, and is not aware of others, and not in water
-		if(((this.energy/this.maxEnergy) *100 < roll_range(25,50)||(this.health/this.maxHealth)*100 < roll_range(25,50)) &&
-			!this.awareOf.length && terrainCheck(this.x,this.y) != "w")
-		{
-			this.setPlannedAction("forage",2);
-		}
-		
-		let options = [];
-		//move 
-		options.push(["move",100]);
-		//fight if players in range
-		if(this.inRangeOf.length > 0)
-			options.push(["fight",100 + (this.aggroB - this.peaceB)]);
-		//follow
-		if(this.awareOf.length > 0)
-			options.push(["follow",90]);
-		//if it is night add sleep as an option
-		if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=5 && terrainCheck(this.x,this.y) != "w")
-			options.push(["sleep",90+2*this.lastSlept]);
-		
-		//choose option
-		let o = roll(options);
-		if(o == "fight"){
-			//set target to the first player in range
-			if(this.setPlannedAction("fight",4)){
-				this.plannedTarget = this.inRangeOf[0];	   
-				log_message(this.name + " targets attack "+this.plannedTarget.name)
-				if(this.plannedTarget.setPlannedAction("attacked", 4)){
-					log_message(this.plannedTarget.name + " action set to attacked");
-				}					
-			}
-		}
-		else if(o == "follow"){
-			if(this.setPlannedAction("follow",1)){
-				this.plannedTarget = this.awareOf[0];
-				log_message(this.name + " targets follow "+this.plannedTarget.name)
-			}
-		}
-		else if(o == "sleep"){
-			this.setPlannedAction(o, 2)
-		}
 		else{
-			this.setPlannedAction(o, 1)
+			let options = [];
+			//move 
+			options.push(["move",100]);
+			//fight if players in range
+			if(this.inRangeOf.length > 0)
+				options.push(["fight",80 + (this.aggroB - this.peaceB)]);
+			//follow
+			if(this.awareOf.length > 0){
+				let follow_chance = Math.floor((total_players - players.length)/total_players *80) + 20
+				options.push(["follow", follow_chance]);
+			}
+			//if it is night add sleep as an option
+			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && terrainCheck(this.x,this.y) != "w")
+				options.push(["sleep",10+5*this.lastSlept]);
+			
+			//choose new action
+			let action_option = roll(options);
+			if(action_option == "fight"){
+				//set target to the first player in range
+				if(this.setPlannedAction("fight",6)){
+					this.plannedTarget = this.inRangeOf[0];	   
+					this.plannedTarget.attackers.push(this);
+					log_message(this.name + " targets attack "+this.plannedTarget.name)				
+				}
+			}
+			else if(action_option == "follow"){
+				if(this.setPlannedAction("follow",1)){
+					this.plannedTarget = this.awareOf[0];
+					log_message(this.name + " targets follow "+this.plannedTarget.name)
+				}
+			}
+			else if(action_option == "sleep"){
+				let sleepLv= 3;
+				if(this.lastSlept>24){
+					sleepLv= 8;
+				}
+				if(this.lastSlept >= 72 || this.energy/this.maxEnergy < 0.05){
+					sleepLv = 15
+				}
+				if(this.lastSlept >= 96){
+					sleepLv = 21
+				}
+				this.setPlannedAction(action_option, sleepLv)
+			}
+			else{
+				this.setPlannedAction(action_option, 1)
+			}
 		}
 		
 		//apply effects
-		// this.apply_inv_effects("plan action");
-		// this.apply_status_effects("plan action");
 		this.apply_all_effects("planAction");
 				
 		log_message(this.name+" plans to "+ this.plannedAction)
@@ -505,17 +521,19 @@ class Char {
 	//perform action
 	//called by action in main
 	doAction(){
-		this.div.find('.charName').removeClass('trapped');
-		// this.apply_inv_effects("do action");
-		// this.apply_status_effects("do action");
-		// this.apply_all_effects("doAction");
-		
+		this.lastAction = "";
 		//perform planned action
+		if(this.health > 0 && !this.finishedAction){
+			this.apply_all_effects("doAction");
+		}
 		if(this.health > 0 && !this.finishedAction){
 			//console.log(this.name + " " + this.plannedAction);
 			//removing red fighting border
 			this.div.removeClass("fighting");
 			switch(this.plannedAction){
+				case "rest":
+					this.action_rest();
+					break;
 				case "forage":
 					this.action_forage();
 					break;
@@ -528,17 +546,9 @@ class Char {
 				case "fight":
 					this.action_fight();
 					break;
-				case "attacked":
-					this.action_attacked();
-					break;
 				case "sleep":
 					this.action_sleep();
 					break;
-				/*
-				case "trapped":
-					this.action_escapeTrap();
-					break;
-				*/
 				default:
 					//console.log(this.name + " has no planned action");
 					// this.statusMessage = "Does nothing";
@@ -553,38 +563,22 @@ class Char {
 			this.div.find('.charName').addClass('sleep');
 		} else {
 			this.div.find('.charName').removeClass('sleep');
-		}
-		if(this.lastAction == 'try escape'){
-			this.div.find('.charName').addClass('trapped');
-		} else {
-			this.div.find('.charName').removeClass('trapped');
-		}		
+		}	
 		//action completed
 		this.finishedAction = true;
 		// this.apply_inv_effects("end turn");
 		// this.apply_status_effects("end turn");
-		this.apply_all_effects("endTurn");
+		this.apply_all_effects("turnEnd");
+	}
+	
+	action_rest(){
+		this.energy += 40;
+		this.health += 5;
+		this.statusMessage = "rests";
+		this.resetPlannedAction();
 	}
 	
 	//action functions
-	//attempt to escape trap
-	action_escapeTrap(){
-		if (Math.floor(Math.random() * 10) > 8){
-			log_message(this.name + " escapes");
-			this.statusMessage = "escaped a trap";
-			this.lastAction = "escapeS";
-			this.resetPlannedAction();
-		} else {
-			this.energy -= 10;
-			this.health -= Math.floor(Math.random() * 5);
-			this.lastAction = "escapeF";
-			this.statusMessage = "tried escape a trap";
-			log_message(this.name + " fails to escape");
-			if(this.health <= 0) 
-				this.death = "died escaping a trap";
-		}
-	}
-	
 	//fight
 	action_fight(){
 		log_message(this.name + " fights back");
@@ -593,11 +587,17 @@ class Char {
 		//fight planned target
 		
 		if(this.plannedTarget){
-			
 			if(this.plannedTarget.health>0){
-				this.lastAction = "fighting";
-				//calculate damage for both fighters
+				//make sure target is still in range
+				let dist = hypD(this.plannedTarget.x - this.x,this.plannedTarget.y - this.y);
+				if(this.fightRange + this.fightRangeB < dist){
+					this.statusMessage = "tries to fight "+ this.plannedTarget.name +" but they escape"
+				}
+				else{
+					this.lastAction = "fighting";
+					//calculate damage for both fighters
 				fight_target(this,this.plannedTarget);
+				}
 			}
 			//if target is already dead
 			else{
@@ -618,13 +618,6 @@ class Char {
 		this.resetPlannedAction();
 	}
 
-	//attacked
-	action_attacked(){
-		log_message(this.name + " attacked");
-		this.lastAction = "fighting";
-		this.resetPlannedAction();
-	}
-
 	//forage
 	action_forage(){
 		//if foraging just started, set current action to foraging and set turns
@@ -641,27 +634,28 @@ class Char {
 		this.lastAction = "foraging";
 		this.statusMessage = "foraging";
 		//once foraging is done
-		//get loot
+		//foraging loot
 		if(this.currentAction.turnsLeft == 0){
 			switch(roll([["success",900],["fail",100],["poisoned",1]])){
 				//if foraging is successful
 				case "success":
 					this.statusMessage = "forage success";
-					let restore_bonus=0;
 					//randomly find a weapon
-					let loot_type="";
-					if(!this.weapon && !this.offhand){
-						loot_type=roll([["wep",3],["off",2]])
-					}else{
-						restore_bonus = 20
+					let type_prob = [];
+					if(!this.weapon){
+						type_prob.push(["wep",3])
 					}
+					if(!this.offhand){
+						type_prob.push(["off",2])
+					}
+					let loot_type=roll(type_prob);
 					//roll weapon
-					if(!this.weapon || loot_type=="wep"){
-						// let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20], ["bomb",5],["trap",10],["Nothing",500]];//nothing was 500
-						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 2000], ["Nothing",0]];//nothing was 500
+					if(!this.weapon && loot_type=="wep"){
+						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["Nothing",500]];
+						// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 						if(sexSword){
 							// weaponOdds.push(["nanasatsu",1]);
-							weaponOdds.push(["nanasatsu",10000]);
+							// weaponOdds.push(["nanasatsu",10000]);
 						}
 						let w = roll(weaponOdds)
 						log_message(this.name +" found "+ w);
@@ -670,10 +664,10 @@ class Char {
 						if(temp_wep){
 							this.equip_item(temp_wep, "wep");
 						}
-					}
-					
-					else if(!this.offhand || loot_type=="off"){
-						let offhandOdds = [["bomb",250],["trap",300],["Nothing",5]];
+					}			
+					else if(!this.offhand && loot_type=="off"){
+						let offhandOdds = [["bomb",30],["trap",20],["shield",20],["Nothing",400]];
+						// let offhandOdds = [["bomb",50],["trap",0],["shield",0],["Nothing",100]];
 						let off = roll(offhandOdds)
 						log_message(this.name +" found "+ off);
 						let temp_off = create_offhand(off); 
@@ -682,12 +676,9 @@ class Char {
 							this.equip_item(temp_off, "off");
 						}
 					}
-					
 					//restore health and energy
-					// this.energy += Math.floor(Math.random() * 30+30);
-					this.energy += roll_range(30,60+restore_bonus)
-					// this.health += Math.floor(Math.random() * 5);
-					this.health += roll_range(5,10+restore_bonus/2);
+					this.energy += roll_range(30,60)
+					this.health += roll_range(5,10);
 					this.lastAction = "forage";
 					break;
 				//failed forage
@@ -731,6 +722,8 @@ class Char {
 	//move
 	//will keep moving to that spot in the next turns
 	action_move(){
+		this.lastAction = "moving";
+		this.statusMessage = "on the move";
 		//get a coordinate to move to if not currently moving
 		if(this.currentAction.name != "move"){
 			//clear current actions
@@ -743,18 +736,19 @@ class Char {
 				newX = Math.floor(Math.random()*mapSize);
 				newY = Math.floor(Math.random()*mapSize);
 				tries++;
-			} while(!boundsCheck(newX,newY) && tries < 10);
-			//is this even possible?
+			} while(!safeTerrainCheck(newX,newY) && tries < 10);
+			//if safe location can't be found, move to center
 			if(tries>=10){
-				log_message(this.name + " moving off screen?");
+				log_message(this.name + " cant find safe location");
+				newX = mapSize/2
+				newY = mapSize/2
 			}
-			this.lastAction = "moving";
-			this.statusMessage = "on the move";
 			this.currentAction.name = "move";
 			
 			//get a target location to move to
 			this.currentAction.targetX = newX;
 			this.currentAction.targetY = newY;
+			log_message(this.name +" plans to move to "+ newX +" " +newY);
 		}
 		this.moveToTarget();
 		//if arrived on target location
@@ -763,9 +757,15 @@ class Char {
 			log_message(this.name + " movement finished");
 		}
 		else{
-			log_message(this.name + " movement not finished");
+			//randomly stop movement
+			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
+				this.resetPlannedAction()
+				log_message(this.name + " movement finished early");
+			}
+			else{
+				log_message(this.name + " movement not finished");
+			}
 		}
-		
 	}
 
 	//move towards target through regular means
@@ -815,7 +815,7 @@ class Char {
 						targetX = this.x + shiftX;
 						targetY = this.y + shiftY;
 						tries--;
-					} while (terrainCheck(targetX,targetY) == "w" && tries > 0 && boundsCheck(targetX,targetY));
+					} while (terrainCheck(targetX,targetY) == "w" && tries > 0 && safeTerrainCheck(targetX,targetY));
 				}
 			}
 		}
@@ -843,7 +843,7 @@ class Char {
 		if(terrainCheck(this.x,this.y)=="w"){
 			this.lastAction = "swimming";
 			this.statusMessage = "swimming";
-		} else if(terrainCheck(this.x,this.y)!="w" && this.lastAction == "swimming"){
+		} else if(this.lastAction == "swimming"){
 			this.lastAction = "moving";
 			this.statusMessage = "moving";
 		}
@@ -876,6 +876,7 @@ class Char {
 			log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
 			this.unaware=true;
 			this.incapacitated=true;
+			this.actionPriority=3;
 		}
 		//regain health and energy
 		this.currentAction.turnsLeft--;
@@ -900,6 +901,16 @@ class Char {
 			this.die();
 			return;
 		}
+		if (isNaN(this.x) || isNaN(this.y)) {
+			this.death = this.name + " glitched out of reality";
+			this.die();
+			return;
+		}
+		// if(this.lastSlept >100){
+			// this.death = this.name + " died from sleep deprevation";
+			// this.health=0
+		// }
+		
 		if(this.energy <= 0){
 			//if(!this.death) this.death = "death from exhaustion";
 			//this.die();
@@ -925,6 +936,9 @@ class Char {
 		this.apply_all_effects("death");
 		players = arrayRemove(players,this);
 		dedPlayers.push(this);
+		if(!this.death){
+			this.death = this.name + " died of unknown causes";
+		}
 		$("#tbl_" + this.id).addClass("dead");
 		$("#tbl_" + this.id).removeClass("alive");
 		$("#char_" + this.id).addClass("dead");

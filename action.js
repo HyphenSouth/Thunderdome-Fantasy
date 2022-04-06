@@ -63,13 +63,7 @@ function aggroCheck(tP, oP){
 		fightChance=1;
 	if(peaceChance<1)
 		peaceChance=1;
-	//artificially increase fight chance when player count is low
-	if(players.length/total_players< 0.15){
-		fightChance *= 1.2 - (players.length/total_players);
-	}
-	if(players.length<4){
-		fightChance+=20;
-	}
+
 	//console.log("Fight check");
 	//console.log(tP);
 	//console.log(oP);				
@@ -84,6 +78,7 @@ function inRangeOfCheck(tP){
 		if(oP.name != tP.name){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
+				log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
 				let rollResult = aggroCheck(tP,oP);
 				log_message(rollResult+" with " + oP.name)
 				if(rollResult == 'fight')
@@ -108,8 +103,6 @@ function doodadCheck(tP){
 }
 function rollDmg(tP){
 	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
-	log_message(dmg);
-	log_message(tP.fightDmgB);
 	return dmg;
 }
 
@@ -124,14 +117,12 @@ function attack(attacker, defender, counter){
 	attacker.calc_bonuses();
 	defender.calc_bonuses();
 	
-
 	//apply pre damage functions
 	// attacker.apply_inv_effects_other("attack", {"damage":dmg, "counter":counter});
 	// defender.apply_inv_effects_other("defend", {"damage":dmg, "counter":counter});	
 	attacker.statusMessage = "fights " + defender.name;
 	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type});
 	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type});
-
 
 	if(attacker.fightDmgB<0){
 		attacker.fightDmgB=0;
@@ -149,15 +140,9 @@ function attack(attacker, defender, counter){
 	
 	// defender.health -= dmg;
 	defender.take_damage(dmg, attacker, dmg_type)
-	log_message(attacker.name + " exp before ")
-	log_message(attacker.exp)
 	attacker.exp += dmg;
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
-	log_message(dmg)
-	log_message(attacker.name + " exp after ")
-	log_message(attacker.exp)
-	log_message(attacker.name+" bonus ")
-	log_message(attacker.fightDmgB)
+
 	//apply weapon effects after dealing damage
 	// attacker.apply_inv_effects_other("deal dmg", defender, {"damage":dmg, "counter":counter});
 	// defender.apply_inv_effects_other("take dmg", attacker, {"damage":dmg, "counter":counter});	
@@ -166,7 +151,8 @@ function attack(attacker, defender, counter){
 
 }
 
-function fight_target(tP,oP){	
+function fight_target(tP,oP){
+	
 	//tp has the initiative 
 	tP.div.addClass("fighting");
 	oP.div.addClass("fighting");
@@ -174,7 +160,9 @@ function fight_target(tP,oP){
 	//fight opponent
 	attack(tP,oP, false);
 	tP.finishedAction = true
+	tP.current_turn_fights++;
 	oP.lastAttacker = tP;
+	tP.lastAction = "fighting"
 	tP.resetPlannedAction();
 	//opponent turn
 	if(oP.health > 0){
@@ -187,12 +175,14 @@ function fight_target(tP,oP){
 		}
 		*/
 		//awareness check
-		if(!oP.incapacitated && oP.awareOf.indexOf(tP)>=0){
+		if(!oP.incapacitated && oP.awareOf.indexOf(tP)>=0 && oP.current_turn_fights <turnFightLim){
 			//check if in range
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			//opponent counter attack
 			if(oP.fightRange + oP.fightRangeB >= dist){
 				attack(oP,tP, true);
+				oP.current_turn_fights++;
+				oP.lastAction="fighting";
 				//oP kills tP
 				if(tP.health <= 0){
 					log_message(oP.name + " kills " + tP.name +" (counterattack)");
@@ -218,6 +208,9 @@ function fight_target(tP,oP){
 			} 
 			else if(oP.incapacitated){
 				oP.statusMessage = "unable to fight back against " + tP.name;
+			}
+			else if(oP.current_turn_fights >= turnFightLim){
+				pushMessage(oP, "too busy fighting to defend against " + tP.name);
 			}
 			else {
 				// oP.lastAction = "is caught offguard";
@@ -251,7 +244,6 @@ function fight_target(tP,oP){
 	}
 	pushMessage(tP, tP.statusMessage);
 	pushMessage(oP, oP.statusMessage);
-	
 	oP.resetPlannedAction();
 }
 /*

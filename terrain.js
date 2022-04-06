@@ -3,12 +3,50 @@ var terrain_icons = {
 	//"w":"💧",
 	"t":"🌳",
 	"m":"⛰️",
-	"f":"🔥"
+	"f":"🔥",
+	"d":"🟩"
 }
+
+function getTerrain(x,y){
+	let roundX = Math.round(x/25)*25;
+	let roundY = Math.round(y/25)*25;
+	if(terrain[roundX]){
+		if(terrain[roundX][roundY]){
+			return terrain;
+		} else {
+			return "";
+		}
+	}
+}
+
+function setTerrain(x,y, newTerrain){
+	let roundX = Math.round(x/25)*25;
+	let roundY = Math.round(y/25)*25;
+	if(!terrain[roundX]){
+		terrain[roundX]=[]
+	}
+	terrain[roundX][roundY]=newTerrain;
+	terrain[roundX][roundY].draw();
+}
+
+//get the type of terrain at coords
+function terrainCheck(x,y){
+	let roundX = Math.round(x/25)*25;
+	let roundY = Math.round(y/25)*25;
+	if(terrain[roundX]){
+		if(terrain[roundX][roundY]){
+			return terrain[roundX][roundY].type;
+		} else {
+			return "Index error";
+		}
+	}
+}
+
 class Terrain {
 	constructor(type,x,y){
 		this.x = x;
 		this.y = y;
+		this.type=type;
 		this.spreadOnce = false;
 		this.riverSpawn = false;
 		//generate random terrain type
@@ -28,18 +66,21 @@ class Terrain {
 		if(this.type in terrain_icons){
 			icon = terrain_icons[this.type];
 		}
+
 		if(!terrainDiv.length){
 			$('#terrain').append("<div id='terrain_" + this.x + "_" + this.y + "' class='terrain' style='transform:translate(" + (this.x / mapSize * $('#map').width() - 12.5) + "px," + (this.y / mapSize *  $('#map').height() - 12.5) + "px)'>" + icon + "</div>");
 			terrainDiv = $('#terrain_' + this.x + "_" + this.y);
-			this.div = terrainDiv;
+			// this.div = terrainDiv;
 		}
+		this.div = terrainDiv;
 		terrainDiv.text(icon);
 	}
 	destroy(){
+		// log_message("removed "+ this.x +" "+this.y)
 		this.div.remove();
 		terrain[this.x] = arrayRemove(terrain[this.x],this);
 	}
-	spread(){
+	generationSpread(){
 		//spread water
 		if(this.type=="w" && !this.spreadOnce){
 			//look at the adjacent squares

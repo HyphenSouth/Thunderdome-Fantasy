@@ -1,28 +1,37 @@
 var players = []; 			//list of players
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
-var terrain = [];			//2d array for terrain objects
 var doodads = [];			//list of items
-var riverSpawns = [];		//rivers?
 var doodadsNum = 0;			//number of doodads spawned, used for ids
-var interval = 1500;		//something for animation?
+var turnFightLim = 2		//number of players a player can fight per turn
+
+var terrain = [];			//2d array for terrain objects
+var riverSpawns = [];		//rivers?
 var mapSize = 1000;			//diameter of the map. 
+
+var interval = 1500;		//something for animation?
 var initDone = false;		//if initialization of the game is done
 var playing = false;		//if the game is auto playing
 var day = 0;				//the day
 var hour = 8;				//the hour of the day
+
 var iconSize = 24;			//the size of each icon
 var moralNum = {"Chaotic":0,"Neutral":0,"Lawful":0};		//dict for moral
 var personalityNum = {"Evil":0,"Neutral":0,"Good":0};		//dict for personality
 var terrainDeath = 3; 		//Max num who can fall off a cliff	
 var sexSword = true;		//if sex sword is able to be found
+
 var dirArr = [[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1]]; 	//some array to go through the directions i guess
-var lastT = 0;	//no clue what this does
+
 var timerClicks = {};
 var messages = [];
 var lastMessage = -1;
 var events = [];
 
+var globalAggro = 0;
+var dangerSize = 0;		//size of the restricted zone
+var dangerActive=false
+var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var log_msg=true
 
 $( document ).ready(function(){
@@ -34,6 +43,7 @@ $( document ).ready(function(){
 });
 //initialize the start screen
 function Init(){
+	//calculate some sizes
 	if($('body').width() > $('body').height()){
 		$('#map').width($('#map').height());
 		$('#map').height($('#map').width());
@@ -46,6 +56,9 @@ function Init(){
 		$('#side').width("100%");
 		$('#side').css({'max-height':'calc(100% - 40px - ' + $('#map').height() + "px)",'overflow-y':'scroll'});
 	}
+	// $('#danger').css('visibility', 'visible');
+	$('#danger').height($('#map').height()-10)
+	$('#danger').width($('#map').width()-10)
 	//put player icons into the player div to generate player table on start screen
 	charlist.forEach(function(i,index){
 		$('#cnt_players').append("<div class='cnt_player'><input class='name' value='" + i[0] + "'><input class='img' value='" + i[1] + "'></div>");
@@ -88,7 +101,7 @@ function startGame(){
 		do {
 			x = Math.floor(Math.random() * mapSize);
 			y = Math.floor(Math.random() * mapSize);
-		} while(!boundsCheck(x,y)); //make sure it is in bounds
+		} while(!safeTerrainCheck(x,y)); //make sure it is in bounds
 		let tempChar = "";
 		//create player object
 		if(charlist[i]){
@@ -162,7 +175,7 @@ function action(){
 	});
 	
 	//update doodads
-	DoodadUpdate();
+	doodadUpdate();
 	
 	//check death
 	players.forEach(function(chara,index){
@@ -182,25 +195,70 @@ function action(){
 	log_message("   ")
 }
 
-function DoodadUpdate(){
+function doodadUpdate(){
 	doodads.forEach(function(tD,index){
-		tD.update();		//check if player is dead
+		tD.update();		//check doodads
 	});
 }
 
-function MapResize(){
-	//oh god i dont even want to imagine what this does
+//terrain layers is the thickness of terrain to be turned into danger zones
+function createDangerZone(terrainLayers=1){
+	//change the size of the danger zone
+	dangerSize=dangerSize + terrainLayers*25;	//width of border
+	if(dangerSize>(mapSize/2)*0.75){
+		dangerSize = (mapSize/2) * 0.75;
+	}
+	if(dangerSize<0){
+		dangerSize=0;
+	}
+	safeSize = mapSize/2 -dangerSize; //radius of safe zone
+	
+	if(!dangerActive){
+		$('#danger').css('visibility', 'visible');
+		dangerActive=true;
+	}
+	
+	let borderPercent= safeSize/(mapSize/2);
+	// log_message(safeSize)
+	// log_message(dangerSize)
+	$('#danger').height($('#map').height() * borderPercent -10)
+	$('#danger').width($('#map').width() * borderPercent-10)
+	$('#danger').css('margin-top', ($('#map').height() - ($('#map').height() * borderPercent))/2);
+	$('#danger').css('margin-left', ($('#map').width() - ($('#map').width() * borderPercent))/2);
+	
+	/*
+	for(let i = 0; i <= mapSize; i=i+25) {
+		for(let j = 0; j <= mapSize; j=j+25) {
+			let roundX = mapSize/2 - i;
+			let roundY = mapSize/2 - j;
+			let dist = hypD(roundX, roundY)
+			if(dist>safeSize && inBoundsCheck(i,j)){
+				// if(terrain[i]){
+					// if(terrain[i][j]){
+						// terrain[i][j].destroy();
+					// }
+				// }
+				let tempTerr = new Terrain("w",i,j)
+				setTerrain(i,j,tempTerr);
+			}
+		}
+	}
+	*/
 }
 
-//check if a coordinate is in bounds
-function boundsCheck(x,y){
-	let valid = true;
-	let boundX = Math.abs(x-mapSize/2);
-	let boundY = Math.abs(y-mapSize/2);
-	let limit = Math.sqrt(Math.pow(mapSize/2,2) - Math.pow(boundX,2));
-	if(boundY > limit){
-		valid = false;
+//check if a coordinates are in bounds and safe
+function safeTerrainCheck(x,y){
+	//safe zone check
+	if(!safeBoundsCheck(x,y)){
+		return false
 	}
+	//terrain check
+	if(terrainCheck(x,y)=="w"){
+		return false
+	}
+	return true
+
+	/*
 	let roundX = Math.round(x/25)*25;
 	let roundY = Math.round(y/25)*25;
 	if(terrain[roundX]){
@@ -209,9 +267,60 @@ function boundsCheck(x,y){
 				valid = false;
 			}
 		}
-	}
-	return valid;
+	}*/
 }
+
+//check if coordinates are in danger zone
+function safeBoundsCheck(x, y){
+	if(isNaN(x) || isNaN(y)){
+		return false;
+	}
+	let boundX = Math.abs(x-mapSize/2);
+	let boundY = Math.abs(y-mapSize/2);
+	let dist = hypD(boundX, boundY);
+	if(dist>safeSize){
+		return false
+	}
+	return true
+
+	/*
+	valid = true
+	let safeSize = mapSize/2 -dangerSize;
+	let boundX = Math.abs(x-mapSize/2);
+	let boundY = Math.abs(y-mapSize/2);
+	let limit = Math.sqrt(Math.abs(Math.pow(safeSize,2) - Math.pow(boundX,2)));
+	if(boundY > limit){
+		valid = false;
+	}
+	return valid
+	*/
+}
+
+//check if a coordinates are in bounds
+function inBoundsCheck(x, y){
+	if(isNaN(x) || isNaN(y)){
+		return false;
+	}
+
+	let boundX = Math.abs(x-mapSize/2);
+	let boundY = Math.abs(y-mapSize/2);
+	let dist = hypD(boundX, boundY);
+	if(dist > mapSize/2){
+		return false
+	}
+	return true
+	/*
+	let valid = true;
+	let boundX = Math.abs(x-mapSize/2);
+	let boundY = Math.abs(y-mapSize/2);
+	let limit = Math.sqrt(Math.abs(Math.pow(mapSize/2,2) - Math.pow(boundX,2)));
+	if(boundY > limit){
+		valid = false;
+	}
+	return valid;	
+	*/
+}
+
 //toggle the info being displayed
 function infoDisplay(){
 	//switch from ststus to events
@@ -231,7 +340,6 @@ function pushMessage(chara, msg){
 	events.push({"chara": chara, "message":msg});
 }
 
-
 var dayColors = ["#282828","#474747"];
 var currentDayColor=0;
 
@@ -240,7 +348,7 @@ function updateTable(){
 	//list status
 	// if($('#table').css('display')=='block'){
 		players.forEach(function(chara,index){		
-		
+			//prepare player data
 			let wep_text=""
 			if(chara.weapon){
 				wep_text+=chara.weapon.icon;
@@ -299,13 +407,26 @@ function updateTable(){
 		});
 		dedPlayers.forEach(function(chara,index){
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
+			let wep_text=""
 			if(chara.weapon){
-				//$("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
-				$("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
-			} else {
-				$("#tbl_" + chara.id + " .weapon").text("");
+				wep_text+=chara.weapon.icon;
 			}
+			if(chara.offhand){
+				wep_text+=chara.offhand.icon;
+			}
+			$("#tbl_" + chara.id + " .weapon").html(wep_text);
+			// if(chara.weapon){
+				// $("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
+				// $("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
+			// } else {
+				// $("#tbl_" + chara.id + " .weapon").text("");
+			// }
 		});
+		doodads.forEach(function(tD,index){
+			// $("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+			$("#doodad_" + tD.id).html(tD.icon);
+		});
+		
 		//turn existing messages transparent
 		$('#messages td').css('opacity','0.3');
 		/*
@@ -333,6 +454,8 @@ function updateTable(){
 				chara.diedMessage = "Done";
 			}
 		});
+		
+
 	/*
 	if($('#table').css('display')=='block'){
 	} else {//list events
@@ -359,29 +482,32 @@ function hypD(x,y,hyp=true){
 		return Math.sqrt(Math.pow(x,2)-Math.pow(y,2));
 	}
 }
-//get the type of terrain at coords
-function terrainCheck(x,y){
-	let roundX = Math.round(x/25)*25;
-	let roundY = Math.round(y/25)*25;
-	if(terrain[roundX]){
-		if(terrain[roundX][roundY]){
-			return terrain[roundX][roundY].type;
-		} else {
-			return "Index error";
-		}
-	}
+//calculate distance between 2 players
+function playerDist(p1, p2){
+	let dist = 0;
+	let x1 = p1.x;
+	let y1 = p1.y;
+	let x2 = p2.x;
+	let y2 = p2.y;
+	dist = hypD(x2-x1, y2-y1);	
+	return dist;
 }
-function getTerrain(x,y){
-	let roundX = Math.round(x/25)*25;
-	let roundY = Math.round(y/25)*25;
-	if(terrain[roundX]){
-		if(terrain[roundX][roundY]){
-			return terrain;
-		} else {
-			return "";
+//gets all players within a distance of a point
+function nearbyPlayers(x, y, dist){
+	let temp_list = [];
+	let x1 = x;
+	let y1 = y;
+	players.forEach(function(tP,index){
+		let x2 = tP.x;
+		let y2 = tP.y;
+		let temp_dist = hypD(x2-x1, y2-y1);	
+		if(temp_dist<=dist){
+			temp_list.push(tP);
 		}
-	}
+	});
+	return temp_list;
 }
+
 var generated = false;
 //generates terrain 
 function generateTerrain(){
@@ -391,16 +517,18 @@ function generateTerrain(){
 			terr.destroy();
 		});
 	});
+	dangerSize=0;
 	
 	riverSpawns = [];
 	if(!generated){
 	for(var i = 0;i<=mapSize;i+=25){
 		terrain[i] = [];
 		//timerClick("terrain row " + i);
+		//generate reandom terrain pieces
 		for(var j =0;j<=mapSize;j+=25){
 			//timerClick("terrain bound check row " + i + " col " + j);
 			//check the current coords are in bounds
-			if(boundsCheck(i,j)){
+			if(inBoundsCheck(i,j)){
 				//timerClick("terrain row " + i + " col " + j);
 				let tempTerr = new Terrain("rand",i,j); //generate a random terrain		
 				//draw terrain and add it to the list
@@ -430,6 +558,7 @@ function generateTerrain(){
 	}
 	//generated = true;
 }
+
 //spread mountains and rivers
 //spreads from left to right and top to bottom
 function spreadTerrain(){
@@ -437,7 +566,7 @@ function spreadTerrain(){
 	for(var i = 0;i<=mapSize;i+=25){
 		for(var j =0;j<=mapSize;j+=25){
 			if(terrain[i][j]){
-				terrain[i][j].spread();
+				terrain[i][j].generationSpread();
 			}
 		}
 	}
@@ -505,11 +634,12 @@ function rollSpecialP(tempName){
 	
 }
 function rollSpecialH(tempName){
-	if (tempName == 'Evil'){
-		return 250;
-	} else {
-		return 100;
-	}
+	// if (tempName == 'Evil'){
+		// return 250;
+	// } else {
+		// return 100;
+	// }
+	return 100;
 	
 }
 //roll a range
@@ -540,7 +670,7 @@ function timerClick(val){
 	}
 }
 
-function log_message(msg){
+function log_message(msg, category=""){
 	if(log_msg==true){
 		console.log(msg);
 	}	

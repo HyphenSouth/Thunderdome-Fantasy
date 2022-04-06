@@ -458,11 +458,27 @@ var charlist_bkt = [
    ],
    [
 	   "spanon",
-      "https://a.uguu.se/igQmtBKm.gif"
+      "https://cdn.discordapp.com/attachments/942639553120972820/960370092590399578/Arumi.png"
    ],
    [
 	   "MaiNigguDesu",
       "https://witcheffect.com/sprites/pixels/Shiro%20v3.png"
+   ],
+   [
+	   "Nani_",
+      "https://witcheffect.com/sprites/pixels/Karen%20Kujou%20v2.png"
+   ],
+   [
+		"carlitogo",
+		"https://cdn.discordapp.com/attachments/942639553120972820/948378619112218665/Reimu_carlito_v1.png"
+   ],
+   [
+		"64",
+		"https://witcheffect.com/sprites/pixels/Erica%20v3.png"
+   ],
+   [
+		"Selmon",
+		"https://witcheffect.com/sprites/pixels/Chidori%20v3.png"
    ]
 ];
 

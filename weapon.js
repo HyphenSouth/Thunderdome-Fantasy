@@ -26,18 +26,27 @@ var weapon_data = {
 		"uses" : [5,10]	
 	},
 	"nanasatsu" : {
-		"icon":"./icons/nanasatsu.png",
+		"icon" : "./icons/nanasatsu.png",
 		"icon_type" : "img",
 		"dmg_type" : "melee",
 		"fightBonus" : 2,
 		"peaceBonus" : -500,
 		"aggroBonus" : 500,
+		"dmgReductionB" : 1.05,
 		"uses" : 99999
 	},
     "katana" : {
-		"icon":"🗡️",
+		"icon" : "./icons/katana.png",
+		"icon_type" : "img",
 		"dmg_type":"melee",
 		"uses":[4,9]
+	},
+    "shotgun" : {
+		"icon" : "./icons/shotgun.png",
+		"icon_type" : "img",
+		"rangeBonus" : 25,
+		"dmg_type":"ranged",
+		"uses":[3,6]
 	},
 
 }
@@ -78,6 +87,9 @@ function create_weapon(weapon_name){
 		case "katana":
 			return new Katana();
 			break;
+		case "shotgun":
+			return new Shotgun();
+			break;
 		
 		default:
 			if(weapon_name in weapon_data){
@@ -107,7 +119,6 @@ class Weapon extends Item{
 				else{
 					this.icon=data["icon"];
 				}
-				
 			}
 			
 			if("sightBonus" in data){this.sightBonus = processDataNum(data["sightBonus"])}
@@ -143,7 +154,7 @@ class Weapon extends Item{
 
 	/*
 	Effects on wielder:
-		planning
+		planAction
 		moving
 		foraging
 		sleeping
@@ -252,6 +263,127 @@ class Katana extends Weapon {
 		}
 	}
 }
+
+//2 shells loaded at a time
+//takes time to reload
+//damage based on distance
+class Shotgun extends Weapon {
+	constructor() {
+		super("shotgun");
+		this.max_shells = 2;
+		this.loaded_shells = this.max_shells;
+		this.max_range = 50;	//furthest it can hit
+		this.dmg_range = [1.05, 2.5]; //min, max
+		this.max_spread = 15 //bullet spread radius at max range
+		this.icon_full = setItemIcon("./icons/shotgun.png")
+		this.icon_empty = setItemIcon("./icons/shotgunE.png")
+		this.napalm = false;
+	}
+	calc_bonuses(){
+		super.calc_bonuses();
+		if(this.loaded_shells==0){
+			this.wielder.fightRangeB -= this.rangeBonus;
+		}
+	}
+	reload(){
+		if(this.uses>0){
+			log_message(this.wielder.name + " reloads");
+			this.wielder.statusMessage = "reloads their shotgun";
+			this.wielder.lastAction = "reload"
+			this.loaded_shells=this.max_shells;
+			this.uses--;
+		}
+		else{
+			this.destroy();
+		}
+	}
+	
+	effect(state, data={}){
+		let oP="";
+		let counter="";
+		switch(state){
+			case "turnEnd":
+				if(this.loaded_shells==0){
+					this.icon = this.icon_empty;
+				}
+				else{
+					this.icon = this.icon_full;
+				}	
+				break;
+			case "planAction":
+				if(this.loaded_shells==0 && Math.random()<0.5){
+					this.wielder.setPlannedAction("reloadShotgun", 2);
+				}
+				break;
+			case "reloadShotgun":
+				this.reload();
+				this.wielder.resetPlannedAction();
+				break;
+			case "attack":
+				oP=data['opponent'];
+				counter=data['counter'];
+				if(this.loaded_shells>0){
+					log_message("SHOTGUN ATTACK")
+					this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+					//calculate damage based on distance
+					// currently linear scaling
+					let target_dist = playerDist(this.wielder, oP);
+					let dmg_bonus = ((this.dmg_range[0] - this.dmg_range[1])/this.max_range) * target_dist + this.dmg_range[1]
+					if(target_dist<=this.max_range*0.1){
+						dmg_bonus += 0.5;
+						this.wielder.statusMessage = "hits " + oP.name +" at point blank with a shotgun";
+					}
+					if(target_dist>=this.max_range*0.9){
+						dmg_bonus=this.dmg_range[0]
+						this.wielder.statusMessage = "barely hits " + oP.name +" with a shotgun";
+					}
+					//collateral 
+					if(target_dist>this.max_range*0.6){
+						let nearby_lst = oP.nearbyPlayers((target_dist/this.max_range)*this.max_spread);
+						let temp_wep = this;
+						nearby_lst.forEach(function(unfortunate_victim,index){
+							if(unfortunate_victim != temp_wep.wielder && Math.random()<0.5){
+								log_message("stray hit " + unfortunate_victim.name);
+								let dmg = (1.1 - target_dist/temp_wep.max_range) * 5;
+								dmg = dmg * unfortunate_victim.dmgReductionB;
+								if(dmg > unfortunate_victim.health)
+									dmg = unfortunate_victim.health;
+								unfortunate_victim.take_damage(dmg, temp_wep.player, temp_wep.dmg_type);
+								if(unfortunate_victim.health <=0){
+									unfortunate_victim.death="killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun";
+									pushMessage(unfortunate_victim, "killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun");
+									temp_wep.wielder.kills++;
+								}
+								else{
+									unfortunate_victim.statusMessage="hit by a stray pellet from "+temp_wep.wielder.name+"'s shotgun";
+									pushMessage(unfortunate_victim, "hit by a stray pellet from "+temp_wep.wielder.name+"'s shotgun");
+								}
+								
+								unfortunate_victim.finishedAction = true;
+								unfortunate_victim.resetPlannedAction();
+							}
+						});		
+					}
+					log_message(dmg_bonus)
+					this.wielder.fightDmgB *= dmg_bonus;
+					this.loaded_shells--;				
+				}
+				else if(counter && Math.random()<0.2){
+					//20% chance of reload instead of fighting back
+					this.reload();
+					this.wielder.statusMessage = "reloads their shotgun instead of fighting back";
+				}
+				else{
+					//no reload
+					this.wielder.statusMessage = "attacks " + oP.name + " with an empty shotgun";
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+}
 class Nanasatsu extends Weapon {
 	constructor() {
 		super("nanasatsu");
@@ -284,7 +416,7 @@ class Nanasatsu extends Weapon {
 			case "turnStart":
 				this.wielder.div.addClass("sexSword");
 				//lose health
-				this.wielder.health -= (this.fightBonus - 1.5 - this.kills/20);
+				this.wielder.health -= (this.fightBonus - 1.5 + this.kills);
 				//this.wielder.health -= (this.fightBonus +2000);
 				//death message
 				if(this.wielder.health <= 0){

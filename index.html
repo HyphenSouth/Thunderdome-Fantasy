@@ -18,10 +18,12 @@
 	<script src="main.js"></script>
 </head>
 <body>
+
 	<div id='map' xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs">
 		<div id='terrain'></div>
 		<div id='doodads'></div>
 		<div id='players'></div>
+		<div id='danger'></div>
 	</div>
 	<div id='side'>
 		<button onClick="auto()">Auto</button>
@@ -120,7 +122,18 @@ html,body{
 	background:green;
 	position:relative;
 	border-radius: 50%;
+
 }
+#danger {
+	display:inline-block;
+	vertical-align:top;
+	position:relative;
+	
+	
+	border-radius: 50%;
+	border: 5px solid red;
+	visibility: hidden;
+}	
 .char{
 	width:24px;
 	height:24px;
@@ -135,7 +148,7 @@ html,body{
 	margin-top:-10px;
 	z-index:3;
 }
-.bomb{
+.doodad{
 	z-index:2;
 	position:absolute;
 	width:24px;
