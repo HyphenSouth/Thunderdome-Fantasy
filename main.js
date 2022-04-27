@@ -34,13 +34,48 @@ var dangerActive=false
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var log_msg=true
 
+var player_line = 
+	"<div class='cnt_player'>"+
+		//name input
+		"<input class='name' value=''>"+
+		//img input
+		"<input class='img' value=''>"+
+		//attribute input
+		"<input class='attr' value=''>"+
+		//moral select
+		"<select class='moral'>"+
+			"<option value='Random'>R</option>"+
+			"<option value='Lawful'>L</option>"+
+			"<option value='Neutral'>N</option>"+
+			"<option value='Chaotic'>C</option>"+
+		"</select>"+
+		//personality select
+		"<select class='personality'>"+
+			"<option value='Random'>R</option>"+
+			"<option value='Good'>G</option>"+
+			"<option value='Neutral'>N</option>"+
+			"<option value='Evil'>E</option>"+
+		"</select>"+
+	"</div>"
+
 $( document ).ready(function(){
+	document.getElementById('load_file').addEventListener('change', function() {
+		var fr=new FileReader();
+		fr.onload=function(){
+			// resetPlayers();
+			log_message("loading data")
+			$('#cnt_players').html("");
+			loadPlayers(fr.result);
+		}
+		fr.readAsText(this.files[0]);
+	})
 	Init();
 	//draw each player
 	players.forEach(function(chara,index){
 		chara.draw();
 	});
 });
+
 //initialize the start screen
 function Init(){
 	//calculate some sizes
@@ -59,25 +94,163 @@ function Init(){
 	// $('#danger').css('visibility', 'visible');
 	$('#danger').height($('#map').height()-10)
 	$('#danger').width($('#map').width()-10)
+	/*
 	//put player icons into the player div to generate player table on start screen
 	charlist.forEach(function(i,index){
-		$('#cnt_players').append("<div class='cnt_player'><input class='name' value='" + i[0] + "'><input class='img' value='" + i[1] + "'></div>");
+		$('#cnt_players').append(
+			"<div class='cnt_player'>"+
+				//name input
+				"<input class='name' value='" + i[0] + "'>"+
+				//img input
+				"<input class='img' value='" + i[1] + "'>"+
+				//attribute input
+				"<input class='attr'>"+
+				//moral select
+				"<select class='moral'>"+
+					"<option value='Random'>R</option>"+
+					"<option value='Lawful'>L</option>"+
+					"<option value='Neutral'>N</option>"+
+					"<option value='Chaotic'>C</option>"+
+				"</select>"+
+				//personality select
+				"<select class='personality'>"+
+					"<option value='Random'>R</option>"+
+					"<option value='Good'>G</option>"+
+					"<option value='Neutral'>N</option>"+
+					"<option value='Evil'>E</option>"+
+				"</select>"+
+			"</div>");
 	});
+	*/
+	$('#cnt_players').html("");
+	loadPlayers("");
 	//add empty row at the end
-	$('#cnt_players').append("<div class='cnt_player'><input class='name' value=''><input class='img' value=''></div>");
+	// $('#cnt_players').append(player_line);
 	initDone = true;
 	//if a player as added on the last row, add new empty row below it
 	$('#cnt_players').on('change','.name',function(){
 		if($('#cnt_players .name').last().val()){
-			$('#cnt_players').append("<div class='cnt_player'><input class='name' value=''><input class='img' value=''></div>");
-	}
-});
+			$('#cnt_players').append(player_line);
+		}
+	});
 }
+
 //clears all players
 function resetPlayers(){
 	//add a single row into the player table
-	$('#cnt_players').html("<div class='cnt_player'><input class='name' value=''><input class='img' value=''></div>");
+	$('#cnt_players').html(player_line);
 }
+
+//load players
+function loadPlayers(player_txt){
+	let player_lst = player_txt.split("\n");
+	$('#cnt_players').html("");
+	player_lst.forEach(function(player_data){
+		// log_message(player_data)
+		let player_data_lst = player_data.split(",");
+		if(player_data_lst[0]){
+			//attribute input
+			let attr_lst = player_data_lst[2].split(";");
+			let attr_txt = ""
+			attr_lst.forEach(function(attr){
+				if(attr!=""){
+					attr_txt = attr_txt+attr+','
+				}
+			});	
+			attr_txt = attr_txt.substring(0, attr_txt.length-1)
+			$('#cnt_players').append(
+				"<div class='cnt_player'>"+
+					//name input
+					"<input class='name' value='" + player_data_lst[0] + "'>"+
+					//img input
+					"<input class='img' value='" + player_data_lst[1] + "'>"+
+					//attribute input
+					"<input class='attr'value='" + attr_txt + "'>"+
+					//moral select
+					"<select class='moral'>"+
+						"<option value='"+player_data_lst[3] +"' selected hidden>"+player_data_lst[3] +"</option>"+
+						"<option value='Random'>R</option>"+
+						"<option value='Lawful'>L</option>"+
+						"<option value='Neutral'>N</option>"+
+						"<option value='Chaotic'>C</option>"+
+					"</select>"+
+					//personality select
+					"<select class='personality'>"+
+						"<option value='"+player_data_lst[4] +"' selected hidden>"+player_data_lst[4] +"</option>"+
+						"<option value='Random'>R</option>"+
+						"<option value='Good'>G</option>"+
+						"<option value='Neutral'>N</option>"+
+						"<option value='Evil'>E</option>"+
+					"</select>"+
+				"</div>");		
+		}
+	});
+	$('#cnt_players').append(player_line);
+	// var file = e.target.files[0];
+}
+
+//save players
+function savePlayers(){
+	log_message("saving")
+	let target_file = ""
+	target_file = $('#save_file').val();
+	
+	// csv
+	let data = ""
+	$('#cnt_players .cnt_player').each(function(){
+		//if there is a name in this column
+		if($(this).find('.name').val()){
+			// add the name and image into charlist
+			data = data+$(this).find('.name').val()+",";
+			data = data+$(this).find('.img').val()+",";
+
+			let attr = $(this).find('.attr').val().replace(/ /g, "");
+			let attr_lst = []
+			attr_lst = [...new Set(attr.split(","))];
+			let attr_txt = ""
+			attr_lst.forEach(function(a){
+				if(a != "")
+					attr_txt = attr_txt+a+";"
+			});
+			data = data + attr_txt + ","
+			data = data+$(this).find('.moral').val()[0]+",";
+			data = data+$(this).find('.personality').val()[0];
+			data=data+"\n"
+		}
+	});
+	/*
+		// json
+		let char_list_data = [];
+		$('#cnt_players .cnt_player').each(function(){
+		//if there is a name in this column
+		if($(this).find('.name').val()){
+			// let char_name =  $(this).find('.name').val();
+			let char_obj = {}
+			char_obj.name = $(this).find('.name').val();
+			char_obj.img = $(this).find('.img').val();
+			let attr = $(this).find('.attr').val().replace(/ /g, "");
+			let attr_lst = []
+			attr_lst = [...new Set(attr.split(","))];
+			char_obj.attr = attr_lst;
+			char_obj.moral = $(this).find('.moral').val()[0];
+			char_obj.personality = $(this).find('.personality').val()[0];
+			char_list_data.push(char_obj);
+			// char_list_data[char_name] = char_obj;
+		}
+	});
+	let data = JSON.stringify(char_list_data);
+	*/
+
+	// log_message(save_txt)
+	if(target_file!="" && data!=""){	
+		let blob = new Blob([data],{type: "text/plain;charset=utf-8"});
+		let a = document.createElement('a');
+		a.download = target_file+".csv";
+		a.href = window.URL.createObjectURL(blob);
+		a.click();
+	}
+}
+
 //start the game
 function startGame(){
 	//temp list of characters
@@ -87,7 +260,11 @@ function startGame(){
 		//if there is a name in this column
 		if($(this).find('.name').val())
 			//add the name and image into charlist
-			charlist.push([$(this).find('.name').val(),$(this).find('.img').val()]);
+			charlist.push([$(this).find('.name').val(),
+							$(this).find('.img').val(),
+							$(this).find('.attr').val(),
+							$(this).find('.moral').val(),
+							$(this).find('.personality').val()]);
 	});
 	//clear the player table
 	$('#table').html('');
@@ -102,12 +279,35 @@ function startGame(){
 			x = Math.floor(Math.random() * mapSize);
 			y = Math.floor(Math.random() * mapSize);
 		} while(!safeTerrainCheck(x,y)); //make sure it is in bounds
+		
 		let tempChar = "";
 		//create player object
 		if(charlist[i]){
-			tempChar = new Char(charlist[i][0],charlist[i][1],x,y);
+			//attributes
+			let attr = charlist[i][2].replace(/ /g, "");
+			let attr_lst = []
+			attr_lst = [...new Set(attr.split(","))];
+			let filtered_attr = []
+			attr_lst.forEach(function(a){
+				if(a != "")
+					filtered_attr.push(a);
+			});
+
+			let moral = ""
+			if(charlist[i][3]=="" || charlist[i][3]=="Random")
+				moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
+			else
+				moral = charlist[i][3]
+			
+			let personality=""
+			if(charlist[i][4]=="" || charlist[i][4]=="Random")
+				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
+			else
+				personality = charlist[i][4]
+			
+			tempChar = new Char(charlist[i][0],charlist[i][1],x,y, filtered_attr, moral, personality);
 		} else {
-			tempChar = new Char("char" + i,"",x,y);
+			tempChar = new Char("char" + i,"",x,y,[],"Neutral","Neutral");
 		}
 		//draw the player
 		tempChar.draw();
@@ -117,6 +317,7 @@ function startGame(){
 	//something for drawing probably
 	setInterval(timer,interval);
 }
+
 //something for progressing turns
 function timer(){
 	if(playing){

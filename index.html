@@ -7,7 +7,7 @@
 	<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
 	<script src="statusEffects.js"></script>
-	<script src="charlist.js"></script>
+	<!-- <script src="charlist.js"></script> -->
 	<script src="terrain.js"></script>
 	<script src="doodad.js"></script>
 	<script src="char.js"></script>
@@ -51,8 +51,10 @@
 			<button onClick="generateTerrain()">Generate Terrain</button>
 			<button onClick="startGame()">Start Game</button><br>
 			
-			<input id='save_file' style='width:100px'></input>
-			<button >Load Players</button><button >Save Players</button><br>
+			<b>Load Players</b><input text="Load Players" type="file" id="load_file"><br>
+			<b>Save Players</b><input id='save_file' style='width:100px'></input><button onClick="savePlayers()" >Save Players</button><br>
+			
+			<!-- <button id='load_file'>Load Players</button> -->
 			<div id='cnt_players'>
 			</div>
 			<button onClick="resetPlayers()">Clear Players</button>

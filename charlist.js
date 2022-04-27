@@ -481,7 +481,6 @@ var charlist_bkt = [
 		"https://witcheffect.com/sprites/pixels/Chidori%20v3.png"
    ]
 ];
-
 var charlist_test = [
 	["Liru","https://cdn.myanimelist.net/images/characters/4/54606.jpg"],
 	["Pachira","https://cdn.myanimelist.net/images/characters/4/54605.jpg"],
@@ -489,5 +488,7 @@ var charlist_test = [
 	["Aiko","https://cdn.myanimelist.net/images/characters/16/167291.jpg"],
 	["Ange","https://cdn.myanimelist.net/images/characters/7/329716.jpg"]]
 
+
 // var charlist = charlist_test;
-var charlist = charlist_bkt;
+// var charlist = charlist_bkt;
+var charlist = textlist_bkt;

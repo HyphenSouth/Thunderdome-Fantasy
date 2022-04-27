@@ -1,5 +1,5 @@
 class Char {
-	constructor(name,img,x,y){
+	constructor(name,img,x,y, attr, moral, personal){
 		//_______________general data_______________
 		this.name = name;
 		this.img = img;
@@ -11,11 +11,11 @@ class Char {
 		
 		//_______________attributes_______________
 		//types of the character
-		this.attributes=[];
+		this.attributes=attr;
 		//Modifiers
-		this.moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
-		this.personality = rollSpecialP(this.name);
-		this.personality = roll([['Evil',1],['Neutral',2],['Good',1]]);
+		this.moral = moral
+		// this.personality = rollSpecialP(this.name);
+		this.personality = personal;
 		//roll([['Evil',1],['Neutral',2],['Good',1]])
 		moralNum[this.moral]++;
 		personalityNum[this.personality]++;
