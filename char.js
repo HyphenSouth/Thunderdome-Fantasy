@@ -235,12 +235,7 @@ class Char {
 	equip_item(item, slot){
 		if(slot=="wep"){
 			if(this.weapon){
-				if(this.weapon.unequip()){
-					this.weapon=item;
-					item.equip(this);
-					return true;
-				}
-				else{return false;}
+				return this.weapon.replace_wep(item);
 			}
 			else{
 				this.weapon=item;
@@ -250,12 +245,7 @@ class Char {
 		}
 		if(slot=="off"){
 			if(this.offhand){
-				if(this.offhand.unequip()){
-					this.offhand=item;
-					item.equip(this);
-					return true;
-				}
-				else{return false;}
+				return this.offhand.replace_offhand(item);
 			}
 			else{
 				this.offhand=item;
@@ -303,7 +293,7 @@ class Char {
 			//add new effect into list
 			this.status_effects.push(status_eff);
 			status_eff.afflict(this);
-			this.apply_inv_effects("new status", {"eff": status_eff});
+			this.apply_inv_effects("newStatus", {"eff": status_eff});
 			log_message(this.name +" is afflicted with " + status_eff.name);
 		}
 	}
@@ -651,12 +641,7 @@ class Char {
 					let loot_type=roll(type_prob);
 					//roll weapon
 					if(!this.weapon && loot_type=="wep"){
-						let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["Nothing",500]];
-						// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
-						if(sexSword){
-							// weaponOdds.push(["nanasatsu",1]);
-							// weaponOdds.push(["nanasatsu",10000]);
-						}
+						let weaponOdds = get_weapon_odds(this);
 						let w = roll(weaponOdds)
 						log_message(this.name +" found "+ w);
 						let temp_wep = create_weapon(w); 
@@ -666,8 +651,7 @@ class Char {
 						}
 					}			
 					else if(!this.offhand && loot_type=="off"){
-						let offhandOdds = [["bomb",30],["trap",20],["shield",20],["Nothing",400]];
-						// let offhandOdds = [["bomb",50],["trap",0],["shield",0],["Nothing",100]];
+						let offhandOdds = get_offhand_odds(this);
 						let off = roll(offhandOdds)
 						log_message(this.name +" found "+ off);
 						let temp_off = create_offhand(off); 

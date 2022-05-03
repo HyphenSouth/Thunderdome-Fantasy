@@ -78,6 +78,7 @@ class Trapped extends StatusEffect{
 		this.turns_trapped=0;
 		this.owner=owner;
 		this.level = level;
+		this.death_msg = "died escaping "+ this.owner.name + "'s trap";	
 	}
 	
 	afflict(player){
@@ -145,7 +146,7 @@ class Trapped extends StatusEffect{
 					this.turns_trapped++;
 					log_message(this.player.name + " fails to escape");
 					if(this.player.health <= 0){
-						this.player.death = "died escaping "+ this.owner.name + "'s trap";		
+						this.player.death = this.death_msg;	
 						this.owner.kills++;
 					}
 					this.player.finishedAction = true;
@@ -216,6 +217,62 @@ class Charm extends StatusEffect{
 					log_message(this.player.name +" found target")
 					this.player.aggroB +=200;
 					this.player.peaceB -= 200
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+}
+
+class Fire extends StatusEffect{
+	constructor(level, duration, owner){
+		super("fire");
+		this.owner=owner;
+		this.icon="🔥";
+		this.duration=duration;
+		this.level = level;
+		this.death_msg = "burnt to a crisp"
+	}
+	calc_bonuses(){
+		this.player.visibility +=10;
+	}
+	stack_effect(eff){
+		if(eff.level >= this.level){
+			this.duration = eff.duration 
+			this.level = eff.level 
+			this.owner = eff.owner
+		}
+		if(eff.level < this.level){
+			this.duration = this.duration + Math.round(eff.duration*(eff.level/this.level)) ;
+			this.level = this.level + Math.round(eff.level*0.5);
+		}
+	}
+	effect(state, data={}){
+		let oP="";
+		switch(state){
+			/*
+			case "turnStart":
+				// deal damage
+				let dmg = this.level * 5
+				this.player.take_damage(dmg, this.owner, "fire");
+				if(this.player.health<=0){
+					this.player.death = this.death_msg
+					if(this.owner)
+						this.owner.kills++;					
+				}
+				super.effect("turnStart");
+				break;			
+			*/
+			case "turnEnd":
+				// deal damage
+				let dmg = this.level * 5
+				this.player.take_damage(dmg, this.owner, "fire");
+				if(this.player.health<=0){
+					this.player.death = this.death_msg
+					if(this.owner)
+						this.owner.kills++;					
 				}
 				break;
 			default:

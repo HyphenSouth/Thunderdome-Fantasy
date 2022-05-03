@@ -19,7 +19,6 @@ var iconSize = 24;			//the size of each icon
 var moralNum = {"Chaotic":0,"Neutral":0,"Lawful":0};		//dict for moral
 var personalityNum = {"Evil":0,"Neutral":0,"Good":0};		//dict for personality
 var terrainDeath = 3; 		//Max num who can fall off a cliff	
-var sexSword = true;		//if sex sword is able to be found
 
 var dirArr = [[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1]]; 	//some array to go through the directions i guess
 
@@ -33,6 +32,7 @@ var dangerSize = 0;		//size of the restricted zone
 var dangerActive=false
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var log_msg=true
+var event_length = 130	//max amount of events displayed
 
 var player_line = 
 	"<div class='cnt_player'>"+
@@ -123,7 +123,7 @@ function Init(){
 	});
 	*/
 	$('#cnt_players').html("");
-	loadPlayers("");
+	loadPlayers(chartext);
 	//add empty row at the end
 	// $('#cnt_players').append(player_line);
 	initDone = true;
@@ -143,7 +143,7 @@ function resetPlayers(){
 
 //load players
 function loadPlayers(player_txt){
-	let player_lst = player_txt.split("\n");
+	let player_lst = player_txt.split("\r\n");
 	$('#cnt_players').html("");
 	player_lst.forEach(function(player_data){
 		// log_message(player_data)
@@ -158,6 +158,24 @@ function loadPlayers(player_txt){
 				}
 			});	
 			attr_txt = attr_txt.substring(0, attr_txt.length-1)
+			let morals = {
+				"R":"Random",
+				"L":"Lawful",
+				"N":"Neutral",
+				"C":"Chaotic"
+			}
+			if(!(player_data_lst[3] in morals)){
+				player_data_lst[3]="R"
+			}
+			let personalities = {
+				"R":"Random",
+				"G":"Good",
+				"N":"Neutral",
+				"E":"Evil",
+			}
+			if(!(player_data_lst[4] in personalities)){
+				player_data_lst[4]="R"
+			}
 			$('#cnt_players').append(
 				"<div class='cnt_player'>"+
 					//name input
@@ -168,7 +186,7 @@ function loadPlayers(player_txt){
 					"<input class='attr'value='" + attr_txt + "'>"+
 					//moral select
 					"<select class='moral'>"+
-						"<option value='"+player_data_lst[3] +"' selected hidden>"+player_data_lst[3] +"</option>"+
+						"<option value='"+morals[player_data_lst[3]] +"' selected hidden>"+player_data_lst[3] +"</option>"+
 						"<option value='Random'>R</option>"+
 						"<option value='Lawful'>L</option>"+
 						"<option value='Neutral'>N</option>"+
@@ -176,7 +194,7 @@ function loadPlayers(player_txt){
 					"</select>"+
 					//personality select
 					"<select class='personality'>"+
-						"<option value='"+player_data_lst[4] +"' selected hidden>"+player_data_lst[4] +"</option>"+
+						"<option value='"+personalities[player_data_lst[4]] +"' selected hidden>"+player_data_lst[4] +"</option>"+
 						"<option value='Random'>R</option>"+
 						"<option value='Good'>G</option>"+
 						"<option value='Neutral'>N</option>"+
@@ -603,8 +621,6 @@ function updateTable(){
 			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
 			$("#tbl_" + chara.id + " .effects").html(status_text);
 			// log_message(chara.name +" status txt " + status_text);
-
-
 		});
 		dedPlayers.forEach(function(chara,index){
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
@@ -644,6 +660,16 @@ function updateTable(){
 			let message = msg.message;
 			$('#eventMsg tbody').prepend("<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img>" + message + "</td>>");
 		});
+		
+		if($('#eventMsg tbody').children().length>event_length){
+			let remove_amount = $('#eventMsg tbody').children().length-event_length
+
+			for(let i=0; i<remove_amount; i++){
+				// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
+				$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
+				
+			}
+		}
 		if(events.length>0){
 			currentDayColor = (currentDayColor+1)%dayColors.length;
 		}

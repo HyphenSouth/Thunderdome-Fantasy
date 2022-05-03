@@ -32,7 +32,7 @@ var weapon_data = {
 		"fightBonus" : 2,
 		"peaceBonus" : -500,
 		"aggroBonus" : 500,
-		"dmgReductionB" : 1.05,
+		// "dmgReductionB" : 1.05,
 		"uses" : 99999
 	},
     "katana" : {
@@ -48,9 +48,30 @@ var weapon_data = {
 		"dmg_type":"ranged",
 		"uses":[3,6]
 	},
+	"spicy" : {
+		"icon" : "🌶️",
+		"dmg_type" : "melee",
+		"fightBonus" : 2,
+		"uses" : 99999
+	},
 
 }
 
+var sexSword = true;
+var spicy = true;
+function get_weapon_odds(tP){
+	let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["Nothing",500]];
+	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
+	if(sexSword){
+		// weaponOdds.push(["nanasatsu",1]);
+		weaponOdds.push(["nanasatsu",5000]);
+	}	
+	if(spicy){
+		// weaponOdds.push(["spicy",1]);
+		weaponOdds.push(["spicy",10000]);
+	}
+	return weaponOdds;
+}
 /*
 	this.name = name;
 	this.icon = "⚫";
@@ -90,7 +111,9 @@ function create_weapon(weapon_name){
 		case "shotgun":
 			return new Shotgun();
 			break;
-		
+		case "spicy":
+			return new Spicy();
+			break;
 		default:
 			if(weapon_name in weapon_data){
 				return new Weapon(weapon_name);
@@ -144,6 +167,13 @@ class Weapon extends Item{
 		// this.wielder.lastAction = "found " + this.name;
 		this.calc_bonuses();
 		this.wielder.statusMessage =  "found " + this.name;
+		return true;
+	}
+	
+	replace_wep(new_weapon){
+		this.wielder.weapon=new_weapon;
+		new_weapon.equip(this.wielder);
+		this.wielder=""
 		return true;
 	}
 	
@@ -384,6 +414,7 @@ class Shotgun extends Weapon {
 		}
 	}
 }
+
 class Nanasatsu extends Weapon {
 	constructor() {
 		super("nanasatsu");
@@ -480,6 +511,55 @@ class Nanasatsu extends Weapon {
 			case "followTarget":
 				oP=data['opponent'];
 				oP.statusMessage = "following SEX SWORD";
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+}
+class Spicy extends Weapon {
+	constructor() {
+		super("spicy");
+	}
+	equip(wielder){
+		super.equip(wielder);
+		spicy = false;
+		this.wielder.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
+		return true;
+	}	
+	effect(state, data={}){
+		let dmg=0;
+		let oP="";
+		switch(state){
+			//turn start
+			case "turnStart":
+				//light user on fire
+				if(Math.random()>0.95){
+					let f = new Fire(1,2,"")
+					f.death_msg = "couldn't handle the ol' spicy shinkai makai"
+					this.wielder.inflict_status_effect(f)
+				}
+				break;
+			case "attack":
+				oP=data['opponent'];
+				//set self on fire
+				let tP_fire = new Fire(1,1,"")
+				tP_fire.death_msg = "couldn't handle the ol' spicy shinkai makai"
+				this.wielder.inflict_status_effect(tP_fire)
+				//set opponent on fire
+				let oP_fire = new Fire(3,2,this.wielder)
+				oP.inflict_status_effect(oP_fire)
+				
+				this.wielder.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
+				break;
+			case "newStatus":
+				//charm immunity
+				let eff = data["eff"]
+				if(eff.name == "charm"){
+					this.wielder.remove_status_effect(eff);
+					log_message(this.wielder.name +" cannot be charmed")
+				}
 				break;
 			default:
 				super.effect(state, data);

@@ -488,7 +488,15 @@ var charlist_test = [
 	["Aiko","https://cdn.myanimelist.net/images/characters/16/167291.jpg"],
 	["Ange","https://cdn.myanimelist.net/images/characters/7/329716.jpg"]]
 
+var textlist_test = "\
+Liru,https://cdn.myanimelist.net/images/characters/4/54606.jpg,,R,R\r\n\
+Pachira,https://cdn.myanimelist.net/images/characters/4/54605.jpg,,R,R\r\n\
+Uma,https://cdn.myanimelist.net/images/characters/5/54607.jpg,,R,R\r\n\
+Aiko,https://cdn.myanimelist.net/images/characters/16/167291.jpg,,R,R\r\n\
+Ange,https://cdn.myanimelist.net/images/characters/7/329716.jpg,,R,R\r\n\
+"
+
 
 // var charlist = charlist_test;
 // var charlist = charlist_bkt;
-var charlist = textlist_bkt;
+var chartext = textlist_test;

@@ -12,9 +12,17 @@ var offhand_data = {
 		"icon" : "./icons/shield.png",
 		"icon_type" : "img",
 		"uses": [2,5],
-		"dmgReductionB":0.7,
+		"dmgReductionB":0.5,
 		"useStates":["defend"]
+	},
+	"recoil" : {
+		// "icon":"🛡️",
+		"icon" : "./icons/recoil.png",
+		"icon_type" : "img",
+		"dmgReductionB":0.75,
+		"uses": 50,
 	}
+	
 }
 function create_offhand(offhand_name){
 	switch(offhand_name){
@@ -25,7 +33,9 @@ function create_offhand(offhand_name){
 			return new Trap();
 			break;		
 		case "bomb":
-			return new Bomb();
+			return new Bomb();		
+		case "recoil":
+			return new Recoil();
 		default:
 			if(offhand_name in offhand_data){
 				return new Offhand(offhand_name);
@@ -35,6 +45,12 @@ function create_offhand(offhand_name){
 			}
 			break;		
 	}
+}
+
+function get_offhand_odds(tP){
+	let offhandOdds = [["bomb",5],["trap",20],["shield",20],["recoil", 15],["Nothing",400]];
+	// let offhandOdds = [["bomb",5],["trap",20],["shield",20],["recoil", 15000],["Nothing",400]];
+	return offhandOdds;
 }
 
 class Offhand extends Item{
@@ -80,6 +96,12 @@ class Offhand extends Item{
 		return true;
 	}
 	
+	replace_offhand(new_item){
+		this.wielder.weapon=new_item;
+		new_item.equip(this.wielder);
+		this.wielder=""
+		return true;
+	}
 	unequip(){
 		this.wielder="";
 		return true;
@@ -210,11 +232,43 @@ class Trap extends Offhand {
 	}
 }
 
-
-
-
-
-
+class Recoil extends Offhand{
+	constructor() {
+		super("recoil");
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "takeDmg":
+				let oP=data["source"];
+				let dmg = data["damage"];
+				if(oP instanceof Char){
+					
+					let recoil_dmg = dmg*0.25;
+					if(recoil_dmg>oP.health){
+						recoil_dmg = oP.health;
+					}
+					if(recoil_dmg>this.uses){
+						recoil_dmg=this.uses;
+					}
+					oP.take_damage(recoil_dmg, "", "recoil")
+					log_message(this.wielder.name + " recoil on " + oP.name + " "+ recoil_dmg);
+					if(oP.health<0){
+						oP.death = "beat themselves to death"
+						this.wielder.kills++;
+					}
+					this.uses = this.uses - recoil_dmg;
+					if(this.uses<=0){
+						this.destroy();
+					}
+				}
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+}
 
 
 
