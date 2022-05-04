@@ -143,7 +143,8 @@ function resetPlayers(){
 
 //load players
 function loadPlayers(player_txt){
-	let player_lst = player_txt.split("\r\n");
+	player_txt=player_txt.replace(/\r\n/g,"\n")
+	let player_lst = player_txt.split("\n");
 	$('#cnt_players').html("");
 	player_lst.forEach(function(player_data){
 		// log_message(player_data)
