@@ -268,7 +268,7 @@ class Fire extends StatusEffect{
 			case "turnEnd":
 				// deal damage
 				let dmg = this.level * 5
-				this.player.take_damage(dmg, this.owner, "fire");
+				this.player.take_damage(dmg, this, "fire");
 				if(this.player.health<=0){
 					this.player.death = this.death_msg
 					if(this.owner)

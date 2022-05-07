@@ -1,4 +1,6 @@
-var players = []; 			//list of players
+var players = []; 			//list of players used for the game
+var players_static = []; 	//static list of players
+var show_info_id = -1; 		//id of the current player's info shown (-1 for none)
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
 var doodads = [];			//list of items
@@ -83,13 +85,15 @@ function Init(){
 		$('#map').width($('#map').height());
 		$('#map').height($('#map').width());
 		$('#side').width("calc(100% - 40px - " + ($('#map').width() + 5) + "px)");
-		$('#side').css({'max-height':'100%','overflow-y':'scroll'});
+		// $('#side').css({'max-height':'100%','overflow-y':'scroll'});
+		$('#side').css({'max-height':'100%'});
 	} else {
 		$('#map').width('calc(100% - 40px)');
 		$('#map').height($('#map').width());
 		$('#map').width($('#map').height());
 		$('#side').width("100%");
-		$('#side').css({'max-height':'calc(100% - 40px - ' + $('#map').height() + "px)",'overflow-y':'scroll'});
+		// $('#side').css({'max-height':'calc(100% - 40px - ' + $('#map').height() + "px)",'overflow-y':'scroll'});
+		$('#side').css({'max-height':'calc(100% - 40px - ' + $('#map').height() + "px)"});
 	}
 	// $('#danger').css('visibility', 'visible');
 	$('#danger').height($('#map').height()-10)
@@ -286,9 +290,12 @@ function startGame(){
 							$(this).find('.personality').val()]);
 	});
 	//clear the player table
-	$('#table').html('');
+	// $('#table').html('');
+	$('#player_prep').css('display','none');
+	$('#char_lst').css('display','block');
 	$('#table').css('display','block');
 	$('#messages').css('display','none');
+	$('#nav_bar').css('display','block');
 	//go through charlist
 	for(var i = 0;i<charlist.length;i++){
 		//get a random starting point for the player
@@ -332,7 +339,9 @@ function startGame(){
 		tempChar.draw();
 		//add the player obj into the player list
 		players.push(tempChar);
+		players_static.push(tempChar);
 	}
+	total_players = players.length;
 	//something for drawing probably
 	setInterval(timer,interval);
 }
@@ -409,6 +418,8 @@ function action(){
 		day++;
 	}
 	$('#day').text("Day " + day + " Hour " + hour);
+	$('#alive_cnt').text("Alive: " + players.length +"/"+total_players);
+	$('#ded_cnt').text("Dead: " + dedPlayers.length+"/"+total_players);
 	//update the info tables
 	updateTable();
 	log_message('======= end of turn=======');
@@ -563,10 +574,76 @@ function pushMessage(chara, msg){
 var dayColors = ["#282828","#474747"];
 var currentDayColor=0;
 
+function highlight_clicked(char_id) {
+	log_message("container click")
+	//deselect
+	if($('#tbl_' + char_id).hasClass('selected')){
+		deselect_show_info();
+	}
+	else if($('#tbl_' + char_id).hasClass('highlight')){
+		$('#char_' + char_id).removeClass('highlight')
+		$('#tbl_' + char_id).removeClass('highlight')
+	}
+	else{
+		$('#char_' + char_id).addClass('highlight')
+		$('#tbl_' + char_id).addClass('highlight')
+	}
+}
+function show_info(char_id){
+	log_message("img click")
+	//no char selected
+	
+	if(show_info_id==-1){
+		select_show_info(char_id)
+	}
+	//another character selected
+	else if(show_info_id!=char_id){
+		// $('#char_' + show_info_id).removeClass('highlight')
+		// $('#tbl_' + show_info_id).removeClass('highlight')
+		
+		deselect_show_info()
+		select_show_info(char_id)
+	}
+	//deselect current char
+	else{
+		deselect_show_info();
+	}
+	
+}
+function select_show_info(char_id){
+	$('#tbl_' + char_id).removeClass('highlight')
+	$('#tbl_' + char_id).addClass('selected')
+	$('#char_' + char_id).addClass('highlight')
+	
+	show_info_id=char_id;
+	players_static[show_info_id].show_info();
+	
+	$('#char_info').css('display','inline-block')
+	// $('#table').css('margin-bottom','250px')
+}
+function deselect_show_info(){
+	$('#tbl_' + show_info_id).removeClass('selected')
+	$('#char_' + show_info_id).removeClass('highlight')
+	$('#char_info_container').html('');
+	
+	show_info_id=-1;
+	$('#char_info').css('display','none')
+	// $('#table').css('margin-bottom','50px')
+}
+function show_item_info(slot){
+	log_message("showing "+slot+" info for "+players_static[show_info_id].name)
+}
+function show_status_info(eff_id){
+	log_message("showing "+players_static[show_info_id].status_effects[eff_id].name+" info for "+players_static[show_info_id].name)
+}
+
 //update the info tables
 function updateTable(){
 	//list status
 	// if($('#table').css('display')=='block'){
+		if(show_info_id!=-1){
+			players_static[show_info_id].show_info();
+		}
 		players.forEach(function(chara,index){		
 			//prepare player data
 			let wep_text=""
@@ -659,7 +736,11 @@ function updateTable(){
 		events.forEach(function(msg,index){
 			let chara = msg.chara;
 			let message = msg.message;
-			$('#eventMsg tbody').prepend("<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img>" + message + "</td>>");
+			$('#eventMsg tbody').prepend(
+				//time
+				"<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>\
+				<img src='" + chara.img + "'></img>" + message + "</td>>"
+			);
 		});
 		
 		if($('#eventMsg tbody').children().length>event_length){

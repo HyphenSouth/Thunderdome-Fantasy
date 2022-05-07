@@ -43,11 +43,11 @@ function aggroCheck(tP, oP){
 		fightChance += 40;
 		peaceChance -= 20;
 	}
-	if(tP.moral == 'Lawful')
-		peaceChance += 75;
-	if(tP.moral == 'Chaotic'){
-		fightChance += 100;
-	}
+	// if(tP.moral == 'Lawful')
+		// peaceChance += 75;
+	// if(tP.moral == 'Chaotic'){
+		// fightChance += 100;
+	// }
 	// oP.apply_inv_effects_other("aggro check", tP);
 	// oP.apply_status_effects_other("aggro check", tP);
 
@@ -101,11 +101,11 @@ function doodadCheck(tP){
 		}
 	});
 }
+//calculate damage
 function rollDmg(tP){
 	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
 	return dmg;
 }
-
 
 function attack(attacker, defender, counter){
 	let dmg = 0;
@@ -152,7 +152,6 @@ function attack(attacker, defender, counter){
 }
 
 function fight_target(tP,oP){
-	
 	//tp has the initiative 
 	tP.div.addClass("fighting");
 	oP.div.addClass("fighting");
@@ -164,85 +163,94 @@ function fight_target(tP,oP){
 	oP.lastAttacker = tP;
 	tP.lastAction = "fighting"
 	tP.resetPlannedAction();
-	//opponent turn
-	if(oP.health > 0){
-		// tP.lastAction = "fights " + oP.name;
-		/*
-		tP.statusMessage = "fights " + oP.name;
-		if(tP.weapon){
-			// tP.lastAction = "attacks " + oP.name + " with a " + tP.weapon.icon;
-			tP.statusMessage = "attacks " + oP.name + " with a " + tP.weapon.icon;
+	//tP kills oP
+	if(oP.health <= 0){
+		log_message(tP.name + " kills " + oP.name);
+		tP.kills++;
+		if(tP.personality == oP.personality && tP.personality != 'Neutral'){
+			tP.statusMessage = "betrays " + oP.name;
+			oP.statusMessage = "killed in their sleep by " + tP.name;
+			pushMessage(tP, tP.name + " betrays " + oP.name);
+			oP.death = "betrayed by " + tP.name;
+		} 
+		else if(oP.lastAction == "sleeping"){
+			tP.statusMessage = "kills " + oP.name + " in their sleep";
+			oP.statusMessage = "killed in their sleep by " + tP.name;
+			pushMessage(tP, tP.name + " kills " + oP.name + " in their sleep");
+			oP.death = "killed in their sleep by " + tP.name;
+		} 
+		else{
+			tP.statusMessage = "kills " + oP.name;
+			oP.statusMessage = "killed by " +tP.name;
+			pushMessage(tP, tP.name + " kills " + oP.name);
+			oP.death = "killed by " + tP.name;
 		}
-		*/
-		//awareness check
-		if(!oP.incapacitated && oP.awareOf.indexOf(tP)>=0 && oP.current_turn_fights <turnFightLim){
-			//check if in range
-			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
-			//opponent counter attack
-			if(oP.fightRange + oP.fightRangeB >= dist){
-				attack(oP,tP, true);
-				oP.current_turn_fights++;
-				oP.lastAction="fighting";
-				//oP kills tP
-				if(tP.health <= 0){
-					log_message(oP.name + " kills " + tP.name +" (counterattack)");
-					// oP.lastAction = "kills " + tP.name;
-					oP.kills++;
-					tP.statusMessage = "killed by " +oP.name;
-					tP.death = "killed by " + oP.name + "'s counterattack";
-					oP.apply_all_effects("win",{"opponent":tP});
-					tP.apply_all_effects("lose",{"opponent":oP});
-				} 
-			} else {
-				// oP.lastAction = "is attacked out of range";
-				oP.statusMessage = "is attacked out of range";
-				oP.lastAction = "attacked";
-				oP.currentAction = {};
+		tP.apply_all_effects("win",{"opponent":oP});
+		oP.apply_all_effects("lose", {"opponent":tP});
+	}
+	//opponent turn
+	else{
+		//push event message
+		pushMessage(tP, tP.name + " " + tP.statusMessage);
+		
+		//incapacitated
+		if(oP.incapacitated){
+			if(oP.lastAction == "sleeping"){
+				oP.statusMessage = "attacked in their sleep by "+ tP.name;
+				pushMessage(oP, "was attacked in their sleep by " + tP.name);
+			}
+			else{
+				oP.statusMessage = "unable to fight back against " + tP.name;
+				pushMessage(oP, " is unable to fight back against " + tP.name);
 			}
 		}
 		//unaware
-		else {
-			if(oP.lastAction == "sleeping"){
-				// oP.lastAction = "was attacked in their sleep";
-				oP.statusMessage = "was attacked in their sleep";
-			} 
-			else if(oP.incapacitated){
-				oP.statusMessage = "unable to fight back against " + tP.name;
-			}
-			else if(oP.current_turn_fights >= turnFightLim){
-				pushMessage(oP, "too busy fighting to defend against " + tP.name);
-			}
-			else {
-				// oP.lastAction = "is caught offguard";
-				oP.statusMessage = "is caught offguard";
-			}
-			oP.lastAction = "attacked";
-			oP.currentAction = {};
+		else if(!(oP.awareOf.indexOf(tP)>=0)){
+			oP.statusMessage = "caught offguard";
+			pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
 		}
-		oP.finishedAction = true;
-	}
-	//tP kills oP
-	else {
-		log_message(tP.name + " kills " + oP.name);
-		tP.kills++;
-		// tP.apply_inv_effects_other("win",oP);
-		// oP.apply_inv_effects_other("lose", tP);
-		tP.apply_all_effects("win",{"opponent":oP});
-		oP.apply_all_effects("lose", {"opponent":tP});
-		oP.statusMessage = "killed by " +tP.name;
-		if(tP.personality == oP.personality && tP.personality != 'Neutral'){
-			// tP.lastAction = "betrays " + oP.name;
-			tP.statusMessage = "betrays " + oP.name;
-			oP.death = "betrayed by " + tP.name;
-		} else {
-			if(oP.lastAction == "sleeping"){
-				oP.death = "killed in their sleep by " + tP.name;
-			} else {
-				oP.death = "killed by " + tP.name;
+		//out of range
+		else if(oP.fightRange + oP.fightRangeB<hypD(oP.x - tP.x,oP.y - tP.y)){
+			oP.statusMessage = "attacked out of range";
+			pushMessage(oP, oP.name + " is attacked out of range by " + tP.name);
+		}
+		//too busy to fight back
+		else if(oP.current_turn_fights >= turnFightLim){
+			pushMessage(oP, "is too busy to fight back against " + tP.name);
+		}
+		//tP is somehow dead
+		else if(tP.health <=0){
+			pushMessage(oP, oP.name + " tries to fight back against " + tP.name + "'s corpse");
+			if(oP.statusMessage=="")
+				oP.statusMessage= "tries to fight back against " + tP.name + "'s corpse"
+		}
+		else{
+			//opponent counter attack
+			attack(oP,tP, true);
+			oP.current_turn_fights++;
+			oP.lastAction="fighting";
+			//oP kills tP
+			if(tP.health <= 0){
+				log_message(oP.name + " kills " + tP.name +" (counterattack)");
+				oP.kills++;
+				
+				oP.statusMessage = "kills " + tP.name;
+				tP.statusMessage = "killed by " +oP.name + "'s counterattack";
+				pushMessage(oP, oP.name + " fights back and kills " + tP.name);
+				tP.death = "killed by " + oP.name + "'s counterattack";	
+				
+				oP.apply_all_effects("win",{"opponent":tP});
+				tP.apply_all_effects("lose",{"opponent":oP});				
+			}
+			//tP survives
+			else{	
+				//push event message
+				pushMessage(oP, oP.name + " " + oP.statusMessage);
 			}
 		}
 	}
-	pushMessage(tP, tP.statusMessage);
-	pushMessage(oP, oP.statusMessage);
+	oP.lastAction = "attacked";
+	oP.currentAction = {};
+	oP.finishedAction = true;	//interrupt planned actions
 	oP.resetPlannedAction();
 }

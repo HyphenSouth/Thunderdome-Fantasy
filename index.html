@@ -26,27 +26,16 @@
 		<div id='danger'></div>
 	</div>
 	<div id='side'>
-		<button onClick="auto()">Auto</button>
-		<button onClick="turn()">Next Hour</button>
-		<button onClick="infoDisplay()">Switch Info</button>
-		<span id='day'></span><span style='margin-left:10px' id='nums'></span>
-		<div id='messages'>
-			<table id='eventMsg'>
-				<thead>
-					<tr><th>Time</th><th></th></tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-			<table id='deathMsg'>
-				<thead>
-					<tr><th>Time</th><th></th></tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
+		<div id='nav_bar' style='display:none;'>
+			<button onClick="auto()">Auto</button>
+			<button onClick="turn()">Next Hour</button>
+			<button onClick="infoDisplay()">Switch Info</button>
+			<span id='day' style='width:120px; display: inline-block;'></span>
+			<span style='margin-left:10px; width:130; display: inline-block;' id='alive_cnt'></span>
+			<span style='margin-left:10px; width:130; display: inline-block;' id='ded_cnt'></span>
 		</div>
-		<div id='table'>
+		
+		<div id='player_prep' style='margin-top: 30px;'>
 			<input id='txt_spreadTerrain' value=3 style='width:40px'></input> Water & Mountain Spread<br>
 			<button onClick="generateTerrain()">Generate Terrain</button>
 			<button onClick="startGame()">Start Game</button><br>
@@ -55,11 +44,38 @@
 			<b>Save Players</b><input id='save_file' style='width:100px'></input><button onClick="savePlayers()" >Save Players</button><br>
 			
 			<!-- <button id='load_file'>Load Players</button> -->
-			<div id='cnt_players'>
-			</div>
+			<div id='cnt_players'></div>
 			<button onClick="resetPlayers()">Clear Players</button>
 		</div>
+		
+		<div id='char_lst' style='display:none; margin-top: 30px;'>
+			<div id='messages' style='display:none;'>
+				<table id='eventMsg'>
+					<thead>
+						<tr><th>Time</th><th></th></tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+				<table id='deathMsg'>
+					<thead>
+						<tr><th>Time</th><th></th></tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+			</div>
+			<div id='table' style='display:none; margin-bottom: 250px;'>
+			</div>
+			<div id='char_info'>
+				<button onClick="deselect_show_info()"></button>
+				<div id = 'char_info_container' style='margin:5px'>
+				</div>				
+			</div>
+		</div>
+		
 	</div>
+	
 </body>
 <style>
 html,body{
@@ -74,14 +90,93 @@ html,body{
 	vertical-align:top;
 	height:100%;
 	color:white;
+	overflow-y: hidden; 
 }
+#char_lst{
+	display:inline-block;
+	vertical-align:top;
+	height:100%;
+	overflow-y:scroll;
+	padding-bottom:100px;
+}
+#char_info{
+	position: fixed;
+	display:none;
+	bottom: 20px; 
+	right: 50px;
+	height:175px;
+	width:600px;
+	z-index:5;
+	/*border-radius: 20px;*/
+	background-color:#474747;
+	box-shadow: inset 0 0 4px red;
+}
+#char_info button{
+	position: absolute; 
+	right:5px;
+	top:5px;
+	width:20px;
+	height:20px;
+	background-color:#ffffff00;
+	background-image: url('icons/close.png');
+	background-size: 20px 20px;
+	border-style: none;
+}
+#char_info_img{
+	width:135px;
+	height:160px;
+	object-fit:cover;
+	border: 2px solid black;
+
+}
+#char_info_container .info{
+	display:inline-block;
+	width:420px;
+	font-size:16px;
+	vertical-align:top;
+	margin-left:5px;
+}
+
+#char_stats {
+	width:220px; 
+	height:150px;
+	margin-top:32px;
+	position:absolute; 
+	top:0; 
+	right:0; 
+	font-size:12px
+}
+
+#char_stats .item_img{
+	width:15px;
+	height:15px;
+}
+
+#nav_bar{
+	position: fixed; 
+	top: 0; 
+	width:100%;
+	background:#222;	
+	z-index:5;
+}
+
 #table .container{
 	display:inline-block;
 	vertical-align:top;
-	width:240px;
+	width:235px;
 	position:relative;
 	height:60px;
 	margin-bottom:5px;
+	margin-right:5px;
+}
+
+#table .container.highlight{
+	background-color:#474747;
+	box-shadow: inset 0 0 1px yellow;
+}
+#table .container.selected{
+	background-color:#474747;
+	box-shadow: inset 0 0 2px red;
 }
 
 #table .container table, #table .container img{
@@ -103,6 +198,7 @@ html,body{
 	width:50px;
 	height:60px;
 	object-fit:cover;
+	z-index:1;
 }
 #messages table{
 	color:white;
@@ -129,9 +225,7 @@ html,body{
 #danger {
 	display:inline-block;
 	vertical-align:top;
-	position:relative;
-	
-	
+	position:relative;	
 	border-radius: 50%;
 	border: 5px solid red;
 	visibility: hidden;
@@ -149,6 +243,13 @@ html,body{
 	transition: transform 1s;
 	margin-top:-10px;
 	z-index:3;
+	pointer-events: none;
+}
+.char.highlight{
+	border-color:yellow;
+	color:yellow;
+	font-weight:bold;
+	z-index:10;
 }
 .doodad{
 	z-index:2;
@@ -173,7 +274,13 @@ html,body{
 .char.dead{
 	opacity:0.1;
 }
-
+.char.dead.highlight{
+	border-color:yellow;
+	color:yellow;
+	font-weight:bold;
+	opacity:0.75;
+	z-index:10;
+}
 .fighting{
 	border-color:red;
 }
@@ -231,5 +338,11 @@ html,body{
 	width:150px;
 	font-size:12px;
 }
+
+.item_img{
+	width:20px;
+	height:20px;
+}
+
 </style>
 

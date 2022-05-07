@@ -46,7 +46,7 @@ function create_offhand(offhand_name){
 			break;		
 	}
 }
-
+var off_prob = 2;
 function get_offhand_odds(tP){
 	let offhandOdds = [["bomb",5],["trap",20],["shield",20],["recoil", 15],["Nothing",400]];
 	// let offhandOdds = [["bomb",5],["trap",20],["shield",20],["recoil", 15000],["Nothing",400]];
@@ -97,7 +97,7 @@ class Offhand extends Item{
 	}
 	
 	replace_offhand(new_item){
-		this.wielder.weapon=new_item;
+		this.wielder.offhand=new_item;
 		new_item.equip(this.wielder);
 		this.wielder=""
 		return true;
@@ -243,7 +243,6 @@ class Recoil extends Offhand{
 				let oP=data["source"];
 				let dmg = data["damage"];
 				if(oP instanceof Char){
-					
 					let recoil_dmg = dmg*0.25;
 					if(recoil_dmg>oP.health){
 						recoil_dmg = oP.health;
@@ -251,10 +250,12 @@ class Recoil extends Offhand{
 					if(recoil_dmg>this.uses){
 						recoil_dmg=this.uses;
 					}
-					oP.take_damage(recoil_dmg, "", "recoil")
+					
+					oP.take_damage(recoil_dmg, this, "recoil")
 					log_message(this.wielder.name + " recoil on " + oP.name + " "+ recoil_dmg);
 					if(oP.health<0){
-						oP.death = "beat themselves to death"
+						oP.death = "killed by recoil damage from " + this.wielder.name;
+						// pushMessage(oP, oP.name + " killed by recoil damage from " + this.wielder.name);
 						this.wielder.kills++;
 					}
 					this.uses = this.uses - recoil_dmg;

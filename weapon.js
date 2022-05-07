@@ -57,6 +57,7 @@ var weapon_data = {
 
 }
 
+var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 function get_weapon_odds(tP){
@@ -401,6 +402,7 @@ class Shotgun extends Weapon {
 				else if(counter && Math.random()<0.2){
 					//20% chance of reload instead of fighting back
 					this.reload();
+					this.wielder.fightDmgB = 0;
 					this.wielder.statusMessage = "reloads their shotgun instead of fighting back";
 				}
 				else{

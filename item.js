@@ -29,7 +29,7 @@ function processDataNum(num){
 }
 
 function setItemIcon(icon){
-	return '<img style="width:20px;height:20px;" src="' + icon +'"></img>';
+	return '<img class="item_img" src="' + icon +'"></img>';
 }
 
 

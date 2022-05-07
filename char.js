@@ -42,12 +42,14 @@ class Char {
 		this.fightRangeB = 0;
 		//damage dealt
 		this.fightDmg = 25;
+		//damage multiplier
 		this.fightDmgB = 1.00;
 		//damage reduction
-		this.dmgReductionB = 1;		
+		this.dmgReductionB = 1.00;		
 		//peacefulness
 		this.aggroB = 0;
 		this.peaceB = 0;
+
 		//how visible they are
 		this.visibility = 100;
 		this.visibilityB = 0;
@@ -120,23 +122,92 @@ class Char {
 			//status
 			charDiv = $('#char_' + this.id);
 			charDiv.css('background-image',"url(" + this.img + ")");
-			$('#table').append(
-			"<div class='container alive' id='tbl_" + this.id + "'><img src='" + this.img + "'></img><div style='position:absolute;width:50px;height:60px;z-index:1;top:0;left:0'>"+
-			"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
-			"<div class='kills'></div>"+		//kill counter
-			"</div><div class='info'><div>" + this.moral.substring(0,1) + this.personality.substring(0,1) + " <b>" + this.name + //name
-			"</b><span class='weapon'></span></div>"+
-			"<div class='status'></div>"+		//status message
-			"<div class='effects'></div>"+		//status message
-			"</div></div>");
-			
 			this.div = charDiv;
+			
+			$('#table').append(
+			"<div class='container alive' id='tbl_" + this.id + "'>"+
+				
+				"<img src='" + this.img + "' onclick='show_info("+this.id+")'>"+ //img 
+				"<div style='position:absolute;width:50px;height:60px;z-index:2;top:0;left:0;pointer-events: none;'>"+ 
+					"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
+					"<div class='kills'></div>"+		//kill counter
+				"</div>"+
+			
+				//info section			
+				"<div class='info'>"+
+					"<div>" + 
+						this.moral.substring(0,1) + this.personality.substring(0,1) + " <b>" + this.name +"</b>"+ //name
+						"<span class='weapon'></span>"+
+					"</div>"+
+					"<div class='status'></div>"+		//status message
+					"<div class='effects'></div>"+		//effects message
+				"</div>"+
+				"<div style='position:absolute;width:185px;height:100%;top:0;left:0;margin-left:50px;' onclick='highlight_clicked("+this.id+")'></div>"+	//clickable div
+			"</div>");
 		} 
 		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
 		//charDiv.css('top',this.y / 1000 * .95 * $('#map').height() - iconSize/2);
 		charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width() - iconSize/2) + "px," + (this.y / mapSize *  $('#map').height() - iconSize/2) + "px)"},function(){
 		});
 	}
+	
+	show_info(){
+		let attrHtml="None";
+		let weaponHtml="None";
+		if(this.weapon){
+			weaponHtml = "<span onClick='show_item_info(\"wep\")'>"+this.weapon.icon+"</span>";
+		}
+		let offhandHtml="None";
+		if(this.offhand){
+			offhandHtml = "<span onClick='show_item_info(\"off\")'>"+this.offhand.icon+"</span>";
+		}
+		let statusHtml="None";
+		if(this.status_effects.length>0){
+			statusHtml="";
+			this.status_effects.forEach(function(eff, eff_id){
+				statusHtml=statusHtml+"<span onClick='show_status_info("+eff_id+")'>"+eff.icon+"</span>"
+			});
+		}
+		let statusMsgHTML = this.statusMessage;
+		if(this.health<=0){
+			statusMsgHTML = this.death;
+		}
+		
+		let char_info=
+		"<img id='char_info_img' src='"+ this.img+"'>"+
+		"<div class='info'>"+
+			"<b style='font-size:24px'>"+this.name+"</b><br>"+
+			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br><br>"+
+			"<span style='width:150px; display:block;'>"+statusMsgHTML+"</span>"+
+			"<div style='width: 170px; height: 25px; bottom:15px; position:absolute;'>"+	//health and energy div
+				"<span style='color:red; float: left;'>"+
+					"<b>Health:</b><br>"+Math.round(this.health*100)/100+"/"+this.maxHealth+
+				"</span>"+
+				"<span style='color:green; float: right;'>"+
+					"<b>Energy:</b><br>"+Math.round(this.energy*100)/100+"/"+this.maxEnergy+
+				"</span>"+
+			"</div>"+
+			"<div id='char_stats'>"+
+				"<span>Kills: "+this.kills+"</span><br>"+
+				"<span>Attr:"+attrHtml+"</span><br>"+
+				"<span>Weapon:"+weaponHtml+"</span><br>"+
+				"<span>Offhand:"+offhandHtml+"</span><br>"+
+				"<span>Effects:"+statusHtml+"</span><br>"+
+				"<span>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")</span><br>"+
+				"<div style='width: 100%;'>"+	
+					"<div style='float: left;'>Last Slept:"+this.lastSlept+"</div>"+
+					"<div style='float: right; margin-right:10px;'>Last Fight:"+this.lastFight+"</div><br>"+
+					"<div style='float: left;'>Aware:"+this.awareOf.length+"</div>"+
+					"<div style='float: right; margin-right:10px;'>In Range:"+this.inRangeOf.length+"</div>"+			
+				"</div>"+
+
+			"</div>"+
+
+		"</div>"
+		
+		$('#char_info_container').html(char_info);
+	}
+	
 	//calculate bonuses for combat
 	calc_bonuses(){
 		this.sightRangeB = 0;
@@ -145,9 +216,25 @@ class Char {
 		this.fightRangeB = 0;
 		this.fightDmgB = 1;
 		this.dmgReductionB = 1;
+		// good = less damage dealt and taken
+		// evil = more damage dealt and taken
+		if(this.personality == 'Good')
+			this.fightDmgB = 0.8;
+			this.dmgReductionB = 0.8;
+		if(this.personality == 'Evil'){
+			this.fightDmgB = 1.25;
+			this.dmgReductionB = 1.25;
+		}
 		
 		this.aggroB=0
 		this.peaceB=0
+		//chaotic = more likely to be aggro
+		//lawful = more likely to be peaceful
+		if(this.moral == 'Lawful')
+			this.peaceB = 75;
+		if(this.moral == 'Chaotic'){
+			this.aggroB = 100;
+		}
 		
 		this.moveSpeedB = 1
 
@@ -360,7 +447,6 @@ class Char {
 			oP.apply_all_effects("opAware", {"opponent":temp_this});
 		});
 
-
 		if(this.lastAction == 'sleeping'){this.incapacitated = true;}
 		if(!this.incapacitated){
 			//get opponents that are in sight 
@@ -375,7 +461,6 @@ class Char {
 		this.inRangeOf.forEach(function(oP,index){
 			oP.apply_all_effects("opInRange", {"opponent":temp_this});
 		});
-
 	}
 	
 	//plan the next action
@@ -393,7 +478,7 @@ class Char {
 		this.unaware = false;
 		this.incapacitated = false;
 		this.attackers = [];
-		this.statusMessage = "does nothing";
+		this.statusMessage = "";
 		
 	 	//apply turn start effects
 		this.apply_all_effects("turnStart");
@@ -419,6 +504,7 @@ class Char {
 			another action planned: continue action
 			choose options:
 				move, fight, sleep
+			if extremely aggresive, chance to replace chosen action with attack
 		*/		
 		//force rest if no energy
 		if(this.energy==0){
@@ -434,6 +520,7 @@ class Char {
 
 		//forage if energy is low
 		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && terrainCheck(this.x,this.y) != "w" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
+			//set priority for foraging depending on energy
 			let forageLv=2;
 			let energy_percent = (this.energy/this.maxEnergy) *100;
 			if(energy_percent<20){forageLv = 7;}
@@ -501,6 +588,16 @@ class Char {
 				this.setPlannedAction(action_option, 1)
 			}
 		}
+		//if high aggro have a chance to fight
+		if(this.inRangeOf.length >0 && (this.aggroB - this.peaceB)>roll_range(75, 375)){
+			//set target to the first player in range
+			log_message(this.name + " fight replacement")
+			if(this.setPlannedAction("fight",6)){
+				this.plannedTarget = this.inRangeOf[0];	   
+				this.plannedTarget.attackers.push(this);
+				log_message(this.name + " targets attack "+this.plannedTarget.name)				
+			}
+		}
 		
 		//apply effects
 		this.apply_all_effects("planAction");
@@ -553,7 +650,10 @@ class Char {
 			this.div.find('.charName').addClass('sleep');
 		} else {
 			this.div.find('.charName').removeClass('sleep');
-		}	
+		}
+		if(this.statusMessage==""){
+			this.statusMessage = "does nothing"
+		}
 		//action completed
 		this.finishedAction = true;
 		// this.apply_inv_effects("end turn");
@@ -571,7 +671,6 @@ class Char {
 	//action functions
 	//fight
 	action_fight(){
-		log_message(this.name + " fights back");
 		//add red fighting border
 		//this.div.addClass("fighting");
 		//fight planned target
@@ -586,7 +685,7 @@ class Char {
 				else{
 					this.lastAction = "fighting";
 					//calculate damage for both fighters
-				fight_target(this,this.plannedTarget);
+					fight_target(this,this.plannedTarget);
 				}
 			}
 			//if target is already dead
@@ -633,10 +732,10 @@ class Char {
 					//randomly find a weapon
 					let type_prob = [];
 					if(!this.weapon){
-						type_prob.push(["wep",3])
+						type_prob.push(["wep", wep_prob])
 					}
 					if(!this.offhand){
-						type_prob.push(["off",2])
+						type_prob.push(["off", off_prob])
 					}
 					let loot_type=roll(type_prob);
 					//roll weapon
