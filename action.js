@@ -240,7 +240,7 @@ function fight_target(tP,oP){
 				tP.death = "killed by " + oP.name + "'s counterattack";	
 				
 				oP.apply_all_effects("win",{"opponent":tP});
-				tP.apply_all_effects("lose",{"opponent":oP});				
+				tP.apply_all_effects("lose",{"opponent":oP});
 			}
 			//tP survives
 			else{	
@@ -253,4 +253,10 @@ function fight_target(tP,oP){
 	oP.currentAction = {};
 	oP.finishedAction = true;	//interrupt planned actions
 	oP.resetPlannedAction();
+	if(tP.health<=0){
+		tP.die()
+	}	
+	if(oP.health<=0){
+		oP.die()
+	}
 }

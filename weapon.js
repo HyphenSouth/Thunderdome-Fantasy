@@ -51,7 +51,7 @@ var weapon_data = {
 	"spicy" : {
 		"icon" : "🌶️",
 		"dmg_type" : "melee",
-		"fightBonus" : 2,
+		"fightBonus" : 1.75,
 		"uses" : 99999
 	},
 
@@ -65,11 +65,11 @@ function get_weapon_odds(tP){
 	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 	if(sexSword){
 		// weaponOdds.push(["nanasatsu",1]);
-		weaponOdds.push(["nanasatsu",5000]);
+		weaponOdds.push(["nanasatsu",0]);
 	}	
 	if(spicy){
 		// weaponOdds.push(["spicy",1]);
-		weaponOdds.push(["spicy",10000]);
+		weaponOdds.push(["spicy",5000]);
 	}
 	return weaponOdds;
 }
@@ -230,9 +230,14 @@ class Weapon extends Item{
     destroy(){
 		log_message(this.wielder.name +"'s " + this.name+" breaks");
 		this.wielder.weapon = "";   
-		this.wielder.wielder = "";
+		super.destroy();
 	}
 	
+	item_html(){
+		let html = super.item_html()+
+		"<span><b>Dmg Type:</b>"+this.dmg_type+"</span><br>"
+		return html;
+	}
 }
 
 class Lance extends Weapon {
@@ -255,6 +260,12 @@ class Lance extends Weapon {
 				break;
 		}
 	}
+	
+	item_html(){
+		let html = super.item_html()+
+		"<span><b>Luck:</b>F</span><br>"
+		return html;
+	}
 }
 
 //random chance of critting
@@ -263,6 +274,9 @@ class Katana extends Weapon {
 	constructor() {
 		super("katana");
 		this.crit=false;
+		this.base_dmg = 1.2
+		this.crit_dmg = 2
+		this.super_crit_dmg = 2.5
 	}
 
 	effect(state, data={}){
@@ -273,25 +287,37 @@ class Katana extends Weapon {
 				oP=data['opponent'];
 				if((this.uses==1 && !this.crit)){
 					//guarenteed crit
-					this.wielder.fightDmgB *= 2.5;
+					this.wielder.fightDmgB *= this.super_crit_dmg;
 					this.crit=true;
 					this.wielder.statusMessage = "lands a SUPER critical hit on " + oP.name;
 					log_message("SUPER CRIT")
 				}
 				else if(Math.random()<0.1){
 					//crit
-					this.wielder.fightDmgB *= 2;
+					this.wielder.fightDmgB *= this.crit_dmg;
 					this.crit=true;
 					this.wielder.statusMessage = "lands a critical hit on " + oP.name;
 					log_message("CRIT")
 				}
 				else{
-					this.wielder.fightDmgB *= 1.2;
+					this.wielder.fightDmgB *= this.base_dmg;
 					this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
 				}
 				this.use();
 				break;
 		}
+	}
+	
+	item_html(){
+		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
+		"<span><b>Crit Dmg Bonus:</b>x"+this.crit_dmg+"</span><br>"+
+		
+		"<span class='desc'>"+
+			"<span>Random chance to crit</span><br>"+	
+			"<span>One guaranteed crit</span><br>"+
+		"</span>"
+		
+		return html;
 	}
 }
 
@@ -327,8 +353,7 @@ class Shotgun extends Weapon {
 		else{
 			this.destroy();
 		}
-	}
-	
+	}	
 	effect(state, data={}){
 		let oP="";
 		let counter="";
@@ -415,11 +440,26 @@ class Shotgun extends Weapon {
 				break;
 		}
 	}
+	
+	item_html(){
+		let html = 	"<span><b>Shells Loaded:</b>"+this.loaded_shells+"</span><br>"+
+		"<span><b>Dmg Range:</b>x"+(this.dmg_range[0])+"-x"+(this.dmg_range[1])+"</span><br>"+
+		"<span><b>Max Range:</b>"+this.max_range+"</span><br>"+
+		"<span><b>Point Blank Range:</b>"+(this.max_range*0.1)+"</span><br>"+
+		
+		"<span class='desc'>"+
+			"<span>Fires 2 shots before reloading</span><br>"+	
+			"<span>Deals damage based on distance from target</span><br>"+
+			"<span>Capable of collateral damage</span>"+
+		"</span>"
+		return html;
+	}
 }
 
 class Nanasatsu extends Weapon {
 	constructor() {
 		super("nanasatsu");
+		this.display_name="SEX SWORD";
 		this.kills=0;
 		this.prev_owners=0;
 	}
@@ -439,7 +479,7 @@ class Nanasatsu extends Weapon {
 			}				
 		}
 		return true;
-	}
+	}	
 	
 	effect(state, data={}){
 		let dmg=0;
@@ -519,10 +559,29 @@ class Nanasatsu extends Weapon {
 				break;
 		}
 	}
+	
+	show_info(){
+		let item_info = 
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"+
+			"<span><b>Self damage:</b>"+roundDec(this.fightBonus - 1.5 + this.kills)+"hp</span><br>"+
+			"<span><b>Kills:</b>"+this.kills+"</span><br>"+
+			"<span><b>Previous owners:</b>"+this.prev_owners+"</span><br>"+
+			"<span class='desc'>"+
+				"<span>Damages user every turn</span><br>"+	
+				"<span>Heals on hit</span><br>"+	
+				"<span>Becomes stronger on hit</span><br>"+	
+			"</span>"+
+		"</div>"
+		$('#extra_info_container').html(item_info);
+	}
 }
 class Spicy extends Weapon {
 	constructor() {
 		super("spicy");
+		this.display_name = ("ol' Spicy Shinkai Makai");
 	}
 	equip(wielder){
 		super.equip(wielder);
@@ -530,6 +589,7 @@ class Spicy extends Weapon {
 		this.wielder.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
 		return true;
 	}	
+	
 	effect(state, data={}){
 		let dmg=0;
 		let oP="";
@@ -538,7 +598,7 @@ class Spicy extends Weapon {
 			case "turnStart":
 				//light user on fire
 				if(Math.random()>0.95){
-					let f = new Fire(1,2,"")
+					let f = new Burn(1,2,"")
 					f.death_msg = "couldn't handle the ol' spicy shinkai makai"
 					this.wielder.inflict_status_effect(f)
 				}
@@ -546,11 +606,11 @@ class Spicy extends Weapon {
 			case "attack":
 				oP=data['opponent'];
 				//set self on fire
-				let tP_fire = new Fire(1,1,"")
+				let tP_fire = new Burn(2,1,"")
 				tP_fire.death_msg = "couldn't handle the ol' spicy shinkai makai"
 				this.wielder.inflict_status_effect(tP_fire)
 				//set opponent on fire
-				let oP_fire = new Fire(3,2,this.wielder)
+				let oP_fire = new Burn(5,3,this.wielder)
 				oP.inflict_status_effect(oP_fire)
 				
 				this.wielder.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
@@ -568,4 +628,26 @@ class Spicy extends Weapon {
 				break;
 		}
 	}
+	
+	show_info(){
+		let item_info = 
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span><b>Dmg Bonus:</b>x"+this.fightBonus+"</span><br>"+
+			"<span class='desc'>"+
+				"<span>Inflicts burn on user and opponent</span><br>"+	
+				"<span>Provides immunity to being charmed</span><br>"+	
+			"</span>"+
+		"</div>"
+		$('#extra_info_container').html(item_info);
+	}
 }
+
+
+
+
+
+
+
+

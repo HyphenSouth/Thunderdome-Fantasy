@@ -81,6 +81,7 @@ class Char {
 		this.actionPriority = 0;
 		this.lastSlept=0;
 		this.lastFight=0;
+		this.oobTurns=0;
 		
 		//_______________text_______________
 		//action message to be displayed
@@ -127,13 +128,13 @@ class Char {
 			$('#table').append(
 			"<div class='container alive' id='tbl_" + this.id + "'>"+
 				
-				"<img src='" + this.img + "' onclick='show_info("+this.id+")'>"+ //img 
+				"<img src='" + this.img + "' onclick='highlight_clicked("+this.id+")'>"+ //img 
 				"<div style='position:absolute;width:50px;height:60px;z-index:2;top:0;left:0;pointer-events: none;'>"+ 
 					"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
 					"<div class='kills'></div>"+		//kill counter
 				"</div>"+
 			
-				//info section			
+				//info section
 				"<div class='info'>"+
 					"<div>" + 
 						this.moral.substring(0,1) + this.personality.substring(0,1) + " <b>" + this.name +"</b>"+ //name
@@ -142,7 +143,7 @@ class Char {
 					"<div class='status'></div>"+		//status message
 					"<div class='effects'></div>"+		//effects message
 				"</div>"+
-				"<div style='position:absolute;width:185px;height:100%;top:0;left:0;margin-left:50px;' onclick='highlight_clicked("+this.id+")'></div>"+	//clickable div
+				"<div style='position:absolute;width:185px;height:100%;top:0;left:0;margin-left:50px;' onclick='show_info("+this.id+")'></div>"+	//clickable div
 			"</div>");
 		} 
 		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
@@ -152,22 +153,25 @@ class Char {
 	}
 	
 	show_info(){
+		//prepare clickable icons
 		let attrHtml="None";
-		let weaponHtml="None";
+		let weaponHtml="<span>Weapon:None</span>";
 		if(this.weapon){
-			weaponHtml = "<span onClick='show_item_info(\"wep\")'>"+this.weapon.icon+"</span>";
+			weaponHtml = "<span onClick='show_item_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
 		}
-		let offhandHtml="None";
+		let offhandHtml="<span>Offhand:None</span>";
 		if(this.offhand){
-			offhandHtml = "<span onClick='show_item_info(\"off\")'>"+this.offhand.icon+"</span>";
+			offhandHtml = "<span onClick='show_item_info("+this.id+",\"off\")'><u>Offhand</u>:"+this.offhand.icon+"</span>"
 		}
 		let statusHtml="None";
+		let tP=this
 		if(this.status_effects.length>0){
 			statusHtml="";
 			this.status_effects.forEach(function(eff, eff_id){
-				statusHtml=statusHtml+"<span onClick='show_status_info("+eff_id+")'>"+eff.icon+"</span>"
+				statusHtml=statusHtml+"<span onClick='show_status_info("+tP.id+","+eff_id+")'>"+eff.icon+"</span>"
 			});
 		}
+		//if dead
 		let statusMsgHTML = this.statusMessage;
 		if(this.health<=0){
 			statusMsgHTML = this.death;
@@ -177,21 +181,23 @@ class Char {
 		"<img id='char_info_img' src='"+ this.img+"'>"+
 		"<div class='info'>"+
 			"<b style='font-size:24px'>"+this.name+"</b><br>"+
-			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br><br>"+
+			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br>"+
+			"<span style='font-size:10px'>ID: "+this.id+"</span><br><br>"+
 			"<span style='width:150px; display:block;'>"+statusMsgHTML+"</span>"+
 			"<div style='width: 170px; height: 25px; bottom:15px; position:absolute;'>"+	//health and energy div
 				"<span style='color:red; float: left;'>"+
-					"<b>Health:</b><br>"+Math.round(this.health*100)/100+"/"+this.maxHealth+
+					"<b>Health:</b><br>"+roundDec(this.health)+"/"+this.maxHealth+
 				"</span>"+
 				"<span style='color:green; float: right;'>"+
-					"<b>Energy:</b><br>"+Math.round(this.energy*100)/100+"/"+this.maxEnergy+
+					"<b>Energy:</b><br>"+roundDec(this.energy)+"/"+this.maxEnergy+
 				"</span>"+
 			"</div>"+
+			//stats panel on the right
 			"<div id='char_stats'>"+
 				"<span>Kills: "+this.kills+"</span><br>"+
 				"<span>Attr:"+attrHtml+"</span><br>"+
-				"<span>Weapon:"+weaponHtml+"</span><br>"+
-				"<span>Offhand:"+offhandHtml+"</span><br>"+
+				weaponHtml+"<br>"+
+				offhandHtml+"<br>"+
 				"<span>Effects:"+statusHtml+"</span><br>"+
 				"<span>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")</span><br>"+
 				"<div style='width: 100%;'>"+	
@@ -319,8 +325,8 @@ class Char {
 	}
 		
 	//equipping an item
-	equip_item(item, slot){
-		if(slot=="wep"){
+	equip_item(item){
+		if(item instanceof Weapon){
 			if(this.weapon){
 				return this.weapon.replace_wep(item);
 			}
@@ -330,7 +336,7 @@ class Char {
 				return true;
 			}
 		}
-		if(slot=="off"){
+		if(item instanceof Offhand){
 			if(this.offhand){
 				return this.offhand.replace_offhand(item);
 			}
@@ -504,7 +510,7 @@ class Char {
 			another action planned: continue action
 			choose options:
 				move, fight, sleep
-			if extremely aggresive, chance to replace chosen action with attack
+			if extremely aggressive, chance to replace chosen action with attack
 		*/		
 		//force rest if no energy
 		if(this.energy==0){
@@ -512,10 +518,14 @@ class Char {
 		}
 		//force movement to center
 		if(!safeBoundsCheck(this.x, this.y)){
-			this.setPlannedAction("move", 9)
+			this.oobTurns = this.oobTurns+1;
+			this.setPlannedAction("move", 9);
 			this.currentAction.targetX=mapSize/2;
 			this.currentAction.targetY=mapSize/2;
 			log_message(this.name +" moving to center")
+		}
+		else{
+			this.oobTurns=0;
 		}
 
 		//forage if energy is low
@@ -738,6 +748,7 @@ class Char {
 						type_prob.push(["off", off_prob])
 					}
 					let loot_type=roll(type_prob);
+					log_message(loot_type)
 					//roll weapon
 					if(!this.weapon && loot_type=="wep"){
 						let weaponOdds = get_weapon_odds(this);

@@ -1,6 +1,7 @@
 class StatusEffect{
 	constructor(name){
 		this.name=name;
+		this.display_name=this.name[0].toUpperCase() + this.name.substring(1);
 		this.icon="❓";
 		this.player="";
 		this.duration=1;
@@ -15,6 +16,9 @@ class StatusEffect{
 	wear_off(){
 		this.player.remove_status_effect(this);
 		log_message(this.player.name +"'s " + this.name+" wears off");
+		if(extra_info_obj==this){
+			deselect_extra_info()
+		}
 		this.player="";
 	}
 
@@ -33,11 +37,55 @@ class StatusEffect{
 		}
 	}
 	
+	show_info(){
+		let status_info=
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
+			"<span><b>Duration:</b>"+this.duration+"</span><br>"+
+			"<span><b>Level:</b>"+this.level+"</span><br>"+
+			this.effect_html()+
+		"</div>"
+		
+		$('#extra_info_container').html(status_info);
+	}
+	effect_html(){
+		return "";
+	}
 }
 //placeholder effect for testing purposes
 class Placeholder extends StatusEffect{
 	constructor(){
 		super("placeholder");
+		this.duration=1000;
+		this.test_data="";
+	}
+	
+	stack_effect(new_eff){
+		if(new_eff.level>=this.level){
+			//override
+			//if(Math.random() < 0.05+(new_eff.level - this.level)*1){
+				this.level = new_eff.level;
+				this.test_data = new_eff.test_data;
+				return true;
+			//}
+			//return false;
+		}
+		else{
+			return false;
+		}
+	}	
+	
+	level_up(){
+		let temp_status = new RePlaceholder(1)
+		temp_status.test_data='replace'
+		this.player.inflict_status_effect(temp_status)
+		this.wear_off()
+	}	
+}
+class RePlaceholder extends StatusEffect{
+	constructor(){
+		super("replaceholder");
 		this.duration=1000;
 		this.test_data="";
 	}
@@ -68,7 +116,8 @@ ph2=placeholder_effect(1);
 ph2.test_data="test2"
 ph3=placeholder_effect(3);
 ph3.test_data="test3"
-
+re1= new RePlaceholder(1)
+re1.test_data='replace'
 
 class Trapped extends StatusEffect{
 	constructor(level, owner){
@@ -134,7 +183,7 @@ class Trapped extends StatusEffect{
 				else{
 					//escape failed
 					this.player.energy -= 10;
-					let dmg=Math.floor(Math.random() * 2*this.level);
+					let dmg=Math.floor(Math.random() * 2 * this.level);
 					if(this.player.energy==0){
 						dmg = dmg + 3;
 					}
@@ -157,8 +206,35 @@ class Trapped extends StatusEffect{
 				break;
 		}
 	}
-}
+	
+	show_info(){
+		let status_info=
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
+			"<span><b>Level:</b>"+this.level+"</span><br>"+
+			this.effect_html()+
+		"</div>"
+		
+		$('#extra_info_container').html(status_info);
+	}
+	
+	effect_html(){
+		let html = "<span><b>Turns Trapped:</b>"+this.turns_trapped+"</span><br>"
+		if(this.player.energy==0){
+			html = html+"<span><b>Dmg Range:</b>0"+"-"+(2 * this.level+3)+"</span><br>"
+		}
+		else{
+			html = html+"<span><b>Dmg Range:</b>0"+"-"+(2 * this.level)+"</span><br>"
+		}
+	
 
+		if(this.owner instanceof Char){
+			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
+		}	
+		return html;
+	}	
+}
 
 class Charm extends StatusEffect{
 	constructor(target, level){
@@ -224,26 +300,44 @@ class Charm extends StatusEffect{
 				break;
 		}
 	}
+	effect_html(){
+		let html = "<span><b>Target:</b>"+this.target.name+"</span><br>"
+		if(this.aggro){
+			html = html + "<span>Aggressive</span><br>"+
+			"<span class='desc'>"+
+				"<span>Forced to follow and attack target</span><br>"+	
+			"</span>"
+		}
+		else{
+			html = html+"<span class='desc'>"+
+				"<span>Forced to follow target</span><br>"+	
+			"</span>"
+		}		
+		return html;
+	}	
 }
 
-class Fire extends StatusEffect{
+class Burn extends StatusEffect{
 	constructor(level, duration, owner){
-		super("fire");
+		super("burn");
 		this.owner=owner;
 		this.icon="🔥";
 		this.duration=duration;
 		this.level = level;
+		this.dmg_range = [1,1.5]
 		this.death_msg = "burnt to a crisp"
 	}
 	calc_bonuses(){
 		this.player.visibility +=10;
 	}
 	stack_effect(eff){
+		//replace weaker burn
 		if(eff.level >= this.level){
 			this.duration = eff.duration 
 			this.level = eff.level 
 			this.owner = eff.owner
 		}
+		//increase burn
 		if(eff.level < this.level){
 			this.duration = this.duration + Math.round(eff.duration*(eff.level/this.level)) ;
 			this.level = this.level + Math.round(eff.level*0.5);
@@ -267,7 +361,7 @@ class Fire extends StatusEffect{
 			*/
 			case "turnEnd":
 				// deal damage
-				let dmg = this.level * 5
+				let dmg = roll_range(this.dmg_range[0], this.level*this.dmg_range[1])
 				this.player.take_damage(dmg, this, "fire");
 				if(this.player.health<=0){
 					this.player.death = this.death_msg
@@ -280,15 +374,17 @@ class Fire extends StatusEffect{
 				break;
 		}
 	}
+	
+	effect_html(){
+		let html = "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+(this.dmg_range[1]*this.level)+"</span><br>"
+		
+		if(this.owner instanceof Char){
+			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
+		}	
+		return html;
+	}	
 }
-
-
-
-
-
-
-
-
+test_burn = new Burn(1,200, '')
 
 
 

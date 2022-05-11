@@ -20,7 +20,7 @@ var offhand_data = {
 		"icon" : "./icons/recoil.png",
 		"icon_type" : "img",
 		"dmgReductionB":0.75,
-		"uses": 50,
+		"uses": 10,
 	}
 	
 }
@@ -144,7 +144,7 @@ class Offhand extends Item{
     destroy(){
 		log_message(this.wielder.name +"'s " + this.name+" breaks");
 		this.wielder.offhand = "";   
-		this.wielder.wielder = "";
+		super.destroy();
 	}
 	
 }
@@ -214,7 +214,6 @@ class Trap extends Offhand {
 		this.wielder="";
 		doodads.push(tempTrap);
 	}
-	
 	effect(state, data={}){
 		let oP="";
 		switch(state){		
@@ -235,6 +234,7 @@ class Trap extends Offhand {
 class Recoil extends Offhand{
 	constructor() {
 		super("recoil");
+		this.display_name = "Ring of Recoil"
 	}
 	
 	effect(state, data={}){
@@ -269,6 +269,21 @@ class Recoil extends Offhand{
 				break;
 		}
 	}
+
+	show_info(){
+		let item_info = 
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span><b>Uses:</b>"+roundDec(this.uses)+"hp</span><br>"+
+			"<span><b>Dmg Reduction:</b>x"+this.dmgReductionB+"</span><br>"+
+			
+			"<span class='desc'>"+
+				"<span>Reflects some damage back onto attacker</span>"+
+			"</span>"+	
+		"</div>"
+		$('#extra_info_container').html(item_info);
+	}	
 }
 
 

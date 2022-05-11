@@ -1,6 +1,7 @@
 var players = []; 			//list of players used for the game
 var players_static = []; 	//static list of players
 var show_info_id = -1; 		//id of the current player's info shown (-1 for none)
+var extra_info_obj = ""
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
 var doodads = [];			//list of items
@@ -592,7 +593,6 @@ function highlight_clicked(char_id) {
 function show_info(char_id){
 	log_message("img click")
 	//no char selected
-	
 	if(show_info_id==-1){
 		select_show_info(char_id)
 	}
@@ -622,6 +622,7 @@ function select_show_info(char_id){
 	// $('#table').css('margin-bottom','250px')
 }
 function deselect_show_info(){
+	deselect_extra_info()
 	$('#tbl_' + show_info_id).removeClass('selected')
 	$('#char_' + show_info_id).removeClass('highlight')
 	$('#char_info_container').html('');
@@ -630,11 +631,43 @@ function deselect_show_info(){
 	$('#char_info').css('display','none')
 	// $('#table').css('margin-bottom','50px')
 }
-function show_item_info(slot){
-	log_message("showing "+slot+" info for "+players_static[show_info_id].name)
+
+function show_item_info(char_id, slot){
+	if(slot=='wep')
+		show_extra_info(players_static[char_id].weapon)
+	if(slot=='off')
+		show_extra_info(players_static[char_id].offhand)
 }
-function show_status_info(eff_id){
-	log_message("showing "+players_static[show_info_id].status_effects[eff_id].name+" info for "+players_static[show_info_id].name)
+
+function show_status_info(char_id, status_id){
+	show_extra_info(players_static[char_id].status_effects[status_id])
+}
+
+function show_extra_info(obj){
+	//no item selected
+	if(extra_info_obj==""){
+		select_extra_info(obj)
+	}
+	//different item selected
+	else if(extra_info_obj != obj){
+		deselect_extra_info()
+		select_extra_info(obj)
+	}
+	//toggle off
+	else{
+		deselect_extra_info()
+	}	
+}
+function select_extra_info(obj){
+	extra_info_obj = obj;
+	obj.show_info()
+	$('#extra_info').css('display','inline-block')
+}
+
+function deselect_extra_info(){
+	$('#extra_info').css('display','none')
+	$('#extra_info_container').html('');
+	extra_info_obj=""
 }
 
 //update the info tables
@@ -643,6 +676,9 @@ function updateTable(){
 	// if($('#table').css('display')=='block'){
 		if(show_info_id!=-1){
 			players_static[show_info_id].show_info();
+		}		
+		if(extra_info_obj!=''){
+			extra_info_obj.show_info();
 		}
 		players.forEach(function(chara,index){		
 			//prepare player data
@@ -942,6 +978,12 @@ function rollSpecialP(tempName){
 	}
 	
 }
+
+function roundDec(x, places=2){
+	let mul = Math.pow(10, places)
+	return Math.round(x*mul)/mul
+}
+
 function rollSpecialH(tempName){
 	// if (tempName == 'Evil'){
 		// return 250;
