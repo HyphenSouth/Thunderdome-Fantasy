@@ -49,12 +49,19 @@ var weapon_data = {
 		"uses":[3,6]
 	},
 	"spicy" : {
-		"icon" : "🌶️",
+		"icon" : "./icons/spicy.png",
+		"icon_type" : "img",
 		"dmg_type" : "melee",
 		"fightBonus" : 1.75,
 		"uses" : 99999
 	},
-
+	"flamethrower" : {
+		"icon":"🏹", 
+		"dmg_type" : "ranged",
+		"rangeBonus" : 10,
+		"fightBonus" : 1.05,
+		"uses" : 5		
+	},
 }
 
 var wep_prob = 3;
@@ -65,7 +72,7 @@ function get_weapon_odds(tP){
 	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 	if(sexSword){
 		// weaponOdds.push(["nanasatsu",1]);
-		weaponOdds.push(["nanasatsu",0]);
+		weaponOdds.push(["nanasatsu",10000]);
 	}	
 	if(spicy){
 		// weaponOdds.push(["spicy",1]);
@@ -546,6 +553,7 @@ class Nanasatsu extends Weapon {
 					let temp_charm = new Charm(this.wielder);
 					temp_charm.level=2;
 					temp_charm.aggro=true;
+					temp_charm.follow_message = "following SEX SWORD"
 					oP.inflict_status_effect(temp_charm);
 				// }
 				break;

@@ -32,7 +32,6 @@ function setItemIcon(icon){
 	return '<img class="item_img" src="' + icon +'"></img>';
 }
 
-
 function create_offhand(offhand_name){
 	return "";
 }

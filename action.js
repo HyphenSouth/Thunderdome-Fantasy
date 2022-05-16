@@ -43,13 +43,6 @@ function aggroCheck(tP, oP){
 		fightChance += 40;
 		peaceChance -= 20;
 	}
-	// if(tP.moral == 'Lawful')
-		// peaceChance += 75;
-	// if(tP.moral == 'Chaotic'){
-		// fightChance += 100;
-	// }
-	// oP.apply_inv_effects_other("aggro check", tP);
-	// oP.apply_status_effects_other("aggro check", tP);
 
 	//check if tP has special aggro effects
 	tP.apply_all_effects("aggroCheck", {"opponent":oP});
@@ -62,11 +55,7 @@ function aggroCheck(tP, oP){
 	if(fightChance<1)
 		fightChance=1;
 	if(peaceChance<1)
-		peaceChance=1;
-
-	//console.log("Fight check");
-	//console.log(tP);
-	//console.log(oP);				
+		peaceChance=1;				
 	let rollResult = roll([['fight',fightChance],['peace',peaceChance]]);
 	return rollResult;  
 }
@@ -79,10 +68,7 @@ function inRangeOfCheck(tP){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
 				log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
-				let rollResult = aggroCheck(tP,oP);
-				log_message(rollResult+" with " + oP.name)
-				if(rollResult == 'fight')
-					tempArr.push(oP);
+				tempArr.push(oP);
 			}
 		}
 	});
@@ -251,7 +237,11 @@ function fight_target(tP,oP){
 	}
 	oP.lastAction = "attacked";
 	oP.currentAction = {};
-	oP.finishedAction = true;	//interrupt planned actions
+	if(oP.finishedAction == false){
+		oP.finishedAction = true;
+		oP.interrupted = true;
+		//interrupt planned actions
+	}
 	oP.resetPlannedAction();
 	if(tP.health<=0){
 		tP.die()

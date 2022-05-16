@@ -6,7 +6,7 @@ var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
 var doodads = [];			//list of items
 var doodadsNum = 0;			//number of doodads spawned, used for ids
-var turnFightLim = 2		//number of players a player can fight per turn
+var turnFightLim = 3		//number of players a player can fight per turn
 
 var terrain = [];			//2d array for terrain objects
 var riverSpawns = [];		//rivers?
@@ -34,7 +34,6 @@ var globalAggro = 0;
 var dangerSize = 0;		//size of the restricted zone
 var dangerActive=false
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
-var log_msg=true
 var event_length = 130	//max amount of events displayed
 
 var player_line = 
@@ -576,7 +575,7 @@ var dayColors = ["#282828","#474747"];
 var currentDayColor=0;
 
 function highlight_clicked(char_id) {
-	log_message("container click")
+	// log_message("container click")
 	//deselect
 	if($('#tbl_' + char_id).hasClass('selected')){
 		deselect_show_info();
@@ -591,7 +590,7 @@ function highlight_clicked(char_id) {
 	}
 }
 function show_info(char_id){
-	log_message("img click")
+	// log_message("img click")
 	//no char selected
 	if(show_info_id==-1){
 		select_show_info(char_id)
@@ -1021,8 +1020,10 @@ function timerClick(val){
 	}
 }
 
-function log_message(msg, category=""){
-	if(log_msg==true){
+var show_msg=true
+var show_level=0;
+function log_message(msg, msg_level=0){
+	if(show_msg==true && msg_level>=show_level){
 		console.log(msg);
 	}	
 }

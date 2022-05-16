@@ -8,10 +8,19 @@ class StatusEffect{
 		this.level=0;
 	}
 	afflict(player){
-		this.player=player;		
+		this.player=player;	
 	}
 	calc_bonuses(){}
+	
 	stack_effect(new_eff){return true}
+	
+	replace_eff(new_eff){
+		this.name=new_eff.name;
+		this.display_name=new_eff.display_name;
+		this.icon=new_eff.icon;
+		this.duration=new_eff.duration;
+		this.level=new_eff.level;
+	}
 	
 	wear_off(){
 		this.player.remove_status_effect(this);
@@ -21,7 +30,7 @@ class StatusEffect{
 		}
 		this.player="";
 	}
-
+	
 	effect(state, data={}){
 		switch(state){			
 			case "turnStart":
@@ -222,7 +231,7 @@ class Trapped extends StatusEffect{
 	effect_html(){
 		let html = "<span><b>Turns Trapped:</b>"+this.turns_trapped+"</span><br>"
 		if(this.player.energy==0){
-			html = html+"<span><b>Dmg Range:</b>0"+"-"+(2 * this.level+3)+"</span><br>"
+			html = html+"<span><b>Dmg Range:</b>3"+"-"+(2 * this.level+3)+"</span><br>"
 		}
 		else{
 			html = html+"<span><b>Dmg Range:</b>0"+"-"+(2 * this.level)+"</span><br>"
@@ -244,18 +253,18 @@ class Charm extends StatusEffect{
 		this.duration=1;
 		this.aggro=false;	//whether target will be attacked
 		this.level = level;
+		this.follow_message="";
 	}
 	calc_bonuses(){
 		this.player.dmgReductionB *=1.1;
 	}
 	stack_effect(eff){
+		//replace charm with stronger charm
 		if(eff.level>=this.level){
 			//if(Math.random() < 0.05+(eff.level - this.level)*0.1){
-				this.target = eff.target;
-				this.icon = eff.icon;
-				this.duration = eff.duration;
-				this.aggro=eff.false;	
-				this.level = eff.level;
+				this.replace_eff(eff)
+				this.aggro=eff.aggro;
+				this.follow_message = eff.follow_message;
 				log_message("replaced charm");
 			//}
 		}
@@ -274,7 +283,6 @@ class Charm extends StatusEffect{
 					if(this.player.setPlannedAction("fight", 11)){
 						log_message(this.player.name +" forced to fight " + this.target.name)
 						this.player.plannedTarget = this.target;
-						this.target.attackers.push(this);
 					}
 				}
 				//force player to follow target
@@ -285,6 +293,12 @@ class Charm extends StatusEffect{
 					}
 				}
 				break;
+			case "follow":
+				oP=data['opponent'];
+				//set custom follow message
+				if(oP==this.target && this.follow_message != ""){
+					this.player.statusMessage = this.follow_message;
+				}				
 			case "aggroCheck":
 				oP=data['opponent'];
 				log_message("charm aggro check");
@@ -317,22 +331,138 @@ class Charm extends StatusEffect{
 	}	
 }
 
-class Burn extends StatusEffect{
-	constructor(level, duration, owner){
-		super("burn");
-		this.owner=owner;
-		this.icon="🔥";
+class Berserk extends StatusEffect{
+	constructor(level, duration){
+		super("berserk");
+		this.icon="😡";
 		this.duration=duration;
 		this.level = level;
-		this.dmg_range = [1,1.5]
-		this.death_msg = "burnt to a crisp"
 	}
 	calc_bonuses(){
-		this.player.visibility +=10;
+		this.player.aggroB +=200;
+		this.player.peaceB -=200;
+		this.player.fightDmgB *= 1 + (this.level/20) + (this.player.lastFight/50) ;
+		this.player.dmgReductionB *= 1+(this.level/20) + (this.player.lastFight/50);	
+		this.player.moveSpeedB *= 1.05;
+	}
+	stack_effect(eff){
+		this.replace_eff(eff)
+	}
+	effect(state, data={}){
+		let oP="";
+		switch(state){
+			case "planAction":
+				/*
+				if(this.player.attackers.length>0){
+					let tP = this.player
+					tP.attackers.forEach(function(oP){
+						if(tP.inRangeOfPlayer(oP)){
+							if(tP.setPlannedAction("fight", 12)){
+								log_message(tP.name +" goes berserk " + oP.name)
+								tP.plannedTarget = oP
+							}
+						}
+						else if(tP.awareOf(oP)){
+							if(tP.setPlannedAction("follow", 12)){
+								log_message(tP.name +" angrily follows " + oP.name)
+								tP.plannedTarget = oP
+							}
+						}
+					});				
+				}
+				*/
+				if(this.player.inRangeOf.length>0){
+					if(this.player.setPlannedAction("fight", 12)){
+						log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
+						this.player.plannedTarget = this.player.inRangeOf[0]
+					}
+				}
+				else if(this.player.awareOf.length>0){
+					if(this.player.setPlannedAction("follow", 12)){
+						log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
+						this.player.plannedTarget = this.player.awareOf[0]
+					}
+				}
+				break;
+			case "attack":
+				oP = data['opponent']
+				if(oP == this.player.plannedTarget){
+					this.player.fightDmgB *=1.05
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	effect_html(){
+		let html = 
+			"<span><b>Damage Bonus:</b>x"+(1 + (this.level/20) + (this.player.lastFight/50))+"</span><br>"+
+			"<span><b>Speed Bonus:</b>x"+1.05+"</span><br>"
+
+		return html;
+	}	
+}
+
+//class for dot effects
+class DotEffect extends StatusEffect{
+	constructor(name, level, duration, owner, dmg_type, death_msg){
+		super(name);
+		this.level = level;
+		this.duration=duration;
+		this.owner=owner;
+		this.dmg_type = dmg_type
+		this.death_msg = death_msg
+		this.dmg_turn = "turnEnd"
+	}
+	calc_dmg(){
+		return 1;
+	}
+	effect(state, data={}){
+		switch(state){
+			case this.dmg_turn:
+				// deal damage
+				let dmg = this.calc_dmg();
+				this.player.take_damage(dmg, this, this.dmg_type);
+				if(this.player.health<=0){
+					this.player.death = this.death_msg
+					this.player.die();
+					if(this.owner)
+						this.owner.kills++;					
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	effect_html(){
+		let html = "";		
+		if(this.owner instanceof Char){
+			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
+		}
+		return html;
+	}
+}
+
+class Burn extends DotEffect{
+	constructor(level, duration, owner){
+		super("burn", level, duration, owner, "fire", "burnt to a crisp");
+		this.icon="🔥";
+		this.dmg_range = [1,1.5] //base damage range at level 1
+		
+	}
+	calc_dmg(){
+		return roll_range(this.dmg_range[0], this.level*this.dmg_range[1]);
+	}
+	calc_bonuses(){
+		this.player.visibilityB +=10;
 	}
 	stack_effect(eff){
 		//replace weaker burn
 		if(eff.level >= this.level){
+			this.replace_eff(eff)
 			this.duration = eff.duration 
 			this.level = eff.level 
 			this.owner = eff.owner
@@ -343,46 +473,11 @@ class Burn extends StatusEffect{
 			this.level = this.level + Math.round(eff.level*0.5);
 		}
 	}
-	effect(state, data={}){
-		let oP="";
-		switch(state){
-			/*
-			case "turnStart":
-				// deal damage
-				let dmg = this.level * 5
-				this.player.take_damage(dmg, this.owner, "fire");
-				if(this.player.health<=0){
-					this.player.death = this.death_msg
-					if(this.owner)
-						this.owner.kills++;					
-				}
-				super.effect("turnStart");
-				break;			
-			*/
-			case "turnEnd":
-				// deal damage
-				let dmg = roll_range(this.dmg_range[0], this.level*this.dmg_range[1])
-				this.player.take_damage(dmg, this, "fire");
-				if(this.player.health<=0){
-					this.player.death = this.death_msg
-					if(this.owner)
-						this.owner.kills++;					
-				}
-				break;
-			default:
-				super.effect(state, data);
-				break;
-		}
-	}
-	
 	effect_html(){
 		let html = "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+(this.dmg_range[1]*this.level)+"</span><br>"
-		
-		if(this.owner instanceof Char){
-			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
-		}	
+		html = html+super.effect_html()
 		return html;
-	}	
+	}
 }
 test_burn = new Burn(1,200, '')
 

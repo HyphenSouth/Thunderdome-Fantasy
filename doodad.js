@@ -17,7 +17,7 @@ class Doodad {
 		//trigger radius
 		this.triggerRange = 0;
 		//bonuse to trigger chance
-		this.triggerChance=0;	//-5 or lower for no chance
+		this.triggerChanceB=0;	//-5 or lower for no chance
 		//how long doodad can stay out
 		this.maxDuration=30;
 		this.duration=0;
@@ -44,7 +44,7 @@ class Doodad {
 				let dist = hypD(tP.x - tD.x, tP.y - tD.y);
 				if(dist <= tD.triggerRange){
 					log_message(tD.name+" "+ tP.name+" in range")
-					let triggerChance = 5 + tD.triggerChance;
+					let triggerChance = 5 + tD.triggerChanceB;
 					let triggerNoChance = 15;
 					// let triggerNoChance = 0;
 					if(tD.owner == tP)
@@ -83,7 +83,7 @@ class BombEntity extends Doodad{
 		this.range = 100;
 		this.dmg = 100;
 		this.triggerRange = 24;
-		this.triggerChance=0;	
+		this.triggerChanceB=0;	
 		this.active=true;
 	}
 	
@@ -162,7 +162,7 @@ class TrapEntity extends Doodad{
 		this.icon = "🕳";
 		this.range = 24;
 		this.triggerRange = 24;
-		this.triggerChance=0;
+		this.triggerChanceB=0;
 	}
 	
 	trigger(trigger_player){
@@ -179,6 +179,14 @@ class TrapEntity extends Doodad{
 	}
 }
 
-
+class Duck extends Doodad{
+	constructor(x,y,""){
+		super("duck",x,y,owner);
+		this.icon = "🦆";
+		this.range = 24;
+		this.triggerRange = 24;
+		this.triggerChanceB=0;
+	}
+}
 
 
