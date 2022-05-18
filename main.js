@@ -8,6 +8,7 @@ var doodads = [];			//list of items
 var doodadsNum = 0;			//number of doodads spawned, used for ids
 var turnFightLim = 3		//number of players a player can fight per turn
 
+var generated = false;
 var terrain = [];			//2d array for terrain objects
 var riverSpawns = [];		//rivers?
 var mapSize = 1000;			//diameter of the map. 
@@ -411,6 +412,18 @@ function action(){
 		chara.limitCheck();		//check if player is dead
 	});
 	
+	//update terrain
+
+	for(let i = 0; i <= mapSize; i=i+25) {
+		if(terrain[i]){
+			for(let j = 0; j <= mapSize; j=j+25) {
+				if(terrain[i][j]){
+					terrain[i][j].update();
+				}
+			}
+		}
+	}
+	
 	//progress time
 	hour++;
 	if(hour == 24){
@@ -469,22 +482,22 @@ function createDangerZone(terrainLayers=1){
 						// terrain[i][j].destroy();
 					// }
 				// }
-				let tempTerr = new Terrain("w",i,j)
-				setTerrain(i,j,tempTerr);
+				let tempTerr = new Terrain("water",i,j)
+				setTerrain(tempTerr);
 			}
 		}
 	}
 	*/
 }
 
-//check if a coordinates are in bounds and safe
+//check if a coordinates are in bounds and has safe terrain
 function safeTerrainCheck(x,y){
 	//safe zone check
 	if(!safeBoundsCheck(x,y)){
 		return false
 	}
 	//terrain check
-	if(terrainCheck(x,y)=="w"){
+	if(getTerrain(x,y).danger){
 		return false
 	}
 	return true
@@ -494,7 +507,7 @@ function safeTerrainCheck(x,y){
 	let roundY = Math.round(y/25)*25;
 	if(terrain[roundX]){
 		if(terrain[roundX][roundY]){
-			if(terrain[roundX][roundY].type == "w"){
+			if(terrain[roundX][roundY].type == "water"){
 				valid = false;
 			}
 		}
@@ -527,7 +540,7 @@ function safeBoundsCheck(x, y){
 	*/
 }
 
-//check if a coordinates are in bounds
+//check if a coordinates are in map bounds
 function inBoundsCheck(x, y){
 	if(isNaN(x) || isNaN(y)){
 		return false;
@@ -852,7 +865,6 @@ function nearbyPlayers(x, y, dist){
 	return temp_list;
 }
 
-var generated = false;
 //generates terrain 
 function generateTerrain(){
 	//clears all terrain
@@ -862,45 +874,51 @@ function generateTerrain(){
 		});
 	});
 	dangerSize=0;
+	generated=false;
 	
 	riverSpawns = [];
 	if(!generated){
-	for(var i = 0;i<=mapSize;i+=25){
-		terrain[i] = [];
-		//timerClick("terrain row " + i);
-		//generate reandom terrain pieces
-		for(var j =0;j<=mapSize;j+=25){
-			//timerClick("terrain bound check row " + i + " col " + j);
-			//check the current coords are in bounds
-			if(inBoundsCheck(i,j)){
-				//timerClick("terrain row " + i + " col " + j);
-				let tempTerr = new Terrain("rand",i,j); //generate a random terrain		
-				//draw terrain and add it to the list
-				tempTerr.draw();
-				terrain[i][j] = tempTerr;
-				//timerClick("terrain row " + i + " col " + j);
+		for(var i = 0;i<=mapSize;i+=25){
+			terrain[i] = [];
+			//timerClick("terrain row " + i);
+			//generate reandom terrain pieces
+			for(var j =0;j<=mapSize;j+=25){
+				//timerClick("terrain bound check row " + i + " col " + j);
+				//check the current coords are in bounds
+				if(inBoundsCheck(i,j)){
+					//timerClick("terrain row " + i + " col " + j);
+					// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
+					let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
+					//draw terrain and add it to the list
+					tempTerr.draw();
+					terrain[i][j] = tempTerr;
+					//timerClick("terrain row " + i + " col " + j);
+				}
+				//timerClick("terrain bound check row " + i + " col " + j);
 			}
-			//timerClick("terrain bound check row " + i + " col " + j);
+			//timerClick("terrain row " + i);
 		}
-		//timerClick("terrain row " + i);
-	}
-	timerClick("terrain spread");
-	//get the spread terrain value
-	if(Math.floor($('#txt_spreadTerrain').val()) > 0){
-		//spread the terrain for that amount
-		for(var i = 0;i<$('#txt_spreadTerrain').val();i++){
-			spreadTerrain();
-			//console.log("");
+		// timerClick("terrain spread");
+		//get the spread terrain value
+		log_message('terrain spread start')
+		if(Math.floor($('#txt_spreadTerrain').val()) > 0){
+			//spread the terrain for that amount
+			for(var i = 0;i<$('#txt_spreadTerrain').val();i++){
+				spreadTerrain();
+			}
 		}
+		log_message('terrain spread end')
+		log_message('river spread start')
+		log_message(riverSpawns.length + ' rivers')
+		//generate river
+		riverSpawns.forEach(function(river,index){
+			//pass in the starting point for the river
+			generateRiver(river,true);
+		});
+		// timerClick("terrain spread");
+		log_message('river spread end')
 	}
-	//generate river
-	riverSpawns.forEach(function(river,index){
-		//pass in the starting point for the river
-		generateRiver(river,true);
-	});
-	timerClick("terrain spread");
-	}
-	//generated = true;
+	generated = true;
 }
 
 //spread mountains and rivers
@@ -930,7 +948,7 @@ function generateRiver(river,recursive){
 	var currX = river.x+dirArr[dir][0]*25;
 	var currY = river.y+dirArr[dir][1]*25;
 	var split = -1;
-	//decide to split the river
+	//decide when to split the river
 	if(Math.random() > 0.75 && recursive){
 		split = Math.floor(Math.random() * (length - 5) + 10);
 	}
@@ -939,8 +957,17 @@ function generateRiver(river,recursive){
 		//console.log(currX + " " + currY)
 		if(terrain[currX]){
 			if(terrain[currX][currY]){
-				terrain[currX][currY].type = "w";
-				terrain[currX][currY].draw();
+				let newTerrain =  new WaterTerrain(currX, currY, false);
+				// newTerrain.icon = "🔵";
+				newTerrain.spreadOnce = true;
+				newTerrain.river = true;
+				setTerrain(newTerrain);
+				// terrain[currX][currY].type = "water";
+				// terrain[currX][currY].icon = "💧";
+				// terrain[currX][currY].draw();
+
+				// setTerrain(newTerrain)
+				
 				//generate forks
 				if(i == split && recursive){
 					generateRiver(terrain[currX][currY],false);
@@ -950,8 +977,8 @@ function generateRiver(river,recursive){
 			} 
 		}
 		//randomly change direction
-		let ChangeDir = Math.floor(Math.random() * 3) - 1;
-		dir += ChangeDir;
+		let changeDir = Math.floor(Math.random() * 3) - 1;
+		dir += changeDir;
 		if(dir < 0)
 			dir = 0;
 		if(dir > 7)

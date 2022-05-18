@@ -12,8 +12,6 @@ class Doodad {
 		
 		//effect radius
 		this.range = 0;
-		//damage
-		this.dmg = 0;
 		//trigger radius
 		this.triggerRange = 0;
 		//bonuse to trigger chance
@@ -21,7 +19,6 @@ class Doodad {
 		//how long doodad can stay out
 		this.maxDuration=30;
 		this.duration=0;
-		
 	
 	}
 	draw(){
@@ -179,14 +176,150 @@ class TrapEntity extends Doodad{
 	}
 }
 
-class Duck extends Doodad{
-	constructor(x,y,""){
-		super("duck",x,y,owner);
-		this.icon = "🦆";
+class Fire extends Doodad{
+	constructor(x,y, owner=""){
+		super("fire",x,y,owner);
+		this.icon = "🕳";
+		this.maxDuration=5;
+		this.triggerChance=5;
 		this.range = 24;
-		this.triggerRange = 24;
-		this.triggerChanceB=0;
+		this.triggerRange = 24;		
 	}
 }
+
+function spawn_duck(x,y){
+	let tempDuck = new FuckDuck(x, y);
+	tempDuck.draw();
+	doodads.push(tempDuck);
+}
+
+class FuckDuck extends Doodad{
+	constructor(x,y){
+		super("duck",x,y,"");
+		// this.icon = "🦆";
+		this.icon = '<img style="width:24px;" src="./icons/duck2.png"></img>';
+		this.range = 100;
+		this.maxDuration=99999;
+		this.triggerRange = 24;
+		this.triggerChanceB=50;
+		this.fuck_count = 0;
+		this.fuck_max = 10
+		this.moveSpeed = 60
+		this.dmg = 100;
+		this.active=true;
+	}
+	//deal damage to players
+	damage_player(oP){		
+		let	dmg = Math.floor(Math.random() * this.dmg);
+		oP.calc_bonuses();
+		oP.apply_all_effects("defend", {"opponent":this});
+		dmg = dmg * oP.dmgReductionB;
+		if(dmg > oP.health)
+			dmg = oP.health;
+		oP.take_damage(dmg, this, "explosive")
+		//killed the player
+		if(oP.health <= 0){
+			oP.death = "blown up by exploding duck";
+			pushMessage(oP, oP.name + " blown up by exploding duck");
+		}
+		else{
+			pushMessage(oP, oP.name + " hit by an exploding duck");
+		}
+	}	
+	explode(trigger_player){
+		log_message('explode',5)
+		this.icon="💥";
+		// this.icon='<img style="width:24px; height:24px;" src="./icons/duck_explode.png"></img>';
+		trigger_player.statusMessage = "fucks the duck until explode"
+		pushMessage(trigger_player, trigger_player.name + " fucks the duck until explode");
+		let tD = this;
+		players.forEach(function(oP,index){
+			let dist = hypD(oP.x - tD.x,oP.y - tD.y);
+			if(dist <= tD.range && oP.health>0 && oP!=trigger_player){
+				tD.damage_player(oP);
+				log_message(oP.name + " hit by duck");
+			}
+		});
+		this.active=false;
+	}
+	
+	update(){
+		if(this.active){
+			//move
+			//get new cords to move to
+			let newX = 0;
+			let newY = 0;
+			let tries = 0;
+			do {
+				newX = Math.floor(Math.random()*mapSize);
+				newY = Math.floor(Math.random()*mapSize);
+				tries++;
+			} while(!safeBoundsCheck(newX,newY) && tries < 10);
+			//if safe location can't be found, move to center
+			if(tries>=10){
+				log_message(this.name + " cant find safe location", 0);
+				newX = mapSize/2
+				newY = mapSize/2
+			}	
+			
+			let distX = newX - this.x;
+			let distY = newY - this.y;
+			let dist = Math.sqrt(Math.pow(distX,2) + Math.pow(distY,2));
+			let targetX = 0;
+			let targetY = 0;
+			
+			if(dist <= this.moveSpeed * this.moveSpeedB){
+				//target within reach
+				targetX = newX;
+				targetY = newY;
+			} else {
+				//target too far away
+				let shiftX = distX / (dist/this.moveSpeed);
+				let shiftY = distY / (dist/this.moveSpeed);
+				//destination coords
+				targetX = this.x + shiftX;
+				targetY = this.y + shiftY;
+			}
+			
+			this.x = targetX;
+			this.y = targetY;
+			targetX = targetX / mapSize * $('#map').width() - iconSize/2;
+			targetY = targetY / mapSize * $('#map').height() - iconSize/2;
+			
+			//update icons on map
+			let doodadDiv = $('#doodad_' + this.id);
+			doodadDiv.css({transform:"translate(" + targetX + "px," + targetY + "px)"},function(){
+			});
+			log_message(this.name +" moves to (" +this.x +","+ this.y+")", 1);
+			
+			super.update();
+		}
+		else{
+			this.destroy();
+		}
+	}
+	
+	trigger(trigger_player){
+		if(trigger_player.lastAction == "moving" && this.fuck_count<this.fuck_max){
+			trigger_player.statusMessage = "fucks the duck"
+			this.fuck_count++;
+			log_message("duck fucked "+this.fuck_count+"/"+this.fuck_max)
+			if(this.fuck_count>=this.fuck_max){
+				this.explode(trigger_player);
+			}
+			else{
+				pushMessage(trigger_player, trigger_player.name + " fucks the duck");
+			}
+		}		
+	}	
+}
+
+
+
+
+
+
+
+
 
 

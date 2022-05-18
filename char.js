@@ -240,6 +240,12 @@ class Char {
 		this.fightRangeB = 0;
 		this.fightDmgB = 1;
 		this.dmgReductionB = 1;
+
+		this.moveSpeedB = 1
+		
+		this.aggroB=0
+		this.peaceB=0
+		
 		// good = less damage dealt and taken
 		// evil = more damage dealt and taken
 		if(this.personality == 'Good'){
@@ -251,8 +257,7 @@ class Char {
 			this.dmgReductionB = 1.25;
 		}
 		
-		this.aggroB=0
-		this.peaceB=0
+
 		//chaotic = more likely to be aggro
 		//lawful = more likely to be peaceful
 		if(this.moral == 'Lawful')
@@ -260,21 +265,19 @@ class Char {
 		if(this.moral == 'Chaotic'){
 			this.aggroB = 100;
 		}
-		
-		this.moveSpeedB = 1
 
-		//apply weapon bonuses
-		if(this.weapon){
-			this.weapon.calc_bonuses();
-		}
-		if(this.offhand){
-			this.offhand.calc_bonuses();
-		}
 		//apply bonuses from statuses
 		this.status_effects.forEach(function(eff,index){
 			eff.calc_bonuses();
 		});
 		
+		//apply weapon bonuses
+		if(this.offhand){
+			this.offhand.calc_bonuses();
+		}
+		if(this.weapon){
+			this.weapon.calc_bonuses();
+		}
 		//apply global aggro
 		this.aggroB += globalAggro;
 		
@@ -283,15 +286,15 @@ class Char {
 		//apply terrain bonuses
 		switch(terrainCheck(this.x,this.y)){
 			//mountain increases sight
-			case "m":
+			case "mtn":
 				this.sightRangeB += 100;
 				break;
-			case "t":
+			case "tree":
 				this.sightRangeB -= 50;
 				this.fightRangeB -= 4;
 				this.visibilityB -= 10;
 				break;
-			case "w":
+			case "water":
 				this.fightRangeB = 0;
 				break;
 			default:
@@ -570,7 +573,7 @@ class Char {
 		}
 
 		//forage if energy is low
-		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && terrainCheck(this.x,this.y) != "w" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
+		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && terrainCheck(this.x,this.y) != "water" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
 			//set priority for foraging depending on energy
 			let forageLv=2;
 			let energy_percent = (this.energy/this.maxEnergy) *100;
@@ -580,7 +583,7 @@ class Char {
 			this.setPlannedAction("forage", forageLv);
 		}
 		//forage if health is low and alone
-		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& terrainCheck(this.x,this.y) != "w")
+		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& terrainCheck(this.x,this.y) != "water")
 		{
 			this.setPlannedAction("forage", 2);
 		}
@@ -603,7 +606,7 @@ class Char {
 				options.push(["follow", follow_chance]);
 			}
 			//if it is night add sleep as an option
-			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && terrainCheck(this.x,this.y) != "w")
+			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && terrainCheck(this.x,this.y) != "water")
 				options.push(["sleep",10+5*this.lastSlept]);
 			
 			//choose new action
@@ -925,10 +928,10 @@ class Char {
 		let targetY = 0;
 		
 		//factor in terrain
-		if(terrainCheck(this.x,this.y)=="w"){
-			this.moveSpeedB = 0.5;
+		if(terrainCheck(this.x,this.y)=="water"){
+			this.moveSpeedB *= 0.5;
 		} else {
-			this.moveSpeedB = 1;
+			this.moveSpeedB *= 1;
 		}
 		
 		//move towards target location
@@ -946,7 +949,7 @@ class Char {
 			//console.log(terrainCheck(targetX,targetY));	
 		
 			//swim check
-			if(terrainCheck(targetX,targetY) == "w" && terrainCheck(this.x + shiftX * 2, this.y + shiftY * 2)  == "w" && this.lastAction != "swimming"){
+			if(terrainCheck(targetX,targetY) == "water" && terrainCheck(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastAction != "swimming"){
 				// carried away by water
 				let swimChance = roll([["yes",1],["no",50]]);
 				if(swimChance == "no"){
@@ -962,11 +965,42 @@ class Char {
 						targetX = this.x + shiftX;
 						targetY = this.y + shiftY;
 						tries--;
-					} while (terrainCheck(targetX,targetY) == "w" && tries > 0 && safeTerrainCheck(targetX,targetY));
+					} while (terrainCheck(targetX,targetY) == "water" && tries > 0 && safeTerrainCheck(targetX,targetY));
 				}
 			}
 		}
 		this.moveToCoords(targetX, targetY);
+		
+		//look for doodads
+		//doodadCheck(this);
+		this.energy -= Math.floor(Math.random()*5+2);
+		//terrain action
+		if(terrainCheck(this.x,this.y)=="water"){
+			this.lastAction = "swimming";
+			this.statusMessage = "swimming";
+		} else if(this.lastAction == "swimming"){
+			this.lastAction = "moving";
+			this.statusMessage = "moving";
+		}
+		//terrain death
+		if(roll([["die",1],["live",2000]]) == "die" && terrainDeath > 0 ){
+			switch(terrainCheck(this.x,this.y)){
+				case "mtn":
+					this.health = 0;
+					this.death = "Fell off a cliff";
+					terrainDeath--;
+					break;
+				case "water":
+					this.health = 0;
+					this.death = "Drowned";
+					terrainDeath--;
+					break;
+				default:
+					break;
+			}
+		}
+		//timerClick("move");
+		this.apply_all_effects("endMove");
 	}
 	//move to given coords
 	moveToCoords(targetX, targetY){
@@ -980,40 +1014,8 @@ class Char {
 		charDiv.css({transform:"translate(" + targetX + "px," + targetY + "px)"},function(){
 		});
 		log_message(this.name +" moves to (" +this.x +","+ this.y+")", 1);
-		
-		//look for doodads
-		//doodadCheck(this);
-		
-		this.energy -= Math.floor(Math.random()*5+2);
-		
-		//terrain action
-		if(terrainCheck(this.x,this.y)=="w"){
-			this.lastAction = "swimming";
-			this.statusMessage = "swimming";
-		} else if(this.lastAction == "swimming"){
-			this.lastAction = "moving";
-			this.statusMessage = "moving";
-		}
-		//terrain death
-		if(roll([["die",1],["live",2000]]) == "die" && terrainDeath > 0 ){
-			switch(terrainCheck(this.x,this.y)){
-				case "️⛰️":
-					this.health = 0;
-					this.death = "Fell off a cliff";
-					terrainDeath--;
-					break;
-				case "w":
-					this.health = 0;
-					this.death = "Drowned";
-					terrainDeath--;
-					break;
-				default:
-					break;
-			}
-		}
-		//timerClick("move");
-		this.apply_all_effects("endMove");
 	}
+	
 	//sleep
 	action_sleep(){
 		//just started sleeping

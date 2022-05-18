@@ -55,12 +55,21 @@ var weapon_data = {
 		"fightBonus" : 1.75,
 		"uses" : 99999
 	},
+	"clang" : {
+		"icon" : "./icons/clang.png",
+		"icon_type" : "img",
+		"dmg_type" : "melee",
+		"rangeBonus" : 5,
+		"fightBonus" : 1.35,
+		"uses" : [3,8]		
+	},
 	"flamethrower" : {
-		"icon":"🏹", 
+		"icon" : "./icons/flamethrower.png",
+		"icon_type" : "img",
 		"dmg_type" : "ranged",
 		"rangeBonus" : 10,
 		"fightBonus" : 1.05,
-		"uses" : 5		
+		"uses" : 8		
 	},
 }
 
@@ -68,15 +77,15 @@ var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 function get_weapon_odds(tP){
-	let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["Nothing",500]];
+	let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["clang", 10000], ["Nothing",500]];
 	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 	if(sexSword){
-		// weaponOdds.push(["nanasatsu",1]);
-		weaponOdds.push(["nanasatsu",10000]);
+		weaponOdds.push(["nanasatsu",1]);
+		// weaponOdds.push(["nanasatsu",10000]);
 	}	
 	if(spicy){
-		// weaponOdds.push(["spicy",1]);
-		weaponOdds.push(["spicy",5000]);
+		weaponOdds.push(["spicy",1]);
+		// weaponOdds.push(["spicy",5000]);
 	}
 	return weaponOdds;
 }
@@ -121,6 +130,9 @@ function create_weapon(weapon_name){
 			break;
 		case "spicy":
 			return new Spicy();
+			break;		
+		case "clang":
+			return new Clang();
 			break;
 		default:
 			if(weapon_name in weapon_data){
@@ -434,7 +446,7 @@ class Shotgun extends Weapon {
 				else if(counter && Math.random()<0.2){
 					//20% chance of reload instead of fighting back
 					this.reload();
-					this.wielder.fightDmgB = 0;
+					this.wielder.fightDmgB *= 0;
 					this.wielder.statusMessage = "reloads their shotgun instead of fighting back";
 				}
 				else{
@@ -651,6 +663,61 @@ class Spicy extends Weapon {
 		$('#extra_info_container').html(item_info);
 	}
 }
+
+class Clang extends Weapon {
+	constructor() {
+		super("clang");
+		this.display_name = "BERSERKER"
+		this.fightBonusBase = this.fightBonus
+	}
+	
+	equip(wielder){
+		this.wielder = wielder;
+		this.calc_bonuses();
+		this.wielder.statusMessage =  "goes berserk";
+		let never = new Berserk(2,10);
+		this.wielder.inflict_status_effect(never);	
+		return true;
+	}	
+	
+	calc_bonuses(){
+		this.fightBonus = this.fightBonusBase* (1+this.wielder.aggroB/1000)
+		super.calc_bonuses()
+	}
+	
+	effect(state, data={}){
+		let oP = "";
+		switch(state){
+			case "turnStart":
+				if(this.wielder.get_status_effect("berserk")=="" && Math.random()>0.6){
+					let never = new Berserk(2,5);
+					this.wielder.inflict_status_effect(never);	
+				}
+				break;
+			case "attack":
+				super.effect("attack", data);
+				oP=data['opponent'];
+				if(this.wielder.get_status_effect("berserk")!=""){
+					this.wielder.statusMessage = "goes BERSERK on " + oP.name;
+				}
+				else{
+					this.wielder.statusMessage = "CLANGS " + oP.name;
+				}
+				break;
+			case "win":
+				oP=data['opponent'];
+				this.wielder.statusMessage = "CLANGS " + oP.name+" to death";
+				oP.death = "CLANGED to death by " + this.wielder.name;
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+}
+
+
+
 
 
 

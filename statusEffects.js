@@ -337,16 +337,19 @@ class Berserk extends StatusEffect{
 		this.icon="😡";
 		this.duration=duration;
 		this.level = level;
+		this.speed_bonus = 1.5
 	}
 	calc_bonuses(){
-		this.player.aggroB +=200;
-		this.player.peaceB -=200;
-		this.player.fightDmgB *= 1 + (this.level/20) + (this.player.lastFight/50) ;
-		this.player.dmgReductionB *= 1+(this.level/20) + (this.player.lastFight/50);	
-		this.player.moveSpeedB *= 1.05;
+		this.player.aggroB +=(this.level*40);
+		this.player.peaceB -=(this.level*40);
+		this.player.fightDmgB *= 1 + (this.level/50) + (this.player.lastFight/50) ;
+		this.player.dmgReductionB *= 1+(this.level/50) + (this.player.lastFight/50);	
+		this.player.moveSpeedB *= this.speed_bonus;
 	}
 	stack_effect(eff){
-		this.replace_eff(eff)
+		if(eff.level >this.level){
+			this.replace_eff(eff)
+		}
 	}
 	effect(state, data={}){
 		let oP="";
@@ -398,8 +401,8 @@ class Berserk extends StatusEffect{
 	
 	effect_html(){
 		let html = 
-			"<span><b>Damage Bonus:</b>x"+(1 + (this.level/20) + (this.player.lastFight/50))+"</span><br>"+
-			"<span><b>Speed Bonus:</b>x"+1.05+"</span><br>"
+			"<span><b>Damage Bonus:</b>x"+roundDec((1 + (this.level/50) + (this.player.lastFight/50)))+"</span><br>"+
+			"<span><b>Speed Bonus:</b>x"+this.speed_bonus+"</span><br>"
 
 		return html;
 	}	

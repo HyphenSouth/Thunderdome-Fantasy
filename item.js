@@ -114,21 +114,21 @@ class Item{
 		let html=""
 		
 		if(this.fightBonus != 1)
-			html=html+"<span><b>Dmg Bonus:</b>x"+this.fightBonus+"</span><br>"			
+			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
 		if(this.dmgReductionB != 1)
-			html=html+"<span><b>Dmg Reduction:</b>x"+this.dmgReductionB+"</span><br>"		
+			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
 		if(this.rangeBonus != 0)
-			html=html+"<span><b>Range Bonus:</b>"+this.rangeBonus+"</span><br>"		
+			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
 		if(this.sightBonus != 0)
-			html=html+"<span><b>Sight Bonus:</b>"+this.sightBonus+"</span><br>"		
+			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
 		if(this.visibilityB != 0)
-			html=html+"<span><b>Visibility Bonus:</b>"+this.visibilityB+"</span><br>"		
+			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
 		if(this.peaceBonus != 0)
-			html=html+"<span><b>Peace Bonus:</b>"+this.peaceBonus+"</span><br>"		
+			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
 		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+this.aggroBonus+"</span><br>"		
+			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"		
 		if(this.moveSpeedB != 1)
-			html=html+"<span><b>Speed Bonus:</b>x"+this.aggroBonus+"</span><br>"	
+			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
 		
 		return html;
 	}
