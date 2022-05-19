@@ -36,7 +36,7 @@ function getTerrain(x,y){
 }
 
 //get the type of terrain at coords
-function terrainCheck(x,y){
+function getTerrainType(x,y){
 	let roundX = Math.round(x/25)*25;
 	let roundY = Math.round(y/25)*25;
 	if(terrain[roundX]){
@@ -66,12 +66,13 @@ function create_terrain(type, x, y){
 		case "rand":
 			//generate random terrain type
 			// let rand_type = roll([["tree",100],["mtn",5],["none",250],["water",5]]);
-			let rand_type = roll([["tree",50],["mtn",5],["none",300],["water",5]]);
+			let rand_type = roll([["tree",80],["mtn",5],["none",300],["water",5]]);
 			newTerrain = create_terrain(rand_type, x, y)
 			break;
 	}
 	return newTerrain;
 }
+
 
 class Terrain {
 	constructor(type,x,y){
@@ -85,6 +86,13 @@ class Terrain {
 			this.icon = terrain_icons[this.type];
 		}
 		this.new_spawn=true;
+		
+		this.spreadOnce = false;
+		//types of terrain that can be spread to
+		this.spreadTypes = []
+		//base spread chance and decrease with spreadtimes
+		this.spreadProb = [1,0]
+
 		
 		// this.spreadOnce = false;
 		// this.riverSpawn = false;
@@ -131,9 +139,225 @@ class Terrain {
 		return terrains;
 	}
 	
-	update(){}
+	//terrain created when spreading
+	create_spread_terrain(x,y){
+		let newTerrain = new Terrain(this.type, x,y);
+		newTerrain.spreadOnce = false;
+		return newTerrain;
+	}
 	
-	generationSpread(){}
+	generationSpread(){
+		if(!this.spreadOnce){
+			let adj = this.get_adjacent()
+			let spreadTimes = 0;
+			for(let i=0; i<adj.length; i++){
+				let tempTerrain = adj[i]
+				if(this.spreadTypes.includes(tempTerrain.type)){
+					// if(roll([["no",this.spreadProb[0]+spreadTimes*this.spreadProb[1]],["yes",1]])=="yes"){
+					if(roll([["yes",1],["no",this.spreadProb[0]+spreadTimes*this.spreadProb[1]]])=="yes"){
+						spreadTimes++;
+						//change terrain
+						setTerrain(this.create_spread_terrain(tempTerrain.x, tempTerrain.y));
+					}
+				}
+			}
+			this.spreadOnce = true;
+		}
+	}
+	
+	update(){}
+}
+
+class TreeTerrain extends Terrain{
+	constructor(x,y){
+		super("tree",x,y)
+		//types of terrain that can be spread to
+		this.spreadTypes = ["none"]
+		//base spread chance and decrease with spreadtimes
+		this.spreadProb = [8,40]
+	}
+	create_spread_terrain(x,y){
+		let newTerrain = new TreeTerrain(x,y);
+		// newTerrain.icon = "T";
+		newTerrain.spreadOnce = false;
+		return newTerrain;
+	}	
+	/*
+	generationSpread(){
+		if(!this.spreadOnce){
+			let adj = this.get_adjacent()
+			let spreadTimes = 0;
+			for(let i=0; i<adj.length; i++){
+				let tempTerrain = adj[i]
+				if(tempTerrain.type != "tree"){
+					if(roll([["yes",1],["no",10+spreadTimes*80]])=="yes"){
+						spreadTimes++;
+						//change terrain
+						let newTerrain = new TreeTerrain(tempTerrain.x, tempTerrain.y);
+						// newTerrain.icon = "T";
+						newTerrain.spreadOnce = false;
+						setTerrain(newTerrain);
+					}
+				}
+			}
+			this.spreadOnce = true;
+		}
+	}*/
+}
+
+class MtnTerrain extends Terrain{
+	constructor(x,y, create_river=true){
+		super("mtn",x,y)
+		//types of terrain that can be spread to
+		this.spreadTypes = ["none", "tree","water"]
+		//base spread chance and decrease with spreadtimes
+		this.spreadProb = [3,15]
+
+	}
+	create_spread_terrain(x,y){
+		let newTerrain = new MtnTerrain(x,y);
+		// newTerrain.icon = "T";
+		newTerrain.spreadOnce = false;
+		return newTerrain;
+	}	
+	/*
+	generationSpread(){
+		if(!this.spreadOnce){
+			let adj = this.get_adjacent()
+			let spreadTimes = 0;
+			for(let i=0; i<adj.length; i++){
+				let tempTerrain = adj[i];
+				if(tempTerrain.type != "mtn"){
+					if(roll([["yes",1],["no",20+spreadTimes*10]])=="yes"){
+						spreadTimes++;
+						//change terrain
+						let newTerrain = new MtnTerrain(tempTerrain.x, tempTerrain.y);
+						// newTerrain.icon = "M";
+						newTerrain.spreadOnce = false;
+						setTerrain(newTerrain);
+						// terrain[i][j].type = "mtn";
+						// terrain[i][j].icon = "M"
+						// terrain[i][j].spreadOnce = false;
+						// terrain[i][j].draw();
+					}
+				}
+			}
+			this.spreadOnce = true;
+	
+			for(var i = this.x - 25;i <= this.x+25;i+=25){
+				for(var j = this.y -25;j <= this.y+25;j+=25){
+					
+					if(terrain[i]){
+						if(terrain[i][j]){
+							if(terrain[i][j].type != "mtn" && terrain[i][j] != this){
+								let spreadTimes = 0;
+								if(roll([["yes",1],["no",20+spreadTimes*10]])=="yes"){
+									spreadTimes++;
+									//change terrain
+									let newTerrain = new MtnTerrain(i, j);
+									// newTerrain.icon = "M";
+									newTerrain.spreadOnce = false;
+									setTerrain(newTerrain);
+									// terrain[i][j].type = "mtn";
+									// terrain[i][j].icon = "M"
+									// terrain[i][j].spreadOnce = false;
+									// terrain[i][j].draw();
+								}
+								
+							}
+							this.spreadOnce = true;
+						}
+					}
+					
+				}
+			}
+			
+		}
+	}*/	
+}
+var max_rivers = 5;
+class WaterTerrain extends Terrain{
+	constructor(x,y, create_river=true){
+		super("water",x,y)
+		this.danger = true;
+		//types of terrain that can be spread to
+		this.spreadTypes = ["none", "tree"]
+		//base spread chance and decrease with spreadtimes
+		this.spreadProb = [4,1]
+		
+		this.riverSpawn = false;
+		this.river = false;
+		//if river will be generated from this
+		if(create_river && roll([["yes",1],["no",4]]) == "yes"){
+			this.riverSpawn = true;
+			this.river = true
+			riverSpawns.push(this);
+		}		
+	}
+	create_spread_terrain(x,y){
+		let newTerrain = new WaterTerrain(x, y, false);
+		// newTerrain.icon = "W";
+		newTerrain.spreadOnce = false;
+		return newTerrain;
+	}	
+	/*
+	generationSpread(){
+		//spread water
+		if(!this.spreadOnce){
+			let adj = this.get_adjacent()
+			let spreadTimes = 0;
+			for(let i=0; i<adj.length; i++){
+				let tempTerrain = adj[i]
+				if(tempTerrain.type != "water"){
+					if(roll([["yes",1],["no",8+spreadTimes]])=="yes"){
+						spreadTimes++;
+						//change terrain
+						let newTerrain = new WaterTerrain(tempTerrain.x, tempTerrain.y, false);
+						// newTerrain.icon = "W";
+						newTerrain.spreadOnce = false;
+						setTerrain(newTerrain);
+						// terrain[i][j].type = "water";
+						// terrain[i][j].icon = "💧"
+						// terrain[i][j].spreadOnce = false;
+						// terrain[i][j].draw();
+					}
+				}
+			}
+			this.spreadOnce = true;
+			
+			//look at the adjacent squares
+			for(var i = this.x - 25;i <= this.x+25;i+=25){
+				for(var j = this.y -25;j <= this.y+25;j+=25){
+					
+					if(terrain[i]){
+						if(terrain[i][j]){
+							//if the terrain is not a water type or itself
+							if(terrain[i][j].type != "water" && terrain[i][j] != this){
+								let spreadTimes = 0;
+								//roll a chance to spread. chance to spread decreases the more its spread
+								if(roll([["yes",1],["no",8+spreadTimes]])=="yes"){
+									spreadTimes++;
+									//change terrain
+									let newTerrain = new WaterTerrain(i, j, false);
+									// newTerrain.icon = "W";
+									newTerrain.spreadOnce = false;
+									setTerrain(newTerrain);
+									// terrain[i][j].type = "water";
+									// terrain[i][j].icon = "💧"
+									// terrain[i][j].spreadOnce = false;
+									// terrain[i][j].draw();
+								}
+							}
+							this.spreadOnce = true;
+						}
+					}
+					
+				}
+			}
+			
+		}
+	}*/
+
 }
 
 var max_fire_spread = 100
@@ -150,7 +374,7 @@ class FireTerrain extends Terrain{
 		// if(this.duration>1){
 			// this.spread=true
 		// }
-		this.spread_chance = 30
+		this.spread_chance = 75
 		
 	}
 
@@ -188,170 +412,6 @@ class FireTerrain extends Terrain{
 		this.duration = this.duration-1
 	}
 }
-
-class TreeTerrain extends Terrain{
-	constructor(x,y, create_river=true){
-		super("tree",x,y)
-		this.spreadOnce = false;
-	}
-	
-	generationSpread(){
-		if(!this.spreadOnce){
-			let adj = this.get_adjacent()
-			let spreadTimes = 0;
-			for(let i=0; i<adj.length; i++){
-				let tempTerrain = adj[i]
-				if(tempTerrain.type != "tree"){
-					if(roll([["yes",1],["no",10+spreadTimes*80]])=="yes"){
-						spreadTimes++;
-						//change terrain
-						let newTerrain = new TreeTerrain(tempTerrain.x, tempTerrain.y);
-						// newTerrain.icon = "T";
-						newTerrain.spreadOnce = false;
-						setTerrain(newTerrain);
-					}
-				}
-			}
-			this.spreadOnce = true;
-		}
-	}
-}
-
-class MtnTerrain extends Terrain{
-	constructor(x,y, create_river=true){
-		super("mtn",x,y)
-		this.spreadOnce = false;
-	}
-	generationSpread(){
-		if(!this.spreadOnce){
-			let adj = this.get_adjacent()
-			let spreadTimes = 0;
-			for(let i=0; i<adj.length; i++){
-				let tempTerrain = adj[i];
-				if(tempTerrain.type != "mtn"){
-					if(roll([["yes",1],["no",20+spreadTimes*10]])=="yes"){
-						spreadTimes++;
-						//change terrain
-						let newTerrain = new MtnTerrain(tempTerrain.x, tempTerrain.y);
-						// newTerrain.icon = "M";
-						newTerrain.spreadOnce = false;
-						setTerrain(newTerrain);
-						// terrain[i][j].type = "mtn";
-						// terrain[i][j].icon = "M"
-						// terrain[i][j].spreadOnce = false;
-						// terrain[i][j].draw();
-					}
-				}
-			}
-			this.spreadOnce = true;
-			/*
-			for(var i = this.x - 25;i <= this.x+25;i+=25){
-				for(var j = this.y -25;j <= this.y+25;j+=25){
-					
-					if(terrain[i]){
-						if(terrain[i][j]){
-							if(terrain[i][j].type != "mtn" && terrain[i][j] != this){
-								let spreadTimes = 0;
-								if(roll([["yes",1],["no",20+spreadTimes*10]])=="yes"){
-									spreadTimes++;
-									//change terrain
-									let newTerrain = new MtnTerrain(i, j);
-									// newTerrain.icon = "M";
-									newTerrain.spreadOnce = false;
-									setTerrain(newTerrain);
-									// terrain[i][j].type = "mtn";
-									// terrain[i][j].icon = "M"
-									// terrain[i][j].spreadOnce = false;
-									// terrain[i][j].draw();
-								}
-								
-							}
-							this.spreadOnce = true;
-						}
-					}
-					
-				}
-			}
-			*/
-		}
-	}			
-}
-
-class WaterTerrain extends Terrain{
-	constructor(x,y, create_river=true){
-		super("water",x,y)
-		this.danger = true;
-		this.spreadOnce = false;
-		this.riverSpawn = false;
-		this.river = false;
-		//if river will be generated from this
-		if(create_river && roll([["yes",1],["no",5]]) == "yes"){
-			this.riverSpawn = true;
-			this.river = true
-			riverSpawns.push(this);
-		}		
-	}
-	
-	generationSpread(){
-		//spread water
-		if(!this.spreadOnce){
-			let adj = this.get_adjacent()
-			let spreadTimes = 0;
-			for(let i=0; i<adj.length; i++){
-				let tempTerrain = adj[i]
-				if(tempTerrain.type != "water"){
-					if(roll([["yes",1],["no",8+spreadTimes]])=="yes"){
-						spreadTimes++;
-						//change terrain
-						let newTerrain = new WaterTerrain(tempTerrain.x, tempTerrain.y, false);
-						// newTerrain.icon = "W";
-						newTerrain.spreadOnce = false;
-						setTerrain(newTerrain);
-						// terrain[i][j].type = "water";
-						// terrain[i][j].icon = "💧"
-						// terrain[i][j].spreadOnce = false;
-						// terrain[i][j].draw();
-					}
-				}
-			}
-			this.spreadOnce = true;
-			/*
-			//look at the adjacent squares
-			for(var i = this.x - 25;i <= this.x+25;i+=25){
-				for(var j = this.y -25;j <= this.y+25;j+=25){
-					
-					if(terrain[i]){
-						if(terrain[i][j]){
-							//if the terrain is not a water type or itself
-							if(terrain[i][j].type != "water" && terrain[i][j] != this){
-								let spreadTimes = 0;
-								//roll a chance to spread. chance to spread decreases the more its spread
-								if(roll([["yes",1],["no",8+spreadTimes]])=="yes"){
-									spreadTimes++;
-									//change terrain
-									let newTerrain = new WaterTerrain(i, j, false);
-									// newTerrain.icon = "W";
-									newTerrain.spreadOnce = false;
-									setTerrain(newTerrain);
-									// terrain[i][j].type = "water";
-									// terrain[i][j].icon = "💧"
-									// terrain[i][j].spreadOnce = false;
-									// terrain[i][j].draw();
-								}
-							}
-							this.spreadOnce = true;
-						}
-					}
-					
-				}
-			}
-			*/
-		}
-	}
-
-}
-
-
 
 
 

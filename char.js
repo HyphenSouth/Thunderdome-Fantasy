@@ -159,6 +159,10 @@ class Char {
 	
 	show_info(){
 		//prepare clickable icons
+		let terrain_icon = ""
+		if(getTerrain(this.x, this.y)){
+			terrain_icon = getTerrain(this.x, this.y).icon
+		}
 		let attrHtml="None";
 		let weaponHtml="<span'>Weapon:None</span>";
 		if(this.weapon){
@@ -188,7 +192,7 @@ class Char {
 			"<b style='font-size:24px'>"+this.name+"</b><br>"+
 			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br>"+
 			"<span style='font-size:10px;'>ID: "+this.id+"</span><br>"+
-			"<span style='font-size:10px;'>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")</span><br><br>"+
+			"<span style='font-size:10px;'>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")"+terrain_icon+"</span><br><br>"+
 			"<span style='width:150px; display:block;'>"+statusMsgHTML+"</span>"+
 			"<div style='width: 170px; height: 25px; bottom:15px; position:absolute;'>"+	//health and energy div
 				"<span style='color:red; float: left;'>"+
@@ -284,7 +288,7 @@ class Char {
 		//apply experience bonuses
 		this.fightDmgB *= Math.pow(this.killExp,this.exp/100);
 		//apply terrain bonuses
-		switch(terrainCheck(this.x,this.y)){
+		switch(getTerrainType(this.x,this.y)){
 			//mountain increases sight
 			case "mtn":
 				this.sightRangeB += 100;
@@ -573,7 +577,7 @@ class Char {
 		}
 
 		//forage if energy is low
-		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && terrainCheck(this.x,this.y) != "water" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
+		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && getTerrainType(this.x,this.y) != "water" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
 			//set priority for foraging depending on energy
 			let forageLv=2;
 			let energy_percent = (this.energy/this.maxEnergy) *100;
@@ -583,7 +587,7 @@ class Char {
 			this.setPlannedAction("forage", forageLv);
 		}
 		//forage if health is low and alone
-		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& terrainCheck(this.x,this.y) != "water")
+		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& getTerrainType(this.x,this.y) != "water")
 		{
 			this.setPlannedAction("forage", 2);
 		}
@@ -606,7 +610,7 @@ class Char {
 				options.push(["follow", follow_chance]);
 			}
 			//if it is night add sleep as an option
-			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && terrainCheck(this.x,this.y) != "water")
+			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && getTerrainType(this.x,this.y) != "water")
 				options.push(["sleep",10+5*this.lastSlept]);
 			
 			//choose new action
@@ -928,7 +932,7 @@ class Char {
 		let targetY = 0;
 		
 		//factor in terrain
-		if(terrainCheck(this.x,this.y)=="water"){
+		if(getTerrainType(this.x,this.y)=="water"){
 			this.moveSpeedB *= 0.5;
 		} else {
 			this.moveSpeedB *= 1;
@@ -946,10 +950,10 @@ class Char {
 			//destination coords
 			targetX = this.x + shiftX;
 			targetY = this.y + shiftY;
-			//console.log(terrainCheck(targetX,targetY));	
+			//console.log(getTerrainType(targetX,targetY));	
 		
 			//swim check
-			if(terrainCheck(targetX,targetY) == "water" && terrainCheck(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastAction != "swimming"){
+			if(getTerrainType(targetX,targetY) == "water" && getTerrainType(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastAction != "swimming"){
 				// carried away by water
 				let swimChance = roll([["yes",1],["no",50]]);
 				if(swimChance == "no"){
@@ -965,7 +969,7 @@ class Char {
 						targetX = this.x + shiftX;
 						targetY = this.y + shiftY;
 						tries--;
-					} while (terrainCheck(targetX,targetY) == "water" && tries > 0 && safeTerrainCheck(targetX,targetY));
+					} while (getTerrainType(targetX,targetY) == "water" && tries > 0 && safeTerrainCheck(targetX,targetY));
 				}
 			}
 		}
@@ -975,7 +979,7 @@ class Char {
 		//doodadCheck(this);
 		this.energy -= Math.floor(Math.random()*5+2);
 		//terrain action
-		if(terrainCheck(this.x,this.y)=="water"){
+		if(getTerrainType(this.x,this.y)=="water"){
 			this.lastAction = "swimming";
 			this.statusMessage = "swimming";
 		} else if(this.lastAction == "swimming"){
@@ -984,7 +988,7 @@ class Char {
 		}
 		//terrain death
 		if(roll([["die",1],["live",2000]]) == "die" && terrainDeath > 0 ){
-			switch(terrainCheck(this.x,this.y)){
+			switch(getTerrainType(this.x,this.y)){
 				case "mtn":
 					this.health = 0;
 					this.death = "Fell off a cliff";

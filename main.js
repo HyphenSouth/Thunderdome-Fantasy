@@ -887,16 +887,19 @@ function generateTerrain(){
 				//check the current coords are in bounds
 				if(inBoundsCheck(i,j)){
 					//timerClick("terrain row " + i + " col " + j);
-					// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
 					let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
+					setTerrain(tempTerr);
+					
+					// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
 					//draw terrain and add it to the list
-					tempTerr.draw();
-					terrain[i][j] = tempTerr;
+					// tempTerr.draw();
+					// terrain[i][j] = tempTerr;					
 					//timerClick("terrain row " + i + " col " + j);
 				}
 				//timerClick("terrain bound check row " + i + " col " + j);
 			}
 			//timerClick("terrain row " + i);
+			log_message('finished '+i);
 		}
 		// timerClick("terrain spread");
 		//get the spread terrain value
@@ -1019,23 +1022,36 @@ function rollSpecialH(tempName){
 	return 100;
 	
 }
-//roll a range
+//roll an int between min and max (inclusive)
 function roll_range(min, max){
-	return Math.floor(Math.random() * (max-min)) + min
+	return Math.floor(Math.random() * (max+1-min)) + min
 }
 
+// weighted roll
 function roll(options){
-	let tempArr = [];
-	//console.log(options);
+	let total_weight=0;
+	// log_message(options);
 	options.forEach(function(choice,index){
-		for(let i =0;i<choice[1];i++){
-			tempArr.push(choice[0]);
+		if(choice[1]>0){
+			total_weight = total_weight + choice[1]
 		}
 	});
-	//console.log(tempArr);
-	tempArr.sort(() => Math.random() - 0.5);
-	return tempArr[0];
+	let roll_choice = roll_range(1,total_weight)
+	// log_message(roll_choice)
+	for(let i=0; i<options.length; i++){
+		let choice = options[i]
+		if(choice[1]>=roll_choice){
+			// log_message('returning ' + choice[0])
+			return choice[0]
+		}
+		else{
+			roll_choice = roll_choice - choice[1];
+		}
+	}
+	// log_message('returning nothing')
+	return '';
 }
+
 function timerClick(val){
 	var d = new Date();
 	if(timerClicks[val]) {
