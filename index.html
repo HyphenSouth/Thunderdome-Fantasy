@@ -15,6 +15,7 @@
 	<script src="item.js"></script>
 	<script src="weapon.js"></script>
 	<script src="offhand.js"></script>
+	<script src="food.js"></script>
 	<script src="oyashiroSama.js"></script>
 	<script src="main.js"></script>
 	<!-- <script src="rolltest.js"></script> -->
@@ -85,6 +86,7 @@
 	
 </body>
 <style>
+/*main*/
 html,body{
 	font-family:helvetica;
 	width:100%;
@@ -92,6 +94,8 @@ html,body{
 	margin:0;
 	background:#222;
 }
+
+/*sidebar*/
 #side{
 	display:inline-block;
 	vertical-align:top;
@@ -99,104 +103,8 @@ html,body{
 	color:white;
 	overflow-y: hidden; 
 }
-#char_lst{
-	display:inline-block;
-	vertical-align:top;
-	height:100%;
-	overflow-y:scroll;
-	padding-bottom:100px;
-}
-#char_info{
-	position: fixed;
-	display:none;
-	bottom: 20px; 
-	right: 50px;
-	height:195px;
-	width:600px;
-	z-index:5;
-	/*border-radius: 20px;*/
-	background-color:#474747;
-	box-shadow: inset 0 0 4px red;
-}
-#char_info button{
-	position: absolute; 
-	right:5px;
-	top:5px;
-	width:20px;
-	height:20px;
-	background-color:#ffffff00;
-	background-image: url('icons/close.png');
-	background-size: 20px 20px;
-	border-style: none;
-}
-#char_info_img{
-	width:135px;
-	height:180px;
-	object-fit:cover;
-	border: 2px solid black;
-}
-#char_info_container .info{
-	display:inline-block;
-	width:420px;
-	font-size:16px;
-	vertical-align:top;
-	margin-left:5px;
-}
-#char_stats {
-	width:240px; 
-	height:170px;
-	margin-top:40px;;
-	margin-right:5px;
-	position:absolute; 
-	top:0; 
-	right:0; 
-	font-size:12px
-}
 
-#char_stats .item_img{
-	width:15px;
-	height:15px;
-}
-
-#extra_info{
-	position: fixed;
-	display:none;
-	bottom: 220px; 
-	right: 50px;
-	width:200px;
-	z-index:5;
-	/*border-radius: 20px;*/
-	background-color:#474747;
-	box-shadow: inset 0 0 4px red;
-}
-#extra_info button{
-	position: absolute; 
-	right:5px;
-	top:5px;
-	width:15px;
-	height:15px;
-	background-color:#ffffff00;
-	background-image: url('icons/close.png');
-	background-size: 15px 15px;
-	border-style: none;
-}
-#extra_info_container .info{
-	display:inline-block;
-	width:180;
-	font-size:14px;
-	vertical-align:top;
-	margin-left:5px;
-}
-#extra_info_container .info .effect_img{
-	width:15px;
-	height:15px;
-}
-#extra_info_container .desc{
-	font-size:12px;
-	margin-top: 10px;
-	display: block;
-}
-
+/*nav bar at top of sidebar*/
 #nav_bar{
 	position: fixed; 
 	top: 0; 
@@ -205,108 +113,297 @@ html,body{
 	z-index:5;
 }
 
-#table .container{
+/*character listing section*/
+#char_lst{
 	display:inline-block;
 	vertical-align:top;
-	width:235px;
-	position:relative;
-	height:60px;
-	margin-bottom:5px;
-	margin-right:5px;
+	height:100%;
+	overflow-y:scroll;
+	padding-bottom:100px;
 }
 
-#table .container.highlight{
-	background-color:#474747;
-	box-shadow: inset 0 0 1px yellow;
-}
-#table .container.selected{
-	background-color:#474747;
-	box-shadow: inset 0 0 2px red;
-}
+/*individual char listing*/
+	/*positioning*/
+	#table .container{
+		display:inline-block;
+		vertical-align:top;
+		width:235px;
+		position:relative;
+		height:60px;
+		margin-bottom:5px;
+		margin-right:5px;
+	}
+	/*char listing alignments*/
+	#table .container table, #table .container img{
+		display:inline-block;
+		vertical-align:top;
+	}
+	/*status message image*/
+	#table div.status img{
+		width:15px;
+		height:15px;
+	}
+	/*item icons in char listing*/
+	#table span.weapon .item_img{
+		width:15px;
+		height:15px;
+	}
+	/*effect icons in char listing*/
+	#table div.effects .effect_img{
+		width:10px;
+		height:10px;
+	}
+	/*char listing profile pic*/
+	#table .container img{
+		width:50px;
+		height:60px;
+		object-fit:cover;
+		z-index:1;
+	}
+	/*kill counter*/
+	.kills{
+		left:0;
+		top:0;
+		position:absolute;
+		color:black;
+		text-shadow:-1px 1px white, 1px 1px white, 1px -1px white, -1px -1px white;
+	}
+	/*highlighted*/
+	#table .container.highlight{
+		background-color:#474747 !important;
+		box-shadow: inset 0 0 2px yellow;
+	}
+	/*selected for char info window*/
+	#table .container.selected{
+		background-color:#474747 !important;
+		box-shadow: inset 0 0 4px white;
+	}
+	/*char states*/
+	#table .container.fighting .status{
+		color:red;
+		/*box-shadow: inset 0 0 3px #FF0000;*/
+		/*background-color:#FF000020;*/
+	}
+	#table .container.sleep .status{
+		color: #EEEE55;
+		/*box-shadow: inset 0 0 3px #EEEE55;*/
+		/*background-color:#AAAA8020;*/
+	}	
+	#table .container.forage .status{
+		color: #99EE55;
+		/*box-shadow: inset 0 0 3px #B6E375;*/
+		/*background-color:#BBEE7720;*/
+	}
+	
+/*character info window*/
+	/*positioning*/
+	#char_info{
+		position: fixed;
+		display:none;
+		bottom: 20px; 
+		right: 50px;
+		height:195px;
+		width:600px;
+		z-index:5;
+		/*border-radius: 20px;*/
+		background-color:#474747;
+		box-shadow: inset 0 0 4px white;
+	}
+	/*close button*/
+	#char_info button{
+		position: absolute; 
+		right:5px;
+		top:5px;
+		width:20px;
+		height:20px;
+		background-color:#ffffff00;
+		background-image: url('icons/close.png');
+		background-size: 20px 20px;
+		border-style: none;
+	}
+	/*profile pic*/
+	#char_info_img{
+		width:135px;
+		height:180px;
+		object-fit:cover;
+		border: 2px solid black;
+	}
+	/*main info section in char info window*/
+	#char_info_container .info{
+		display:inline-block;
+		width:420px;
+		font-size:16px;
+		vertical-align:top;
+		margin-left:5px;
+	}
+	/*character stats section in char info window*/
+	#char_stats {
+		width:240px; 
+		height:170px;
+		margin-top:40px;;
+		margin-right:5px;
+		position:absolute; 
+		top:0; 
+		right:0; 
+		font-size:12px
+	}
+	/*char info window icons*/
+	#char_stats .item_img{
+		width:15px;
+		height:15px;
+	}	
+	#char_stats .effect_img{
+		width:10px;
+		height:10px;
+	}
+	
+/*extra info window*/
+	/*positioning*/
+	#extra_info{
+		position: fixed;
+		display:none;
+		bottom: 220px; 
+		right: 50px;
+		width:200px;
+		min-height:50px;
+		z-index:5;
+		/*border-radius: 20px;*/
+		background-color:#474747;
+		box-shadow: inset 0 0 4px white;
+	}
+	/*close button*/
+	#extra_info button{
+		position: absolute; 
+		right:5px;
+		top:5px;
+		width:15px;
+		height:15px;
+		background-color:#ffffff00;
+		background-image: url('icons/close.png');
+		background-size: 15px 15px;
+		border-style: none;
+	}
+	/*extra info stats*/
+	#extra_info_container .info{
+		display:inline-block;
+		width:180;
+		font-size:14px;
+		vertical-align:top;
+		margin-left:5px;
+	}
+	/*extra info icons*/
+	#extra_info .info .effect_img,#extra_info .info .item_img{
+		width:15px;
+		height:15px;
+	}
+	/*extra info description section*/
+	#extra_info_container .desc{
+		font-size:12px;
+		margin-top: 10px;
+		display: block;
+	}
+	
+/*fight messages table*/
+	/*positioning*/
+	#messages table{
+		color:white;
+		font-size:20px;
+		display:inline-block;
+		width:49%;
+		vertical-align:top;
+	}
+	/*message images*/
+	#messages img{
+		width:75px;
+		height:75px;
+		object-fit:cover;
+	}
 
-#table .container table, #table .container img{
-	display:inline-block;
-	vertical-align:top;
-}
+/*map*/
+	/*positioning*/
+	#map{
+		display:inline-block;
+		vertical-align:top;
+		height:calc(100% - 40px)!important;
+		margin:20px;
+		background:green;
+		position:relative;
+		border-radius: 50%;
+	}
+	/*danger zone border*/
+	#danger {
+		display:inline-block;
+		vertical-align:top;
+		position:relative;	
+		border-radius: 50%;
+		border: 5px solid red;
+		visibility: hidden;
+	}
 
-#table div.status img{
-	width:20px;
-	height:20px;
-}
+/*map icons*/
+/*char icons*/
+	/*positioning*/
+	.char{
+		width:24px;
+		height:24px;
+		border:solid 1px black;
+		position:absolute;
+		border-radius:12px;
+		display:flex;
+		justify-content:center;
+		object-fit:cover;
+		background-size:cover;
+		transition: transform 1s;
+		margin-top:-10px;
+		z-index:3;
+		pointer-events: none;
+	}
+	/*character icon name*/
+	.charName{
+		margin-top:-15px;
+		display:flex;
+		justify-content:center;
+		min-width:200px;
+		text-align:center;
+	}
+	/*character icon status effects*/
+	.charEff{
+		left:-15px;
+		max-width:20px;
+		margin-top: 2px;
+		position:absolute;
+		justify-content:center;
+	}
+	
+/*doodad icons*/
+	/*positioning*/
+	.doodad{
+		z-index:4;
+		position:absolute;
+		width:24px;
+		height:24px;
+		text-align:center;
+		transition: transform 1s;
+	}
+	/*doodad image*/
+	.doodad img{
+		width:24px;
+	}
+	/*decoy image*/
+	.decoy{
+		width:18px;
+		height:18px;
+		border:solid 2px white;
+		position:absolute;
+		border-radius:12px;
+		display:flex;
+		justify-content:center;
+		object-fit:cover;
+		background-size:cover;
+		opacity:0.8;
+	}
 
-#table span.weapon .item_img{
-	width:20px;
-	height:20px;
-}
-#table div.effects .effect_img{
-	width:10px;
-	height:10px;
-}
-
-#table .container img{
-	width:50px;
-	height:60px;
-	object-fit:cover;
-	z-index:1;
-}
-#messages table{
-	color:white;
-	font-size:20px;
-	display:inline-block;
-	width:49%;
-	vertical-align:top;
-}
-#messages img{
-	width:75px;
-	height:75px;
-	object-fit:cover;
-}
-#map{
-	display:inline-block;
-	vertical-align:top;
-	height:calc(100% - 40px)!important;
-	margin:20px;
-	background:green;
-	position:relative;
-	border-radius: 50%;
-
-}
-#danger {
-	display:inline-block;
-	vertical-align:top;
-	position:relative;	
-	border-radius: 50%;
-	border: 5px solid red;
-	visibility: hidden;
-}	
-.char{
-	width:24px;
-	height:24px;
-	border:solid 1px black;
-	position:absolute;
-	border-radius:12px;
-	display:flex;
-	justify-content:center;
-	object-fit:cover;
-	background-size:cover;
-	transition: transform 1s;
-	margin-top:-10px;
-	z-index:3;
-	pointer-events: none;
-}
-.char.highlight{
-	border-color:yellow;
-	color:yellow;
-	font-weight:bold;
-	z-index:10;
-}
-.doodad{
-	z-index:4;
-	position:absolute;
-	width:24px;
-	height:24px;
-	text-align:center;
-}
+/*map terrain*/
 .terrain{
 	z-index:1;
 	position:absolute;
@@ -314,25 +411,7 @@ html,body{
 	height:25px;
 	text-align:center;
 }
-.dead{
-	opacity:0.25;
-}
-.char:not(.dead){
-	text-shadow:-1px 1px rgba(255,255,255,0.5), 1px 1px rgba(255,255,255,0.5), 1px -1px rgba(255,255,255,0.5), -1px -1px rgba(255,255,255,0.5);
-}
-.char.dead{
-	opacity:0.1;
-}
-.char.dead.highlight{
-	border-color:yellow;
-	color:yellow;
-	font-weight:bold;
-	opacity:0.75;
-	z-index:10;
-}
-.fighting{
-	border-color:red;
-}
+
 .healthBar,.energyBar{
 	width:100%;
 	height:5px;
@@ -350,38 +429,62 @@ html,body{
 	bottom:0;
 	border: 1px solid black;
 }
-.kills{
-	left:0;
-	top:0;
-	position:absolute;
-	color:black;
-	text-shadow:-1px 1px white, 1px 1px white, 1px -1px white, -1px -1px white;
-}
-.charName{
-	margin-top:-15px;
-	display:flex;
-	justify-content:center;
-	min-width:200px;
-}
-.charEff{
-	left:-20;
-	position:absolute;
-	justify-content:center;
-}
-.sexSword{
-	color:red;
-	font-weight:bold;
-}
-.sleep::before{
-	content:"😴";
-	vertical-align:top;
-	font-size:12px;
-	text-shadow:none;
-}
-.trapped{
-	color:brown;
-	font-style:italic;
-}
+
+/*character states*/
+	/*death*/
+	/*alive*/
+	.char:not(.dead){
+		text-shadow:-1px 1px rgba(255,255,255,0.5), 1px 1px rgba(255,255,255,0.5), 1px -1px rgba(255,255,255,0.5), -1px -1px rgba(255,255,255,0.5);
+	}
+	/*dead character list*/
+	.dead{
+		opacity:0.25;
+	}
+	/*dead character icon*/
+	.char.dead{
+		opacity:0.1;
+	}
+	
+	/*highlights*/
+	/*highlighted character icon*/
+	.char.highlight{
+		border-color:yellow;
+		color:yellow;
+		font-weight:bold;
+		z-index:10;
+	}
+	/*highlighted character icon*/
+	.char.dead.highlight{
+		border-color:yellow;
+		color:yellow;
+		font-weight:bold;
+		opacity:0.75;
+		z-index:10;
+	}
+	
+	/*in combat*/
+	.fighting{
+		border-color:red;
+	}
+	/*has sex sword*/
+	.sexSword{
+		color:red;
+		font-weight:bold;
+	}
+	/*sleeping*/
+	.charText.sleep::before{
+		content:"😴";
+		vertical-align:top;
+		font-size:12px;
+		text-shadow:none;
+	}
+	/*trapped*/
+	.trapped{
+		color:brown;
+		font-style:italic;
+	}
+
+/*generic tags*/
 .info{
 	display:inline-block;
 	width:150px;
@@ -389,12 +492,12 @@ html,body{
 }
 
 .item_img{
-	width:20px;
-	height:20px;
+	width:15px;
+	height:15px;
 }
 .effect_img{
-	width:10px;
-	height:10px;
+	width:12px;
+	height:12px;
 }
 
 </style>

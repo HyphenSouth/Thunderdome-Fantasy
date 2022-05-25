@@ -34,10 +34,10 @@ class StatusEffect{
 	effect(state, data={}){
 		switch(state){			
 			case "turnStart":
-				this.duration-=1;
 				if(this.duration <=0){
 					this.wear_off();
 				}
+				this.duration-=1;
 				break;
 			case "death":
 				break;
@@ -403,10 +403,175 @@ class Berserk extends StatusEffect{
 		let html = 
 			"<span><b>Damage Bonus:</b>x"+roundDec((1 + (this.level/50) + (this.player.lastFight/50)))+"</span><br>"+
 			"<span><b>Speed Bonus:</b>x"+this.speed_bonus+"</span><br>"
-
 		return html;
 	}	
 }
+
+//todo
+//increase peace bonus
+class Peace extends StatusEffect{
+	constructor(level, duration){
+		super("peace");
+		this.duration=duration;
+		this.level = level;
+		this.icon="☮";
+	}
+	calc_bonuses(){
+		this.player.aggroB -=(this.level*40);
+		this.player.peaceB +=(this.level*50);
+		this.player.dmgReductionB *=1-((this.player.lastFight/10+this.level)/50);
+	}
+	stack_effect(eff){
+		if(eff.level >= this.level){
+			this.replace_eff(eff)
+		}
+	}
+	
+	effect_html(){
+		let html = 
+			"<span><b>Peace Bonus:</b>"+roundDec((this.level*50))+"</span><br>"+
+			"<span><b>Aggro Bonus:</b>"+roundDec(-(this.level*40))+"</span><br>"+
+			"<span><b>Damage Reduction:</b>x"+roundDec(1-((this.player.lastFight/10+this.level)/50))+"</span><br>"
+		return html;
+	}		
+}
+
+//peace with increased health regen
+class Comfy extends Peace{
+	constructor(level, duration){
+		super(level, duration);
+		this.name="comfy"
+		this.display_name="Comfy"
+		this.icon='<img class="effect_img" src="./icons/campfire.png"></img>';
+		this.duration=duration;
+		this.level = level;
+		this.heal_range = [Math.round(this.level/2), this.level*2]
+	}
+	
+	calc_bonuses(){
+		this.player.aggroB -=(this.level*50);
+		this.player.peaceB +=(this.level*80);
+		this.player.dmgReductionB *=1-((this.player.lastFight/8+this.level)/50);
+	}
+	
+	replace_eff(eff){
+		super.replace_eff(eff)
+		this.heal_range = eff.heal_range
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "planAction":
+				if(this.player.lastSlept>12){
+					this.player.setPlannedAction("sleep", 8)
+				}
+				break;
+			case "turnEnd":
+				if(this.player.lastAction=="rest"){
+					this.player.health+=roll_range(this.heal_range[0]+1, this.heal_range[1]+2)
+					this.player.energy+=roll_range(this.heal_range[0]+5, this.heal_range[1]*2+2)
+					this.player.statusMessage="has a comfy rest"
+				}
+				else if(this.player.lastAction=="sleeping"){
+					this.player.health+=roll_range(this.heal_range[0]+3, this.heal_range[1]+4)
+					this.player.energy+=roll_range(this.heal_range[0]+5, this.heal_range[1]*3+5)
+					this.player.statusMessage="sleeps cozily"
+				}
+				else if(this.player.lastAction!="fighting"){
+					this.player.health+=roll_range(this.heal_range[0], this.heal_range[1])
+					this.player.energy+=roll_range(this.heal_range[0], this.heal_range[1]*2)
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	effect_html(){
+		let html = 
+			"<span><b>Peace Bonus:</b>"+roundDec((this.level*80))+"</span><br>"+
+			"<span><b>Aggro Bonus:</b>"+roundDec(-(this.level*50))+"</span><br>"+
+			"<span><b>Damage Reduction:</b>x"+roundDec(1-((this.player.lastFight/8+this.level)/50))+"</span><br>"+
+			"<span><b>Heal Range:</b>"+this.heal_range[0]+"-"+this.heal_range[1]+"</span><br>"
+		return html;
+	}	
+}
+
+
+//follows and attacks decoy of the owner
+class DecoyEffect extends StatusEffect{
+	constructor(level, duration, owner, decoy){
+		super("decoy_"+owner.name);
+		this.display_name = decoy.name
+		this.icon="👁️";
+		this.duration = duration;
+		this.level = level;
+		this.owner = owner;
+		this.decoy = decoy;
+		this.fight=true;
+		
+	}
+	effect(state, data={}){
+		let decoy_dist = playerDist(this.player, this.decoy);
+		switch(state){
+			case "surroundingCheck":
+				//remove awareness for owner
+				if(decoy_dist <= (this.player.sightRange + this.player.sightRangeB)){
+					if(Math.random()<0.7){
+						this.player.awareOf.push(this.decoy)
+						if(this.fight && decoy_dist <= (this.player.fightRange + this.player.fightRangeB) && Math.random()<0.5){
+							this.player.inRangeOf.push(this.decoy)
+							this.player.attackable.push(this.decoy)
+							log_message(this.player.name+" replaced fight")
+						}
+						log_message(this.player.name+" replaced awareness")
+					}
+					if(this.player.awareOfPlayer(this.owner)&& Math.random()<0.95){
+						this.player.awareOf = arrayRemove(this.player.awareOf, this.owner)
+						this.player.inRangeOf = arrayRemove(this.player.inRangeOf, this.owner)
+						this.player.attackable = arrayRemove(this.player.attackable, this.owner)
+						log_message(this.player.name+" remove awareness")
+					}
+				}
+				break;
+			case "planAction":
+				if(this.player.awareOfPlayer(this.decoy) &&Math.random()<0.5){
+					if(this.player.setPlannedAction("follow",4)){
+						this.player.plannedTarget=this.decoy;
+						log_message(this.player.name+" decoy follow")
+					}
+				}
+				if(this.player.inRangeOfPlayer(this.decoy) && Math.random()<0.7){
+					if(this.player.setPlannedAction("fight",7)){
+						this.player.plannedTarget=this.decoy;
+						log_message(this.player.name+" decoy attack")
+					}					
+				}
+				break;
+			case "doAction":
+				if(this.player.plannedAction=="fight" && this.player.plannedTarget==this.decoy){
+					this.player.statusMessage = "attacks "+this.decoy.name;
+					this.player.plannedTarget = "";
+					this.player.resetPlannedAction();
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	effect_html(){
+		let html = 
+			"<span><b>Decoy location:</b>("+ Math.round(this.decoy.x) + " , "+Math.round(this.decoy.y)+")</span><br>"+
+			"<span><b>Decoy duration:</b>"+ this.decoy.duration +"</span><br>"
+		return html;
+	}	
+}
+
+//reduced visibility
+class Blinded extends StatusEffect{}
+//trapped for a set duration
+class Frozen extends StatusEffect{}
 
 //class for dot effects
 class DotEffect extends StatusEffect{
@@ -473,7 +638,23 @@ class Burn extends DotEffect{
 		//increase burn
 		if(eff.level < this.level){
 			this.duration = this.duration + Math.round(eff.duration*(eff.level/this.level)) ;
-			this.level = this.level + Math.round(eff.level*0.5);
+			this.level = this.level + Math.round(eff.level*0.25);
+		}
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnEnd":
+				// deal damage
+				if(getTerrainType(this.player.x,this.player.y)=="water"){
+					this.wear_off();
+				}
+				else{
+					super.effect("turnEnd", data);
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
 		}
 	}
 	effect_html(){
@@ -483,8 +664,8 @@ class Burn extends DotEffect{
 	}
 }
 test_burn = new Burn(1,200, '')
-
-
+//reduced stats and dot
+class Poison extends DotEffect{}
 
 
 

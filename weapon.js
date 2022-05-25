@@ -65,10 +65,11 @@ var weapon_data = {
 	},
 	"flamethrower" : {
 		"icon" : "./icons/flamethrower.png",
+		// "icon" : "./icons/ancient_staff.png",
 		"icon_type" : "img",
 		"dmg_type" : "ranged",
 		"rangeBonus" : 10,
-		"fightBonus" : 1.05,
+		"fightBonus" : 0.95,
 		"uses" : 8		
 	},
 }
@@ -77,7 +78,11 @@ var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 function get_weapon_odds(tP){
-	let weaponOdds = [["knife",30],["gun",20],["lance",25],["bow",20],["katana", 35], ["shotgun", 35], ["clang", 10000], ["Nothing",500]];
+	let weaponOdds = [
+	["knife",30],["gun",20],["lance",25],["bow",20],
+	["katana", 35], ["shotgun", 35], 
+	["clang",5], ["flamethrower",20], 
+	["Nothing",500]];
 	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 	if(sexSword){
 		weaponOdds.push(["nanasatsu",1]);
@@ -110,7 +115,6 @@ function get_weapon_odds(tP){
 
 */
 
-
 function create_weapon(weapon_name){
 	switch(weapon_name){
 		case "Nothing":
@@ -133,6 +137,9 @@ function create_weapon(weapon_name){
 			break;		
 		case "clang":
 			return new Clang();
+			break;		
+		case "flamethrower":
+			return new Flamethrower();
 			break;
 		default:
 			if(weapon_name in weapon_data){
@@ -180,14 +187,6 @@ class Weapon extends Item{
 			
 			if("dmg_type" in data){this.dmg_type=data["dmg_type"]}
 		}		
-	}
-
-	equip(wielder){
-		this.wielder = wielder;
-		// this.wielder.lastAction = "found " + this.name;
-		this.calc_bonuses();
-		this.wielder.statusMessage =  "found " + this.name;
-		return true;
 	}
 	
 	replace_wep(new_weapon){
@@ -397,6 +396,7 @@ class Shotgun extends Weapon {
 			case "attack":
 				oP=data['opponent'];
 				counter=data['counter'];
+				//loaded shotgun attack
 				if(this.loaded_shells>0){
 					log_message("SHOTGUN ATTACK")
 					this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
@@ -414,16 +414,21 @@ class Shotgun extends Weapon {
 					}
 					//collateral 
 					if(target_dist>this.max_range*0.6){
+						//get nearby opponents
 						let nearby_lst = oP.nearbyPlayers((target_dist/this.max_range)*this.max_spread);
 						let temp_wep = this;
 						nearby_lst.forEach(function(unfortunate_victim,index){
+							//cannot hit wielder
 							if(unfortunate_victim != temp_wep.wielder && Math.random()<0.5){
 								log_message("stray hit " + unfortunate_victim.name);
-								let dmg = (1.1 - target_dist/temp_wep.max_range) * 5;
+								//calculate damage based on distance
+								let dmg = (1.1 - target_dist/temp_wep.max_range) * 3;
 								dmg = dmg * unfortunate_victim.dmgReductionB;
+								//deal damage
 								if(dmg > unfortunate_victim.health)
 									dmg = unfortunate_victim.health;
 								unfortunate_victim.take_damage(dmg, temp_wep.player, temp_wep.dmg_type);
+								//on hit
 								if(unfortunate_victim.health <=0){
 									unfortunate_victim.death="killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun";
 									pushMessage(unfortunate_victim, "killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun");
@@ -695,7 +700,7 @@ class Clang extends Weapon {
 				}
 				break;
 			case "attack":
-				super.effect("attack", data);
+				// super.effect("attack", data);
 				oP=data['opponent'];
 				if(this.wielder.get_status_effect("berserk")!=""){
 					this.wielder.statusMessage = "goes BERSERK on " + oP.name;
@@ -703,6 +708,7 @@ class Clang extends Weapon {
 				else{
 					this.wielder.statusMessage = "CLANGS " + oP.name;
 				}
+				this.use();
 				break;
 			case "win":
 				oP=data['opponent'];
@@ -714,10 +720,70 @@ class Clang extends Weapon {
 				break;
 		}
 	}
+	item_html(){
+		let html = 	super.item_html()+
+		
+		"<span class='desc'>"+
+			"<span>Causes user to go berserk</span><br>"+	
+			"<span>Deals damage based on user's aggression</span><br>"+
+			"<span>CLANG</span>"+
+		"</span>"
+		return html;
+	}
 }
 
-
-
+class Flamethrower extends Weapon{
+	constructor() {
+		super("flamethrower");
+	}	
+	
+	effect(state, data={}){
+		let oP = "";
+		switch(state){
+			case "attack":
+				// super.effect("attack", data);
+				oP = data['opponent']
+				this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				//set opponent on fire
+				let oP_fire = new Burn(3,5,this.wielder)
+				oP.inflict_status_effect(oP_fire)
+				
+				//aoe fire
+				let aoe_radius = Math.min(playerDist(this.wielder, oP), this.rangeBonus);
+				//get nearby opponents
+				let nearby_lst = oP.nearbyPlayers(aoe_radius);
+				let temp_wep = this;
+				nearby_lst.forEach(function(unfortunate_victim,index){
+					//cannot hit wielder
+					if(unfortunate_victim != temp_wep.wielder && Math.random()<0.8){
+						log_message("stray fire " + unfortunate_victim.name);
+						let aoe_fire = new Burn(1,2,temp_wep.wielder)
+						unfortunate_victim.inflict_status_effect(aoe_fire)
+					}
+				});	
+				//set ground on fire
+				if(getTerrainType(oP.x, oP.y) !="water" && Math.random()<0.5){
+					let ground_fire = new FireEntity(oP.x, oP.y,this.wielder);
+					ground_fire.draw();
+					doodads.push(ground_fire)
+				}
+				this.use();
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	item_html(){
+		let html = 	super.item_html()+
+		"<span class='desc'>"+
+			"<span>Sets opponents on fire</span><br>"+	
+			"<span>Sets nearby players on fire</span><br>"+
+			"<span>Sets ground on fire</span>"+
+		"</span>"
+		return html;
+	}
+}
 
 
 

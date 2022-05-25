@@ -32,10 +32,6 @@ function setItemIcon(icon){
 	return '<img class="item_img" src="' + icon +'"></img>';
 }
 
-function create_offhand(offhand_name){
-	return "";
-}
-
 class Item{
 	constructor(name){
 		this.name = name;
@@ -60,7 +56,7 @@ class Item{
 	
 	calc_bonuses(){
 		this.wielder.sightRangeB += this.sightBonus;
-		this.wielder.visibility += this.visibilityB;
+		this.wielder.visibilityB += this.visibilityB;
 		
 		this.wielder.fightRangeB += this.rangeBonus;
 		this.wielder.fightDmgB *= this.fightBonus;
@@ -71,12 +67,20 @@ class Item{
 				
 		this.wielder.moveSpeedB *= this.moveSpeedB;
 	}
-
+	
+	equip(wielder){
+		this.wielder = wielder;
+		// this.wielder.lastAction = "found " + this.name;
+		this.calc_bonuses();
+		this.wielder.statusMessage =  "found " + this.name;
+		return true;
+	}
+	
 	use(){
 		this.uses--;
-		if(this.uses == 0){
-			this.destroy();
-		}
+		// if(this.uses == 0){
+			// this.destroy();
+		// }
 	}
 	
 	show_info(){

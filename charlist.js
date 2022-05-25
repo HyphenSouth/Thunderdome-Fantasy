@@ -494,6 +494,7 @@ Pachira,https://cdn.myanimelist.net/images/characters/4/54605.jpg,,R,R\r\n\
 Uma,https://cdn.myanimelist.net/images/characters/5/54607.jpg,,R,R\r\n\
 Aiko,https://cdn.myanimelist.net/images/characters/16/167291.jpg,,R,R\r\n\
 Ange,https://cdn.myanimelist.net/images/characters/7/329716.jpg,,R,R\r\n\
+Murato (formerly jacobs),https://static.wikia.nocookie.net/batman/images/f/f0/Bane_TDKR3.jpg,bigguy;,R,R\r\n\
 "
 
 

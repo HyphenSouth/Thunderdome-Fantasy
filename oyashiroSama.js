@@ -7,42 +7,8 @@ function HAUAU(){
 	});
 }
 var oyashiro_msg = [["runs away from Oyashiro-sama",25],["hears a distant HAU-AU",30],["trains herblore",5],["feels like they're being watched",5]]
-/*
-all levels:
-build rage from killing and being out of bounds
-gain a small amount every day
-aggression increases with every level
 
-lv 1: annoyance
-build rage from taking damage, being attacked, not sleeping and inconvenienced 
-rage reduced by peace levels and not fighting
-
-lv 2: paranoia
-build rage from being followed and being alone
-all previous effects apply
-increased forage yields
-randomly follow players
-
-lv 3: anger
-build rage from attacking and dealing dmg
-deal more damage
-randomly stalk and attack players
-rage cannot be reduced
-all previous effects apply
-
-lv 4: violence
-attack follower
-occasionally hear oyashiro sama
-occasional self damage
-greatly increased aggression
-all previous effects apply
-
-lv 5: insanity
-increase aggro and dmg based on rage
-get berserker status when rage maxes out
-no longer get extra forage yields
-*/
-
+var lvlup_data = [100,300,1000,1200,500]
 class Hinamizawa extends StatusEffect{
 	constructor(level){
 		super("hinamizawa");
@@ -50,8 +16,12 @@ class Hinamizawa extends StatusEffect{
 		this.duration=99999;
 		this.level = level;
 		this.rage = 0;		//points until the next level
-		this.next_lv = 100;	//points needed for next level
+		this.next_lv = lvlup_data[this.level-1] + Math.round(players.length/10)*20;	//points needed for next level
 		this.display_name = "Hinamizawa Lv1"
+		this.aggroB=0
+		this.peaceB=0
+		this.fightDmgB=1
+		this.dmgReductionB=1
 	}
 
 	stack_effect(eff){
@@ -62,59 +32,63 @@ class Hinamizawa extends StatusEffect{
 		super.afflict(player)
 		if(this.level>1){
 			pushMessage(this.player,this.player.name +  " LEVEL "+this.level);
-		}
-	}
+		}	}
 
 	calc_bonuses(){
 		switch(this.level){
 			case 1:
-				this.player.aggroB +=2;
+				this.aggroB =10;
 				break;
 			case 2:
-				this.player.aggroB +=10;
+				this.aggroB =20;
 				break;
 			case 3:
-				this.player.aggroB +=20;
-				this.player.peaceB -=10;
-				this.fightDmgB *= 1.01;				
-				break
+				this.aggroB =30;
+				this.peaceB =-10;
+				this.fightDmgB= 1.05;				
+				break;
 			case 4:
-				this.player.aggroB +=80;
-				this.player.peaceB -=20;
-				this.fightDmgB *= 1.01;
-				this.dmgReductionB *= 1.01;				
-				break
+				this.aggroB = +80;
+				this.peaceB = -20;
+				this.fightDmgB = 1.1;
+				this.dmgReductionB = 1.1;				
+				break;
 			case 5:
-				this.player.aggroB +=120;
-				this.player.peaceB -=50;
-				this.fightDmgB *= 1.02;
-				this.dmgReductionB *= 1.02;	
-				break
+				this.aggroB = 120;
+				this.peaceB = -50;
+				this.fightDmgB = 1.2;
+				this.dmgReductionB = 1.2;	
+				break;
 		}
+		this.player.aggroB += this.aggroB
+		this.player.peaceB += this.peaceB
+		this.player.fightDmgB *= this.fightDmgB
+		this.player.dmgReductionB *= this.dmgReductionB
 	}
 	
 	itch(){
-		this.player.health = this.player.health-5+this.player.oobTurns;
+		this.player.health = this.player.health-(5+this.player.oobTurns);
 		if(this.player.health<=0){
 			this.player.death = "claws out their throat"		
 		}
 		else{
 			this.player.statusMessage = "feels maggots under their skin"
 		}
+		this.player.resetPlannedAction();
+		this.player.finishedAction;
 	}
 	
 	level_up(){
 		this.rage = 0
 		if(this.level<5){
-			let lvl_data = [100,300,1000,1200,500]
 			this.level = this.level+1
 			this.icon = '<img class="effect_img" src="./icons/lv'+this.level+'.png"></img>';
-			this.next_lv = lvl_data[this.level-1];
+			this.next_lv = lvlup_data[this.level-1] + Math.round(players.length/10)*10;
 			this.display_name = "Hinamizawa Lv" + this.level
 		}
 		else{
 			//apply berserk status
-			let never = new Berserk(5,5);
+			let never = new Berserk(5,15);
 			this.player.inflict_status_effect(never);			
 		}
 	}
@@ -125,6 +99,7 @@ class Hinamizawa extends StatusEffect{
 				//passive increase
 				this.rage = this.rage + 2 +this.level;
 				break;
+			/*
 			case "surroundingCheck":
 				if(this.level >=2){
 					//randomly follow others
@@ -138,13 +113,14 @@ class Hinamizawa extends StatusEffect{
 						this.player.inflict_status_effect(temp_charm);
 					}		
 				}
-				break;	
+				break;
+			*/
 			case "planAction":
 				if(this.level>=4){
 					//self damage
 					//only activates with more than 5 players or out of bounds
 					if(this.player.oobTurns>3 || players.length>5){
-						if(Math.random>0.9){
+						if(5+10*this.player.oobTurns>roll_range(0,100)){
 							this.player.setPlannedAction("itch", 15)
 						}
 					}
@@ -227,13 +203,12 @@ class Hinamizawa extends StatusEffect{
 				}		
 				//hear the voice of oyashiro sama
 				if(this.level>=4){
-					if(this.player.lastAction == "moving" && Math.random>0.9){
+					if(this.player.lastAction == "moving" && Math.random()>0.9){
 						this.rage = this.rage + 20;
 						this.player.statusMessage = roll(oyashiro_msg);
 						log_message('oyashiro')
 					}
 				}
-				
 				if(this.level<=2){
 					//peace reduction
 					if(this.player.peaceB>50)
@@ -262,17 +237,93 @@ class Hinamizawa extends StatusEffect{
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
 			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Level:</b>"+this.level+"</span><br>"+
-			this.effect_html()+
-		"</div>"
+			"<span><b>Next level:</b>"+roundDec((this.rage/this.next_lv)*100)+"%</span><br>"
+			
+		if(this.aggroB!=0){
+			status_info = status_info + "<span><b>Aggro Bonus:</b>"+this.aggroB+"</span><br>"
+		}
+		if(this.peaceB!=0){
+			status_info = status_info + "<span><b>Peace Bonus:</b>"+this.peaceB+"</span><br>"
+		}
+		if(this.fightDmgB!=1){
+			status_info = status_info + "<span><b>Damage Bonus:x</b>"+this.fightDmgB+"</span><br>"
+		}
+		if(this.dmgReductionB!=1){
+			status_info = status_info + "<span><b>Damage Taken:x</b>"+this.dmgReductionB+"</span><br>"
+		}
+			
+		// status_info = status_info + this.effect_html()+"</div>"
 		
 		$('#extra_info_container').html(status_info);
 	}	
+	/*
+	all levels:
+	build rage from killing and being out of bounds
+	gain a small amount every day
+	aggression increases with every level
+
+	lv 1: annoyance
+	build rage from taking damage, being attacked, not sleeping and inconvenienced 
+	rage reduced by peace levels and not fighting
+
+	lv 2: paranoia
+	build rage from being followed and being alone
+	all previous effects apply
+	increased forage yields
+	randomly follow players
+
+	lv 3: anger
+	build rage from attacking and dealing dmg
+	deal more damage
+	randomly stalk and attack players
+	rage cannot be reduced
+	all previous effects apply
+
+	lv 4: violence
+	attack follower
+	occasionally hear oyashiro sama
+	occasional self damage
+	greatly increased aggression
+	all previous effects apply
+
+	lv 5: insanity
+	increase aggro and dmg based on rage
+	get berserker status when rage maxes out
+	no longer get extra forage yields
+	*/	
 	effect_html(){
 		// let html = "<span><b>Next level:</b>"+roundDec(this.rage)+"/"+(this.next_lv)+"</span><br>"
-		let html = "<span><b>Next level:</b>"+roundDec((this.rage/this.next_lv)*100)+"%</span><br>"
+		let html = 
+			"<span class='desc'>"
+		switch(this.level){
+			case 1:
+				html = html+
+				"<span><b>Irritable</b></span></br>"
+				break;
+			case 2:
+				html = html+
+				"<span><b>Paranoid</b></span></br>"
+				break;
+			case 3:
+				html = html+
+				"<span><b>Anger</b></span></br>"
+				break;
+			case 4:
+				html = html+
+				"<span><b>Violent</b></span></br>"
+				break;
+			case 5:
+				html = html+
+				"<span><b>LEVEL 5</b></span></br>"+
+				"<span>Occasionally goes berserk</span></br>"
+				break;
+
+		}
+		html = html + "</span>"
 		return html;
 	}	
 }
+
 
 
 

@@ -86,7 +86,6 @@ class Char {
 		//_______________text_______________
 		//action message to be displayed
 		this.statusMessage = "";
-		this.statusMessageLv = 0;
 		//if their current action is complete
 		this.finishedAction = true;
 		this.interrupted = false;
@@ -119,18 +118,18 @@ class Char {
 	draw() {
 		let charDiv = $('#char_' + this.id);
 		if(!charDiv.length){
-			//icon 
+			//map icon 
 			$('#players').append(
-			"<div id='char_" + this.id + "' class='char'><div class='charName'>" + this.name + "<div class='charWeap'></div>"+
-			"<div class='charEff'	style='font-size:10px;'></div></div>"+
+			"<div id='char_" + this.id + "' class='char'><div class='charName'>"+
+				"<span class='charText'>" + this.name + "</span><span class='charWeap'></span></div>"+
+			"<div class='charEff'	style='font-size:10px;'></div>"+
 			"<div class='healthBar' style='margin-bottom:-10px'></div>"+
 			"<div class='energyBar' style='margin-bottom:-10px'></div></div>");		
-			
-			//status
 			charDiv = $('#char_' + this.id);
 			charDiv.css('background-image',"url(" + this.img + ")");
 			this.div = charDiv;
 			
+			//side bar
 			$('#table').append(
 			"<div class='container alive' id='tbl_" + this.id + "'>"+
 				"<img src='" + this.img + "' onclick='highlight_clicked("+this.id+")'>"+ //img 
@@ -148,8 +147,10 @@ class Char {
 					"<div class='status'></div>"+		//status message
 					"<div class='effects'></div>"+		//effects message
 				"</div>"+
-				"<div style='position:absolute;width:185px;height:100%;top:0;left:0;margin-left:50px;' onclick='show_info("+this.id+")'></div>"+	//clickable div
+				"<div style='position:absolute; width:185px; height:100%; top:0; left:0; margin-left:50px;' onclick='show_info("+this.id+")'></div>"+	//clickable div
 			"</div>");
+			let tblDiv = $('#tbl_' + this.id);
+			this.tblDiv = tblDiv;
 		} 
 		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
 		//charDiv.css('top',this.y / 1000 * .95 * $('#map').height() - iconSize/2);
@@ -157,7 +158,7 @@ class Char {
 		});
 	}
 	
-	show_info(){
+	show_main_info(){
 		//prepare clickable icons
 		let terrain_icon = ""
 		if(getTerrain(this.x, this.y)){
@@ -185,7 +186,16 @@ class Char {
 		if(this.health<=0){
 			statusMsgHTML = this.death;
 		}
+
 		
+		let fightChance = 50;
+		let peaceChance = 50;
+		fightChance=fightChance+this.aggroB;
+		peaceChance=peaceChance+this.peaceB;
+		if(fightChance<1)
+			fightChance=1;
+		if(peaceChance<1)
+			peaceChance=1;
 		let char_info=
 		"<img id='char_info_img' src='"+ this.img+"'>"+
 		"<div class='info'>"+
@@ -204,36 +214,85 @@ class Char {
 			"</div>"+
 			//stats panel on the right
 			"<div id='char_stats'>"+
-					"<span>Attr:"+attrHtml+"</span><br>"+			
-					"<div style='float: left;'>"+	
-						weaponHtml+"<br>"+						
-						"<span>Dmg Bonus: x"+roundDec(this.fightDmgB)+"</span><br>"+
+				"<span>Attr:"+attrHtml+"</span><br>"+
+				"<span>Effects:"+statusHtml+"</span><br>"+
+				"<div>"+
+					"<div style='float: left;'>"+
+						weaponHtml+"<br>"+
+						"<span>Max Dmg:"+ roundDec(this.fightDmg*this.fightDmgB) +"</span><br>"+
+						"<span>Dmg Bonus: x"+ roundDec(this.fightDmgB) +"</span><br>"+
 						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
-						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
-						"<span>Vision Range: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
-						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
-						"<span>Speed Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
 						"<span>Peace Bonus: "+roundDec(this.peaceB)+"</span><br>"+
-						"<span>Aggro Bonus: "+roundDec(this.aggroB)+"</span><br>"+
+						"<span>Aggro Bonus: "+roundDec(this.aggroB)+"</span><br>"+	
+						"<span>Fight Chance: "+roundDec(fightChance/(peaceChance+fightChance)*100)+"%</span><br>"+
 					"</div>"+
-					"<div style='float:right;  max-width: 130px; position:absolute; right:25px;'>"+
+					"<div style='float:right;  width: 100px; position:absolute; right:15px;'>"+
 						offhandHtml+"<br>"+
-						"<span>Effects:"+statusHtml+"</span><br>"+	
-						"<span>Kills: "+this.kills+"</span><br>"+
-						"<span>Exp: "+roundDec(this.exp)+"</span><br>"+
-						"<span>Last Fight: "+this.lastFight+"</span><br>"+
-						"<span>Last Slept: "+this.lastSlept+"</span><br>"+
-						"<span>Aware: "+this.awareOf.length+"</span><br>"+
-						"<span>In Range: "+this.inRangeOf.length+"</span><br>"+	
-						"<span>Attackable: "+this.attackable.length+"</span><br>"+	
-								
+						"<span>Speed: "+roundDec(this.moveSpeed* this.moveSpeedB)+"</span><br>"+
+						"<span>Speed Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
+						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
+						"<span>Vision: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
+						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
+						"<span onclick='show_player_info("+this.id+")'><u>More Info</u></span><br>"+
 				"</div>"+
+				/*
+				"<span>Attr:"+attrHtml+"</span><br>"+
+				"<div style='float: left;'>"+
+					weaponHtml+"<br>"+
+					"<span>Dmg Bonus: x"+roundDec(this.fightDmgB)+"</span><br>"+
+					"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
+					"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
+					"<span>Vision Range: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
+					"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
+					"<span>Speed Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
+					"<span>Peace Bonus: "+roundDec(this.peaceB)+"</span><br>"+
+					"<span>Aggro Bonus: "+roundDec(this.aggroB)+"</span><br>"+
+				"</div>"+
+				"<div style='float:right;  max-width: 130px; position:absolute; right:25px;'>"+
+					offhandHtml+"<br>"+
+					"<span>Effects:"+statusHtml+"</span><br>"+	
+					"<span>Kills: "+this.kills+"</span><br>"+
+					"<span>Exp: "+roundDec(this.exp)+"</span><br>"+
+					"<span>Last Fight: "+this.lastFight+"</span><br>"+
+					"<span>Last Slept: "+this.lastSlept+"</span><br>"+
+					"<span>Aware: "+this.awareOf.length+"</span><br>"+
+					"<span>In Range: "+this.inRangeOf.length+"</span><br>"+	
+					"<span>Attackable: "+this.attackable.length+"</span><br>"+	
+				"</div>"+
+				*/
 
 			"</div>"+
-
 		"</div>"
-		
 		$('#char_info_container').html(char_info);
+	}
+	show_info(){
+		let extra_info = 
+		"<div class='info' style='font-size:12px'>"+
+			"<b style='font-size:18px'>"+this.name+"</b><br>"+
+			"<span>Kills: "+this.kills+"</span><br>"+
+			"<span>Exp: "+roundDec(this.exp)+"</span><br>"+
+			"<span>Exp Dmg: x"+roundDec(Math.pow(this.killExp,this.exp/100))+"</span><br>"+
+			"<span>Last Action: "+this.lastAction+"</span><br>"+
+			"<span>Last Fight: "+this.lastFight+"</span><br>"+
+			"<span>Last Slept: "+this.lastSlept+"</span><br>"+
+			"<span>Aware Of: "+this.awareOf.length+"</span><br>"+
+			"<span>Followers: "+this.followers.length+"</span><br>"+
+			"<span>Attackers: "+this.attackers.length+"</span><br>"+
+			"<span>In Range: "+this.inRangeOf.length+"</span><br>"+	
+			"<span>Attackable: "+this.attackable.length+"</span><br>"
+
+		if(this.oobTurns>0)
+			extra_info = extra_info +"<span>Out of Bounds: "+this.oobTurns+"</span><br>"
+		
+		if(this.unaware){
+			extra_info= extra_info + "<span>Unaware</span><br>"
+		}
+		else if(this.incapacitated){
+			extra_info= extra_info + "<span>Incapacitated</span><br>"
+		}
+		
+		extra_info = extra_info + "</div>"
+		$('#extra_info_container').html(extra_info);
 	}
 	
 	//calculate bonuses for combat
@@ -288,6 +347,10 @@ class Char {
 		//apply experience bonuses
 		this.fightDmgB *= Math.pow(this.killExp,this.exp/100);
 		//apply terrain bonuses
+		if(getTerrain(this.x,this.y)){
+			getTerrain(this.x,this.y).calc_bonuses(this)
+		}
+		/*
 		switch(getTerrainType(this.x,this.y)){
 			//mountain increases sight
 			case "mtn":
@@ -304,6 +367,10 @@ class Char {
 			default:
 				break;
 		} 
+		*/
+		if(this.fightDmgB <0){
+			this.fightDmgB = 0;
+		}
 		if(this.dmgReductionB <0){
 			this.dmgReductionB = 0;
 		}
@@ -327,7 +394,6 @@ class Char {
 		}
 		return false;
 	}
-	
 	
 	//get all the players within a certain distance
 	nearbyPlayers(dist){
@@ -353,10 +419,11 @@ class Char {
 			eff.effect(state, data);
 		});		
 	}	
-	
+
 	apply_all_effects(state, data={}){
 		this.apply_inv_effects(state, data);
 		this.apply_status_effects(state, data);
+		// this.apply_terrain_effects(state, data);
 	}
 		
 	//equipping an item
@@ -409,6 +476,11 @@ class Char {
 		this.apply_all_effects("takeDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type});
 		this.health -= dmg;
 	}
+	
+	heal_damage(dmg, source, dmg_type){
+		this.apply_all_effects("healDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type});
+		this.health += dmg;
+	}	
 	
 	//adding status effect
 	inflict_status_effect(status_eff){
@@ -555,14 +627,16 @@ class Char {
 			out of bounds: move to center
 			low health/energy: forage
 			another action planned: continue action
+			in danger: escape
 			choose options:
 				move, fight, sleep
 			if extremely aggressive, chance to replace chosen action with attack
 		*/		
 		//force rest if no energy
 				
-		if(this.energy==0){
+		if(this.energy<=0){
 			this.setPlannedAction("rest", 20);
+			log_message('rest')
 		}
 		//force movement to center
 		if(!safeBoundsCheck(this.x, this.y)){
@@ -577,7 +651,7 @@ class Char {
 		}
 
 		//forage if energy is low
-		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && getTerrainType(this.x,this.y) != "water" && this.lastAction != "foraging" && this.lastAction != "sleeping"){
+		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && getTerrain(this.x,this.y).danger==0 && this.lastAction != "foraging" && this.lastAction != "sleeping"){
 			//set priority for foraging depending on energy
 			let forageLv=2;
 			let energy_percent = (this.energy/this.maxEnergy) *100;
@@ -587,9 +661,20 @@ class Char {
 			this.setPlannedAction("forage", forageLv);
 		}
 		//forage if health is low and alone
-		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& getTerrainType(this.x,this.y) != "water")
+		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& getTerrain(this.x,this.y).danger==0)
 		{
 			this.setPlannedAction("forage", 2);
+		}
+		
+		//move away from danger
+		if(getTerrain(this.x,this.y).danger>1){
+			this.setPlannedAction("terrainEscape", 7)
+			log_message('terrain escape')
+		}
+		if(this.inRangeOf.length>0 && (1-(this.health/this.maxHealth))*100+(this.peaceB - this.aggroB )>roll_range(0, 250)){
+		// if(this.inRangeOf.length>0 && (1-(this.health/this.maxHealth))*100+(this.peaceB - this.aggroB )>roll_range(0, 1)){
+			this.setPlannedAction("playerEscape", 6)
+			log_message('player escape')
 		}
 		
 		//continue with current action if there is one
@@ -610,7 +695,7 @@ class Char {
 				options.push(["follow", follow_chance]);
 			}
 			//if it is night add sleep as an option
-			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && getTerrainType(this.x,this.y) != "water")
+			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && getTerrain(this.x,this.y).danger==0)
 				options.push(["sleep",10+5*this.lastSlept]);
 			
 			//choose new action
@@ -648,7 +733,7 @@ class Char {
 		}
 		/*
 		//if high aggro have a chance to fight
-		if(this.inRangeOf.length >0 && (this.aggroB - this.peaceB)>roll_range(75, 375)){
+		if(this.attackable.length >0 && (this.aggroB - this.peaceB)>roll_range(75, 375)){
 			//set target to the first player in range
 			log_message(this.name + " fight replacement")
 			if(this.setPlannedAction("fight",6)){
@@ -677,6 +762,8 @@ class Char {
 			//console.log(this.name + " " + this.plannedAction);
 			//removing red fighting border
 			this.div.removeClass("fighting");
+			this.tblDiv.removeClass("fighting");
+			this.tblDiv.removeClass("forage");
 			switch(this.plannedAction){
 				case "rest":
 					this.action_rest();
@@ -689,6 +776,12 @@ class Char {
 					break;
 				case "move":
 					this.action_move();
+					break;				
+				case "terrainEscape":
+					this.action_terrain_escape();
+					break;				
+				case "playerEscape":
+					this.action_player_escape();
 					break;
 				case "fight":
 					this.action_fight();
@@ -697,9 +790,6 @@ class Char {
 					this.action_sleep();
 					break;
 				default:
-					//console.log(this.name + " has no planned action");
-					// this.statusMessage = "Does nothing";
-					// this.resetPlannedAction();
 					this.apply_all_effects(this.plannedAction);
 					break;
 			}
@@ -707,17 +797,50 @@ class Char {
 
 		//toggle class for the last action
 		if(this.lastAction == 'sleeping'){
-			this.div.find('.charName').addClass('sleep');
+			this.div.find('.charText').addClass('sleep');
+			this.tblDiv.addClass('sleep');
 		} else {
-			this.div.find('.charName').removeClass('sleep');
+			this.div.find('.charText').removeClass('sleep');
+			this.tblDiv.removeClass('sleep');
 		}
 		if(this.statusMessage==""){
 			this.statusMessage = "does nothing"
 		}
 		//action completed
 		this.finishedAction = true;
-		// this.apply_inv_effects("end turn");
-		// this.apply_status_effects("end turn");
+		
+		
+		if(getTerrain(this.x,this.y)){
+			getTerrain(this.x,this.y).turn_end_effects(this)
+		}
+		/*
+		//terrain action
+		if(getTerrainType(this.x,this.y)=="water"){
+			this.lastAction = "swimming";
+			this.statusMessage = "swimming";
+		} else if(this.lastAction == "swimming"){
+			this.lastAction = "moving";
+		}
+		*/
+		//terrain death
+		/*
+		if(roll([["die",1],["live",2000]]) == "die" && terrainDeath > 0 ){
+			switch(getTerrainType(this.x,this.y)){
+				case "mtn":
+					this.health = 0;
+					this.death = "Fell off a cliff";
+					terrainDeath--;
+					break;
+				case "water":
+					this.health = 0;
+					this.death = "Drowned";
+					terrainDeath--;
+					break;
+				default:
+					break;
+			}
+		}
+		*/
 		this.apply_all_effects("turnEnd");
 	}
 	
@@ -728,7 +851,7 @@ class Char {
 		this.statusMessage = "rests";
 		this.resetPlannedAction();
 	}
-	
+
 	//action functions
 	//fight
 	action_fight(){
@@ -805,7 +928,7 @@ class Char {
 					let loot_type=roll(type_prob);
 					// log_message(loot_type, 0)
 					//roll weapon
-					if(!this.weapon && loot_type=="wep"){
+					if(loot_type=="wep"){
 						let weaponOdds = get_weapon_odds(this);
 						let w = roll(weaponOdds)
 						log_message(this.name +" found "+ w, 1);
@@ -814,9 +937,10 @@ class Char {
 						if(temp_wep){
 							this.equip_item(temp_wep, "wep");
 							this.lastAction = "forage weapon";
+							this.tblDiv.addClass("forage");
 						}
 					}			
-					else if(!this.offhand && loot_type=="off"){
+					else if(loot_type=="off"){
 						let offhandOdds = get_offhand_odds(this);
 						let off = roll(offhandOdds)
 						log_message(this.name +" found "+ off, 1);
@@ -825,6 +949,7 @@ class Char {
 						if(temp_off){
 							this.equip_item(temp_off, "off");
 							this.lastAction = "forage offhand";
+							this.tblDiv.addClass("forage");
 						}
 					}
 					//restore health and energy
@@ -841,7 +966,8 @@ class Char {
 				case "poisoned":
 					this.health = 0;
 					this.lastAction = "forage death";
-					this.death = "death from poisoned berries";
+					// this.death = "death from poisoned berries";
+					this.death = "poisoned by a poisy (poisonous flower)";
 					break;
 			}
 			this.apply_all_effects("forage");
@@ -871,6 +997,20 @@ class Char {
 		log_message(this.name +" following "+this.plannedTarget.name,0);
 		log_message(this.plannedTarget.name +" at ("+this.plannedTarget.x+","+this.plannedTarget.y+")", 1);
 		this.resetPlannedAction();
+	}
+	//todo
+	action_terrain_escape(){
+		this.action_move()
+		this.statusMessage = "looks for safer ground";
+		this.apply_all_effects("terrainEscape");
+		this.resetPlannedAction()
+	}
+	//todo
+	action_player_escape(){
+		this.action_move()
+		this.statusMessage = "tries to run away";
+		this.apply_all_effects("playerEscape");
+		this.resetPlannedAction()
 	}
 	//move
 	//will keep moving to that spot in the next turns
@@ -903,8 +1043,8 @@ class Char {
 			this.currentAction.targetY = newY;
 			// log_message(this.name +" plans to move to "+ newX +" " +newY);
 		}
-		// this.apply_all_effects("move");
 		this.moveToTarget();
+		this.apply_all_effects("move");
 		//if arrived on target location
 		if(this.currentAction.targetX == this.x && this.currentAction.targetY == this.y){
 			this.resetPlannedAction();
@@ -932,11 +1072,11 @@ class Char {
 		let targetY = 0;
 		
 		//factor in terrain
-		if(getTerrainType(this.x,this.y)=="water"){
-			this.moveSpeedB *= 0.5;
-		} else {
-			this.moveSpeedB *= 1;
-		}
+		// if(getTerrainType(this.x,this.y)=="water"){
+			// this.moveSpeedB *= 0.5;
+		// } else {
+			// this.moveSpeedB *= 1;
+		// }
 		
 		//move towards target location
 		if(dist <= this.moveSpeed * this.moveSpeedB){
@@ -974,35 +1114,9 @@ class Char {
 			}
 		}
 		this.moveToCoords(targetX, targetY);
-		
-		//look for doodads
-		//doodadCheck(this);
+
 		this.energy -= Math.floor(Math.random()*5+2);
-		//terrain action
-		if(getTerrainType(this.x,this.y)=="water"){
-			this.lastAction = "swimming";
-			this.statusMessage = "swimming";
-		} else if(this.lastAction == "swimming"){
-			this.lastAction = "moving";
-			this.statusMessage = "moving";
-		}
-		//terrain death
-		if(roll([["die",1],["live",2000]]) == "die" && terrainDeath > 0 ){
-			switch(getTerrainType(this.x,this.y)){
-				case "mtn":
-					this.health = 0;
-					this.death = "Fell off a cliff";
-					terrainDeath--;
-					break;
-				case "water":
-					this.health = 0;
-					this.death = "Drowned";
-					terrainDeath--;
-					break;
-				default:
-					break;
-			}
-		}
+
 		//timerClick("move");
 		this.apply_all_effects("endMove");
 	}
@@ -1063,16 +1177,25 @@ class Char {
 			if(this.weapon.wielder != this){
 				this.weapon = "";
 			}
+			if(this.weapon.uses<=0){
+				this.weapon.destroy();
+			}
 		}
 		if(this.offhand != ""){
 			if(this.offhand.wielder != this){
 				this.offhand = "";
+			}
+			if(this.offhand.uses<=0){
+				this.offhand.destroy();
 			}
 		}
 		let tP = this;
 		this.status_effects.forEach(function(eff){
 			if(eff.player !=tP){
 				tP.remove_status_effect(eff);
+			}
+			if(eff.duration<0){
+				eff.wear_off();
 			}
 		});
 
@@ -1089,8 +1212,12 @@ class Char {
 			this.energy = 0;
 		}
 		*/
+		if(this.energy<=0){
+			this.energy=0;
+		}
 		if(this.energy > this.maxEnergy)
 			this.energy = this.maxEnergy;
+
 		if(this.health <= 0){
 			this.health = 0;
 			this.die();

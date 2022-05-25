@@ -1,5 +1,5 @@
 var players = []; 			//list of players used for the game
-var players_static = []; 	//static list of players
+var playerStatic = []; 	//static list of players
 var show_info_id = -1; 		//id of the current player's info shown (-1 for none)
 var extra_info_obj = ""
 var dedPlayers = []; 		//list of dead players
@@ -340,7 +340,7 @@ function startGame(){
 		tempChar.draw();
 		//add the player obj into the player list
 		players.push(tempChar);
-		players_static.push(tempChar);
+		playerStatic.push(tempChar);
 	}
 	total_players = players.length;
 	//something for drawing probably
@@ -432,7 +432,7 @@ function action(){
 	}
 	$('#day').text("Day " + day + " Hour " + hour);
 	$('#alive_cnt').text("Alive: " + players.length +"/"+total_players);
-	$('#ded_cnt').text("Dead: " + dedPlayers.length+"/"+total_players);
+	$('#ded_cnt').text("Dead: " + (total_players-players.length)+"/"+total_players);
 	//update the info tables
 	updateTable();
 	log_message('======= end of turn=======');
@@ -491,13 +491,13 @@ function createDangerZone(terrainLayers=1){
 }
 
 //check if a coordinates are in bounds and has safe terrain
-function safeTerrainCheck(x,y){
+function safeTerrainCheck(x,y, dangerlv=0){
 	//safe zone check
 	if(!safeBoundsCheck(x,y)){
 		return false
 	}
 	//terrain check
-	if(getTerrain(x,y).danger){
+	if(getTerrain(x,y).danger>dangerlv){
 		return false
 	}
 	return true
@@ -514,7 +514,7 @@ function safeTerrainCheck(x,y){
 	}*/
 }
 
-//check if coordinates are in danger zone
+//check if coordinates are not in danger zone
 function safeBoundsCheck(x, y){
 	if(isNaN(x) || isNaN(y)){
 		return false;
@@ -620,15 +620,15 @@ function show_info(char_id){
 	else{
 		deselect_show_info();
 	}
-	
 }
+//select char info box
 function select_show_info(char_id){
 	$('#tbl_' + char_id).removeClass('highlight')
 	$('#tbl_' + char_id).addClass('selected')
 	$('#char_' + char_id).addClass('highlight')
 	
 	show_info_id=char_id;
-	players_static[show_info_id].show_info();
+	playerStatic[show_info_id].show_main_info();
 	
 	$('#char_info').css('display','inline-block')
 	// $('#table').css('margin-bottom','250px')
@@ -644,15 +644,20 @@ function deselect_show_info(){
 	// $('#table').css('margin-bottom','50px')
 }
 
+//show info for a player's item
 function show_item_info(char_id, slot){
 	if(slot=='wep')
-		show_extra_info(players_static[char_id].weapon)
+		show_extra_info(playerStatic[char_id].weapon)
 	if(slot=='off')
-		show_extra_info(players_static[char_id].offhand)
+		show_extra_info(playerStatic[char_id].offhand)
 }
-
+//show info for status effect
 function show_status_info(char_id, status_id){
-	show_extra_info(players_static[char_id].status_effects[status_id])
+	show_extra_info(playerStatic[char_id].status_effects[status_id])
+}
+//show info for player
+function show_player_info(char_id){
+	show_extra_info(playerStatic[char_id])
 }
 
 function show_extra_info(obj){
@@ -687,12 +692,12 @@ function updateTable(){
 	//list status
 	// if($('#table').css('display')=='block'){
 		if(show_info_id!=-1){
-			players_static[show_info_id].show_info();
+			playerStatic[show_info_id].show_main_info();
 		}		
 		if(extra_info_obj!=''){
 			extra_info_obj.show_info();
 		}
-		players.forEach(function(chara,index){		
+		players.forEach(function(chara,index){
 			//prepare player data
 			let wep_text=""
 			if(chara.weapon){
@@ -703,15 +708,16 @@ function updateTable(){
 			}
 
 			let status_text=""
-			let icon_status_text = "<br>";
+			// let icon_status_text = "<br>";
+			let icon_status_text = "";
 			let icon_count=0;
 			chara.status_effects.forEach(function(eff,index){		
 				status_text+=eff.icon;
-				if(icon_count<3){
+				if(icon_count<4){
 					if(eff.icon){
-						icon_status_text=icon_status_text+eff.icon + "<br>";
+						icon_status_text=icon_status_text+eff.icon;
 						icon_count++;
-					}			
+					}	
 				}
 			});
 			
@@ -736,14 +742,10 @@ function updateTable(){
 			//info bar
 			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
 			$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-			
 			//action
 			$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
-			
 			//kills
 			$("#tbl_" + chara.id + " .kills").text(chara.kills);
-
-
 			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
 			$("#tbl_" + chara.id + " .effects").html(status_text);
 			// log_message(chara.name +" status txt " + status_text);
@@ -758,16 +760,12 @@ function updateTable(){
 				wep_text+=chara.offhand.icon;
 			}
 			$("#tbl_" + chara.id + " .weapon").html(wep_text);
-			// if(chara.weapon){
-				// $("#tbl_" + chara.id + " .weapon").text(chara.weapon.icon);
-				// $("#tbl_" + chara.id + " .weapon").html(chara.weapon.icon);
-			// } else {
-				// $("#tbl_" + chara.id + " .weapon").text("");
-			// }
 		});
+
 		doodads.forEach(function(tD,index){
 			// $("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-			$("#doodad_" + tD.id).html(tD.icon);
+			// $("#doodad_" + tD.id).html(tD.icon);
+			tD.draw()
 		});
 		
 		//turn existing messages transparent
@@ -877,51 +875,50 @@ function generateTerrain(){
 	generated=false;
 	
 	riverSpawns = [];
-	if(!generated){
-		for(var i = 0;i<=mapSize;i+=25){
-			terrain[i] = [];
-			//timerClick("terrain row " + i);
-			//generate reandom terrain pieces
-			for(var j =0;j<=mapSize;j+=25){
-				//timerClick("terrain bound check row " + i + " col " + j);
-				//check the current coords are in bounds
-				if(inBoundsCheck(i,j)){
-					//timerClick("terrain row " + i + " col " + j);
-					let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
-					setTerrain(tempTerr);
-					
-					// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
-					//draw terrain and add it to the list
-					// tempTerr.draw();
-					// terrain[i][j] = tempTerr;					
-					//timerClick("terrain row " + i + " col " + j);
-				}
-				//timerClick("terrain bound check row " + i + " col " + j);
+	
+	for(var i = 0;i<=mapSize;i+=25){
+		terrain[i] = [];
+		//timerClick("terrain row " + i);
+		//generate reandom terrain pieces
+		for(var j =0;j<=mapSize;j+=25){
+			//timerClick("terrain bound check row " + i + " col " + j);
+			//check the current coords are in bounds
+			if(inBoundsCheck(i,j)){
+				//timerClick("terrain row " + i + " col " + j);
+				let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
+				setTerrain(tempTerr);
+				
+				// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
+				//draw terrain and add it to the list
+				// tempTerr.draw();
+				// terrain[i][j] = tempTerr;					
+				//timerClick("terrain row " + i + " col " + j);
 			}
-			//timerClick("terrain row " + i);
-			log_message('finished '+i);
+			//timerClick("terrain bound check row " + i + " col " + j);
 		}
-		// timerClick("terrain spread");
-		//get the spread terrain value
-		log_message('terrain spread start')
-		if(Math.floor($('#txt_spreadTerrain').val()) > 0){
-			//spread the terrain for that amount
-			for(var i = 0;i<$('#txt_spreadTerrain').val();i++){
-				spreadTerrain();
-			}
-		}
-		log_message('terrain spread end')
-		log_message('river spread start')
-		log_message(riverSpawns.length + ' rivers')
-		//generate river
-		riverSpawns.forEach(function(river,index){
-			//pass in the starting point for the river
-			generateRiver(river,true);
-		});
-		// timerClick("terrain spread");
-		log_message('river spread end')
+		//timerClick("terrain row " + i);
+		log_message('finished '+i);
 	}
-	generated = true;
+	generated=true;
+	// timerClick("terrain spread");
+	//get the spread terrain value
+	log_message('terrain spread start')
+	if(Math.floor($('#txt_spreadTerrain').val()) > 0){
+		//spread the terrain for that amount
+		for(var i = 0;i<$('#txt_spreadTerrain').val();i++){
+			spreadTerrain();
+		}
+	}
+	log_message('terrain spread end')
+	log_message('river spread start')
+	log_message(riverSpawns.length + ' rivers')
+	//generate river
+	riverSpawns.forEach(function(river,index){
+		//pass in the starting point for the river
+		generateRiver(river,true);
+	});
+	// timerClick("terrain spread");
+	log_message('river spread end')
 }
 
 //spread mountains and rivers

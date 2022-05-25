@@ -32,6 +32,22 @@ function awareOfCheck(tP){
 	return tempArr;
 }
 
+//get opponents for that tP can fight
+function inRangeOfCheck(tP){
+	let tempArr = [];
+	tP.calc_bonuses();
+	players.forEach(function(oP,index){
+		if(oP.name != tP.name){
+			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
+			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
+				log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
+				tempArr.push(oP);
+			}
+		}
+	});
+	return tempArr;
+}
+
 function aggroCheck(tP, oP){
 	//check if tP wants to fight oP
 	let fightChance = 50;
@@ -59,21 +75,7 @@ function aggroCheck(tP, oP){
 	let rollResult = roll([['fight',fightChance],['peace',peaceChance]]);
 	return rollResult;  
 }
-//get opponents for that tP can fight
-function inRangeOfCheck(tP){
-	let tempArr = [];
-	tP.calc_bonuses();
-	players.forEach(function(oP,index){
-		if(oP.name != tP.name){
-			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
-			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
-				log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
-				tempArr.push(oP);
-			}
-		}
-	});
-	return tempArr;
-}
+
 function doodadCheck(tP){
 	doodads.forEach(function(tD,index){
 		let dist = hypD(tP.x - tD.x, tP.y - tD.y);
@@ -88,8 +90,18 @@ function doodadCheck(tP){
 	});
 }
 //calculate damage
-function rollDmg(tP){
-	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB;
+function rollDmg(tP, oP){
+	if(tP.fightDmgB<0){
+		tP.fightDmgB=0;
+	}
+	if(oP.dmgReductionB<0){
+		oP.dmgReductionB=0;
+	}
+	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) ;
+	dmg = dmg * tP.fightDmgB;
+	dmg = dmg * oP.dmgReductionB;
+	if(dmg > oP.health)
+		dmg = oP.health;
 	return dmg;
 }
 
@@ -110,17 +122,8 @@ function attack(attacker, defender, counter){
 	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type});
 	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type});
 
-	if(attacker.fightDmgB<0){
-		attacker.fightDmgB=0;
-	}
-	if(defender.dmgReductionB<0){
-		defender.dmgReductionB=0;
-	}
-	dmg = rollDmg(attacker);
-	dmg = dmg * defender.dmgReductionB;
-	if(dmg > defender.health)
-		dmg = defender.health;
-	
+	dmg = rollDmg(attacker, defender);
+
 	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type});
 	// defender.apply_all_effects("takeDmg", {"source":attacker, "damage":dmg, "dmg_type":dmg_type});
 	
@@ -128,19 +131,14 @@ function attack(attacker, defender, counter){
 	defender.take_damage(dmg, attacker, dmg_type)
 	attacker.exp += dmg;
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
-
-	//apply weapon effects after dealing damage
-	// attacker.apply_inv_effects_other("deal dmg", defender, {"damage":dmg, "counter":counter});
-	// defender.apply_inv_effects_other("take dmg", attacker, {"damage":dmg, "counter":counter});	
-
-	
-
 }
 
 function fight_target(tP,oP){
 	//tp has the initiative 
 	tP.div.addClass("fighting");
+	tP.tblDiv.addClass("fighting");
 	oP.div.addClass("fighting");
+	oP.tblDiv.addClass("fighting");
 	
 	//fight opponent
 	attack(tP,oP, false);
