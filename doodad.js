@@ -156,6 +156,8 @@ class TrapEntity extends Doodad{
 		// "trap" : ["🕳",24,[0,50],24, "none"]
 		this.icon = "🕳";
 		this.triggerRange = 24;
+		this.duration=50;
+
 	}
 	
 	trigger(trigger_player){
@@ -226,6 +228,45 @@ class CampfireEntity extends Doodad{
 		}
 		
 		
+	}
+}
+
+class MirrorEntity extends Doodad{
+	constructor(x,y,owner){
+		super("mirror",x,y,owner);
+		this.icon = '<img src=./icons/mirror_broken2.png></img>';
+		this.triggerRange = 30;
+		this.triggerChance=40;
+	}
+	
+	trigger(trigger_player){
+		log_message(trigger_player.name + " triggered mirror entity")
+		let newX = 0;
+		let newY = 0;
+		//get new cords to move to
+		let tries = 0;
+		do {
+			newX = Math.floor(Math.random()*mapSize);
+			newY = Math.floor(Math.random()*mapSize);
+			tries++;
+		} while(!safeBoundsCheck(newX,newY) && tries < 3);
+		
+		pushMessage(trigger_player, trigger_player.name + " finds a scrying mirror on the ground");
+		//oob coords
+		if(!inBoundsCheck(newX, newY)){
+			log_message("mirror tele death")
+			trigger_player.health=0
+			trigger_player.death = "accidentally teleports into space and dies"
+			trigger_player.lastAction = "teleport"
+		}
+		else{
+			trigger_player.statusMessage = "teleported by a stray scrying mirror"
+		}
+		trigger_player.moveToCoords(newX, newY);
+		trigger_player.resetPlannedAction()
+		trigger_player.finishedAction = true;
+
+		this.destroy();
 	}
 }
 

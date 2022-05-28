@@ -40,7 +40,7 @@ function inRangeOfCheck(tP){
 		if(oP.name != tP.name){
 			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
-				log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
+				// log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
 				tempArr.push(oP);
 			}
 		}

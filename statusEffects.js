@@ -503,7 +503,7 @@ class DecoyEffect extends StatusEffect{
 	constructor(level, duration, owner, decoy){
 		super("decoy_"+owner.name);
 		this.display_name = decoy.name
-		this.icon="👁️";
+		this.icon="👻";
 		this.duration = duration;
 		this.level = level;
 		this.owner = owner;

@@ -76,10 +76,11 @@ function create_offhand(offhand_name){
 			break;		
 	}
 }
+
 var off_prob = 2;
+var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",25],["vape",20],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
-	let offhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",25],["vape",20],["campfire",15],["mirror",40],["Nothing",200]];
-	// let offhandOdds = [["bomb",5],["trap",20],["shield",20],["recoil", 15000],["Nothing",400]];
+	let offhandOdds = defaultOffhandOdds.slice();
 	return offhandOdds;
 }
 
@@ -186,13 +187,14 @@ class Bomb extends Offhand {
 	effect(state, data={}){
 		let oP="";
 		let tempBomb="";
-		switch(state){		
+		switch(state){
+			//drop bomb
 			case "defend":
 				if(Math.random()<0.1){
 					oP=data["opponent"];
 					pushMessage(this.wielder, this.wielder.name + "'s bomb is knocked out of their hands by "+oP.name);
 					tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
-					tempBomb.maxDuration=1;
+					tempBomb.duration=1;
 					tempBomb.draw();
 					doodads.push(tempBomb);
 					this.wielder.offhand="";
@@ -227,7 +229,6 @@ class Trap extends Offhand {
 	constructor() {
 		super("trap");
 	}
-	
 	use(){
 		let tempTrap = new TrapEntity(this.wielder.x, this.wielder.y,this.wielder);
 		tempTrap.draw();
@@ -375,6 +376,7 @@ class Mirror extends Offhand{
 		this.display_name = "Scrying Mirror"
 		//tele target
 		this.target=""
+		this.broken=false;
 	}
 	//choose random coords on the map
 	choose_random_dest(){
@@ -500,6 +502,16 @@ class Mirror extends Offhand{
 
 	effect(state, data={}){
 		switch(state){
+			case "defend":
+				if(this.broken == false && Math.random()<0.8){
+					let oP=data["opponent"];
+					pushMessage(this.wielder, oP.name + " breaks "+this.wielder.name+"'s scrying mirror");
+					this.icon = setItemIcon("./icons/mirror_broken1.png");
+					let tempMirror = new MirrorEntity(this.wielder.x, this.wielder.y,this.wielder);
+					tempMirror.draw();
+					doodads.push(tempMirror);
+				}				
+				break;
 			case "planAction":
 				//oob
 				if(!safeBoundsCheck(this.wielder.x, this.wielder.y)&&this.wielder.plannedAction=="move"){

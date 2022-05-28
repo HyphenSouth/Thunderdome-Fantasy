@@ -62,7 +62,15 @@ function create_terrain(type, x, y){
 			newTerrain = new WaterTerrain(x, y,true)
 			break;	
 		case "mtn":
-			newTerrain = new MtnTerrain(x, y)
+			//generate volcano
+			if(volcano_count<max_volcanos && Math.abs(x - mapSize/2)<250 && Math.abs(y - mapSize/2)<250 && Math.random()<0.4){
+				newTerrain = new Volcano(x, y)
+				volcano_count++;
+			}
+			else{
+				newTerrain = new MtnTerrain(x, y)
+			}
+			
 			break;
 		case "none":
 			newTerrain = new Terrain('none', x, y)
@@ -70,7 +78,7 @@ function create_terrain(type, x, y){
 		case "rand":
 			//generate random terrain type
 			// let rand_type = roll([["tree",100],["mtn",5],["none",250],["water",5]]);
-			let rand_type = roll([["tree",100],["mtn",5],["none",250],["water",5]]);
+			let rand_type = roll([["tree",120],["mtn",8],["none",250],["water",5]]);
 			newTerrain = create_terrain(rand_type, x, y)
 			break;
 	}
@@ -178,7 +186,7 @@ class TreeTerrain extends Terrain{
 		//types of terrain that can be spread to
 		this.spreadTypes = ["none"]
 		//base spread chance and decrease with spreadtimes
-		this.spreadProb = [15,40]
+		this.spreadProb = [10,40]
 		// this.spreadProb = [0,0]
 	}
 	
@@ -197,7 +205,7 @@ class TreeTerrain extends Terrain{
 }
 
 class MtnTerrain extends Terrain{
-	constructor(x,y, create_river=true){
+	constructor(x,y){
 		super("mtn",x,y)
 		//types of terrain that can be spread to
 		this.spreadTypes = ["none", "tree","water"]
@@ -224,6 +232,33 @@ class MtnTerrain extends Terrain{
 		return newTerrain;
 	}	
 }
+
+var volcano_count = 0;
+var max_volcanos = 1;
+class Volcano extends MtnTerrain{
+	constructor(x,y){
+		super(x,y)
+		this.icon = "🗻"
+		this.danger = 1;
+		this.eruption = roll_range(100,300)
+		this.erupted = false;
+	}
+	
+	erupt(){
+		this.erupted=true
+		
+	}
+	
+	update(){	
+		//extinguish
+		if(this.eruption<=0 && !this.erupted){
+			this.erupt();
+			return;
+		}
+		this.eruption = this.eruption-1
+	}		
+}
+
 var max_rivers = 5;
 class WaterTerrain extends Terrain{
 	constructor(x,y, create_river=true){

@@ -21,14 +21,16 @@
 	<!-- <script src="rolltest.js"></script> -->
 </head>
 <body>
-
+	<!-- map -->
 	<div id='map' xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs">
 		<div id='terrain'></div>
 		<div id='doodads'></div>
 		<div id='players'></div>
 		<div id='danger'></div>
 	</div>
+	<!-- sidebar -->
 	<div id='side'>
+		<!-- nav bar at the top -->
 		<div id='nav_bar' style='display:none;'>
 			<button onClick="auto()">Auto</button>
 			<button onClick="turn()">Next Hour</button>
@@ -36,8 +38,11 @@
 			<span id='day' style='width:120px; display: inline-block;'></span>
 			<span style='margin-left:10px; width:130; display: inline-block;' id='alive_cnt'></span>
 			<span style='margin-left:10px; width:130; display: inline-block;' id='ded_cnt'></span>
+			<button onClick="hidePlayers()">Hide Players</button>
+			<!-- <button onClick="showTerrain()">Terrain</button> -->
 		</div>
 		
+		<!-- player prep screen, only present at start -->
 		<div id='player_prep' style='padding-top: 30px; padding-bottom: -30px; overflow-y:scroll; height:calc(100% - 50px);'>
 			<input id='txt_spreadTerrain' value=3 style='width:40px'></input> Water & Mountain Spread<br>
 			<button onClick="generateTerrain()">Generate Terrain</button>
@@ -108,7 +113,7 @@ html,body{
 #nav_bar{
 	position: fixed; 
 	top: 0; 
-	width:100%;
+	/*width:100%;*/
 	background:#222;	
 	z-index:5;
 }
@@ -180,7 +185,7 @@ html,body{
 	}
 	/*char states*/
 	#table .container.fighting .status{
-		color:red;
+		color:#FF4060;
 		/*box-shadow: inset 0 0 3px #FF0000;*/
 		/*background-color:#FF000020;*/
 	}

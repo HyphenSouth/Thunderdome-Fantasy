@@ -357,9 +357,28 @@ function timer(){
 function auto(){
 	playing = !playing;
 }
+
+//keyboard inputs
+document.addEventListener('keydown', (e) => {
+	// console.log(e.code)
+	// console.log(e.key)
+	if (!e.repeat){
+		switch(e.code){
+			case "Space":
+				turn()
+				break;
+			case "KeyP":
+				hidePlayers();
+				break;
+		}
+	}
+});
+
+
+
 //progress turn for each player
 function turn(){
-	log_message('======= start of turn =======');
+	log_message('======= start of turn '+day+' '+hour+' =======');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
@@ -372,17 +391,17 @@ function turn(){
 		switch(hour){
 			case 7:
 			case 20:
-				$('#map').css('background','rgb(0,90,0)');
+				$('#map').css('background','rgb(0,110,0)');
 				break;
 			case 6:
 			case 21:
-				$('#map').css('background','rgb(0,50,0)');
+				$('#map').css('background','rgb(0,80,0)');
 				break;
 			case 8:
 				$('#map').css('background','rgb(0,128,0)');
 				break;
 			case 22:
-				$('#map').css('background','rgb(0,20,0)');
+				$('#map').css('background','rgb(0,60,0)');
 				break;
 		}
 		//randomize the player list
@@ -407,13 +426,7 @@ function action(){
 	//update doodads
 	doodadUpdate();
 	
-	//check death
-	players.forEach(function(chara,index){
-		chara.limitCheck();		//check if player is dead
-	});
-	
 	//update terrain
-
 	for(let i = 0; i <= mapSize; i=i+25) {
 		if(terrain[i]){
 			for(let j = 0; j <= mapSize; j=j+25) {
@@ -423,6 +436,10 @@ function action(){
 			}
 		}
 	}
+	//check death
+	players.forEach(function(chara,index){
+		chara.limitCheck();		//check if player is dead
+	});
 	
 	//progress time
 	hour++;
@@ -435,7 +452,7 @@ function action(){
 	$('#ded_cnt').text("Dead: " + (total_players-players.length)+"/"+total_players);
 	//update the info tables
 	updateTable();
-	log_message('======= end of turn=======');
+	log_message('======= end of turn '+day+' '+hour+'=======');
 	log_message("   ")
 }
 
@@ -470,24 +487,6 @@ function createDangerZone(terrainLayers=1){
 	$('#danger').css('margin-top', ($('#map').height() - ($('#map').height() * borderPercent))/2);
 	$('#danger').css('margin-left', ($('#map').width() - ($('#map').width() * borderPercent))/2);
 	
-	/*
-	for(let i = 0; i <= mapSize; i=i+25) {
-		for(let j = 0; j <= mapSize; j=j+25) {
-			let roundX = mapSize/2 - i;
-			let roundY = mapSize/2 - j;
-			let dist = hypD(roundX, roundY)
-			if(dist>safeSize && inBoundsCheck(i,j)){
-				// if(terrain[i]){
-					// if(terrain[i][j]){
-						// terrain[i][j].destroy();
-					// }
-				// }
-				let tempTerr = new Terrain("water",i,j)
-				setTerrain(tempTerr);
-			}
-		}
-	}
-	*/
 }
 
 //check if a coordinates are in bounds and has safe terrain
@@ -501,17 +500,6 @@ function safeTerrainCheck(x,y, dangerlv=0){
 		return false
 	}
 	return true
-
-	/*
-	let roundX = Math.round(x/25)*25;
-	let roundY = Math.round(y/25)*25;
-	if(terrain[roundX]){
-		if(terrain[roundX][roundY]){
-			if(terrain[roundX][roundY].type == "water"){
-				valid = false;
-			}
-		}
-	}*/
 }
 
 //check if coordinates are not in danger zone
@@ -577,9 +565,25 @@ function infoDisplay(){
 		$('#table').css('display','block');
 		$('#messages').css('display','none');
 	}
-	
 }
-
+//puts terrain above players
+function showTerrain(){
+	if($('.terrain').css('z-index')!=1){
+		$('.terrain').css({'z-index':1})
+	}
+	else{
+		$('.terrain').css({'z-index':20})
+	}
+}
+//puts hides players
+function hidePlayers(){
+	if($('#players').css('display')!="block"){
+		$('#players').css({'display':"block"})
+	}
+	else{
+		$('#players').css({'display':"none"})
+	}
+}
 function pushMessage(chara, msg){
 	events.push({"chara": chara, "message":msg});
 }

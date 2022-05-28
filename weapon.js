@@ -72,17 +72,34 @@ var weapon_data = {
 		"fightBonus" : 0.95,
 		"uses" : 8		
 	},
+	"sniper" : {
+		"icon" : "./icons/sniper.png",
+		"icon_type" : "img", 
+		"dmg_type" : "ranged",
+		"rangeBonus" : 40,
+		"sightBonus" : 20,
+		"uses" : 3		
+	},
+	"ancient" : {
+		"icon" : "./icons/ancient_staff.png",
+		"icon_type" : "img",
+		"dmg_type" : "magic",
+		"rangeBonus" : 20,
+		"fightBonus" : 1.2,
+		"uses" : 80		
+	},
 }
-
 var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
-function get_weapon_odds(tP){
-	let weaponOdds = [
+var defaultWeaponOdds = [
 	["knife",30],["gun",20],["lance",25],["bow",20],
-	["katana", 35], ["shotgun", 35], 
+	["katana", 35], ["shotgun", 35], ["sniper",20],
 	["clang",5], ["flamethrower",20], 
 	["Nothing",500]];
+
+function get_weapon_odds(tP){
+	let weaponOdds = defaultWeaponOdds.slice();
 	// let weaponOdds = [["shotgun", 100], ["Nothing",100]];
 	if(sexSword){
 		weaponOdds.push(["nanasatsu",1]);
@@ -128,6 +145,9 @@ function create_weapon(weapon_name){
 			break;		
 		case "katana":
 			return new Katana();
+			break;		
+		case "sniper":
+			return new Sniper();
 			break;
 		case "shotgun":
 			return new Shotgun();
@@ -323,6 +343,9 @@ class Katana extends Weapon {
 				}
 				this.use();
 				break;
+			default:
+				super.effect(state, data);
+				break;
 		}
 	}
 	
@@ -333,6 +356,62 @@ class Katana extends Weapon {
 		"<span class='desc'>"+
 			"<span>Random chance to crit</span><br>"+	
 			"<span>One guaranteed crit</span><br>"+
+		"</span>"
+		
+		return html;
+	}
+}
+
+//random chance of critting
+class Sniper extends Weapon {
+	constructor() {
+		super("sniper");
+		this.display_name = "Sniper Rifle"
+		this.base_dmg = 1.2
+		this.crit_dmg = 2.5
+		this.crit = false;
+	}
+
+	effect(state, data={}){
+		let oP="";
+		switch(state){
+			//random crit
+			case "attack":
+				this.crit = false;
+				oP=data['opponent'];
+				if(Math.random()<0.1){
+					//crit
+					this.wielder.fightDmgB *= this.crit_dmg;
+					this.wielder.statusMessage = "lands a headshot hit on " + oP.name;
+					log_message("CRIT")
+					this.crit = true;
+				}
+				else{
+					this.wielder.fightDmgB *= this.base_dmg;
+					this.wielder.statusMessage = "attacks " + oP.name + " with a sniper rifle";
+				}
+				this.use();
+				break;
+			case "win":
+				oP=data['opponent'];
+				if(this.crit){
+					this.wielder.statusMessage = "turns " + oP.name + "'s brain into mush";
+				}
+				else{
+					this.wielder.statusMessage = "kills " + oP.name;
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	item_html(){
+		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
+		"<span><b>Headshot Dmg Bonus:</b>x"+this.crit_dmg+"</span><br>"+
+		"<span class='desc'>"+
+			"<span>Random chance to headshot</span><br>"+
 		"</span>"
 		
 		return html;

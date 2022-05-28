@@ -37,25 +37,25 @@ class Hinamizawa extends StatusEffect{
 	calc_bonuses(){
 		switch(this.level){
 			case 1:
-				this.aggroB =10;
-				break;
-			case 2:
 				this.aggroB =20;
 				break;
+			case 2:
+				this.aggroB =40;
+				break;
 			case 3:
-				this.aggroB =30;
+				this.aggroB =50;
 				this.peaceB =-10;
 				this.fightDmgB= 1.05;				
 				break;
 			case 4:
-				this.aggroB = +80;
-				this.peaceB = -20;
+				this.aggroB = +100;
+				this.peaceB = -40;
 				this.fightDmgB = 1.1;
 				this.dmgReductionB = 1.1;				
 				break;
 			case 5:
-				this.aggroB = 120;
-				this.peaceB = -50;
+				this.aggroB = 150;
+				this.peaceB = -80;
 				this.fightDmgB = 1.2;
 				this.dmgReductionB = 1.2;	
 				break;
@@ -120,7 +120,7 @@ class Hinamizawa extends StatusEffect{
 					//self damage
 					//only activates with more than 5 players or out of bounds
 					if(this.player.oobTurns>3 || players.length>5){
-						if(5+10*this.player.oobTurns>roll_range(0,100)){
+						if(5+3*this.player.oobTurns>roll_range(0,100)){
 							this.player.setPlannedAction("itch", 15)
 						}
 					}

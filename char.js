@@ -1143,7 +1143,7 @@ class Char {
 			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
 			this.unaware=true;
 			this.incapacitated=true;
-			this.actionPriority=3;
+			this.actionPriority=15;
 		}
 		//regain health and energy
 		this.currentAction.turnsLeft--;
