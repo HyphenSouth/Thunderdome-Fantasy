@@ -258,6 +258,11 @@ class Charm extends StatusEffect{
 	calc_bonuses(){
 		this.player.dmgReductionB *=1.1;
 	}
+	replace_eff(new_eff){
+		this.aggro=new_eff.aggro;
+		this.target=new_eff.target;
+		this.follow_message=new_eff.follow_message;
+	}
 	stack_effect(eff){
 		//replace charm with stronger charm
 		if(eff.level>=this.level){
@@ -407,7 +412,6 @@ class Berserk extends StatusEffect{
 	}	
 }
 
-//todo
 //increase peace bonus
 class Peace extends StatusEffect{
 	constructor(level, duration){
@@ -497,7 +501,6 @@ class Comfy extends Peace{
 	}	
 }
 
-
 //follows and attacks decoy of the owner
 class DecoyEffect extends StatusEffect{
 	constructor(level, duration, owner, decoy){
@@ -508,25 +511,24 @@ class DecoyEffect extends StatusEffect{
 		this.level = level;
 		this.owner = owner;
 		this.decoy = decoy;
-		this.fight=true;
-		
 	}
 	effect(state, data={}){
 		let decoy_dist = playerDist(this.player, this.decoy);
 		switch(state){
 			case "surroundingCheck":
-				//remove awareness for owner
+				//add decoy to awareness list
 				if(decoy_dist <= (this.player.sightRange + this.player.sightRangeB)){
-					if(Math.random()<0.7){
+					if(Math.random()<0.75){
 						this.player.awareOf.push(this.decoy)
-						if(this.fight && decoy_dist <= (this.player.fightRange + this.player.fightRangeB) && Math.random()<0.5){
+						if(decoy_dist <= (this.player.fightRange + this.player.fightRangeB) && Math.random()<0.5){
 							this.player.inRangeOf.push(this.decoy)
 							this.player.attackable.push(this.decoy)
 							log_message(this.player.name+" replaced fight")
 						}
 						log_message(this.player.name+" replaced awareness")
 					}
-					if(this.player.awareOfPlayer(this.owner)&& Math.random()<0.95){
+					//remove awareness for owner
+					if(this.player.awareOfPlayer(this.owner)){
 						this.player.awareOf = arrayRemove(this.player.awareOf, this.owner)
 						this.player.inRangeOf = arrayRemove(this.player.inRangeOf, this.owner)
 						this.player.attackable = arrayRemove(this.player.attackable, this.owner)
@@ -535,7 +537,7 @@ class DecoyEffect extends StatusEffect{
 				}
 				break;
 			case "planAction":
-				if(this.player.awareOfPlayer(this.decoy) &&Math.random()<0.5){
+				if(this.player.awareOfPlayer(this.decoy) && Math.random()<0.5){
 					if(this.player.setPlannedAction("follow",4)){
 						this.player.plannedTarget=this.decoy;
 						log_message(this.player.name+" decoy follow")
@@ -550,7 +552,8 @@ class DecoyEffect extends StatusEffect{
 				break;
 			case "doAction":
 				if(this.player.plannedAction=="fight" && this.player.plannedTarget==this.decoy){
-					this.player.statusMessage = "attacks "+this.decoy.name;
+					// this.player.statusMessage = "attacks "+this.decoy.name;
+					this.decoy.attacked(this.player)
 					this.player.plannedTarget = "";
 					this.player.resetPlannedAction();
 				}
@@ -572,6 +575,81 @@ class DecoyEffect extends StatusEffect{
 class Blinded extends StatusEffect{}
 //trapped for a set duration
 class Frozen extends StatusEffect{}
+
+//generic buff class for modifying stats
+class Buff extends StatusEffect{
+	constructor(name, level, duration, data, buff=true, owner=""){
+		super(name);
+		this.level = level;
+		this.duration=duration;
+		this.owner=owner;
+		this.data = data
+		this.buff=buff;	//false for debuff
+		
+		this.sightBonus = 0;
+		this.visibilityB = 0;
+		this.rangeBonus = 0;
+		this.peaceBonus= 0;
+		this.aggroBonus= 0;
+		
+		this.fightBonus = 1;
+		this.dmgReductionB = 1;
+		this.moveSpeedB = 1;
+		
+		this.update_data()
+	}
+	update_data(){
+		if("sightBonus" in this.data){this.sightBonus = this.data["sightBonus"][0]+ this.level * this.data["sightBonus"][1]}
+		if("visibilityB" in this.data){this.visibilityB = this.data["visibilityB"][0]+ this.level * this.data["visibilityB"][1]}
+		if("rangeBonus" in this.data){this.rangeBonus = this.data["rangeBonus"][0]+ this.level * this.data["rangeBonus"][1]}
+		if("peaceBonus" in this.data){this.peaceBonus = this.data["peaceBonus"][0]+ this.level * this.data["peaceBonus"][1]}
+		if("aggroBonus" in this.data){this.aggroBonus = this.data["aggroBonus"][0]+ this.level * this.data["aggroBonus"][1]}
+		
+		if("fightBonus" in this.data){this.fightBonus = this.data["fightBonus"][0]+ this.level * this.data["fightBonus"][1]}
+		if("dmgReductionB" in this.data){this.dmgReductionB = this.data["dmgReductionB"][0]+ this.level * this.data["dmgReductionB"][1]}													   
+		if("moveSpeedB" in this.data){this.moveSpeedB = this.data["moveSpeedB"][0]+ this.level * this.data["moveSpeedB"][1]}		
+	}
+	
+	replace_eff(new_eff){
+		this.owner=new_eff.owner;
+		this.data=new_eff.data;
+		this.update_data()
+		super.replace_eff(new_eff)
+	}
+	
+	calc_bonuses(){
+		this.player.sightRangeB += this.sightBonus
+		this.player.visibilityB += this.visibilityB
+		this.player.fightRangeB += this.rangeBonus
+		this.player.peaceB += this.peaceBonus
+		this.player.aggroB += this.aggroBonus
+												   
+		this.player.fightDmgB *= this.fightBonus
+		this.player.dmgReductionB *= this.dmgReductionB
+		this.player.moveSpeedB *= this.moveSpeedB
+	}
+	
+	effect_html(){
+		let html=""
+		if(this.fightBonus != 1)
+			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
+		if(this.dmgReductionB != 1)
+			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
+		if(this.rangeBonus != 0)
+			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
+		if(this.sightBonus != 0)
+			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
+		if(this.visibilityB != 0)
+			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
+		if(this.peaceBonus != 0)
+			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
+		if(this.aggroBonus != 0)
+			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"		
+		if(this.moveSpeedB != 1)
+			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
+		return html;
+	}
+}
 
 //class for dot effects
 class DotEffect extends StatusEffect{

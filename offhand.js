@@ -63,7 +63,7 @@ function create_offhand(offhand_name){
 			return new Mirror();
 			break;
 		case "food":
-			let foodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5]];
+			let foodOdds = defaultFoodOdds.slice();
 			let food_name = roll(foodOdds)
 			return create_food(food_name);
 		default:
@@ -78,7 +78,7 @@ function create_offhand(offhand_name){
 }
 
 var off_prob = 2;
-var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",25],["vape",20],["campfire",15],["mirror",40],["Nothing",200]];
+var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",20],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
 	return offhandOdds;
@@ -322,6 +322,27 @@ class Vape extends Offhand{
 					this.wielder.statusMessage="vapes and escapes"
 					let tempDecoy = new DecoyEntity(this.wielder.x, this.wielder.y, this.wielder)
 					tempDecoy.name = this.wielder.name+"'s vape illusion";
+					tempDecoy.attack_func = function(attacker, tD){
+						if(Math.random()<2){
+							attacker.statusMessage = "destroys "+ tD.name;
+							tD.icon = "☁️";
+							tD.active=false
+							let choke_eff = new Buff("smoked", 2, 8, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+							choke_eff.icon = "☁️";
+							attacker.inflict_status_effect(choke_eff)
+							players.forEach(function(oP,index){
+								let dist = hypD(oP.x - tD.x,oP.y - tD.y);
+								if(dist <= 50 && oP.health>0 && oP!=attacker && oP!=tD.owner){
+									let choke_eff = new Buff("smoked", 1, 5, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+									choke_eff.icon = "☁️";
+									oP.inflict_status_effect(choke_eff)
+								}
+							});
+						}
+						else{
+							attacker.statusMessage = "attacks "+ tD.name;
+						}
+					}
 					tempDecoy.draw();
 					doodads.push(tempDecoy);
 					this.use()			

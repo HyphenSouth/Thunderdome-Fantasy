@@ -142,7 +142,7 @@ function create_weapon(weapon_name){
 			break;		
 		case "lance":
 			return new Lance();
-			break;		
+			break;
 		case "katana":
 			return new Katana();
 			break;		

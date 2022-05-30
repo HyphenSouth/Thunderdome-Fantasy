@@ -1,5 +1,5 @@
 class Char {
-	constructor(name,img,x,y, attr, moral, personal){
+	constructor(name,img,x,y, moral, personal){
 		//_______________general data_______________
 		this.name = name;
 		this.img = img;
@@ -11,7 +11,7 @@ class Char {
 		
 		//_______________attributes_______________
 		//types of the character
-		this.attributes=attr;
+		this.attributes=[];
 		//Modifiers
 		this.moral = moral
 		// this.personality = rollSpecialP(this.name);
@@ -164,7 +164,7 @@ class Char {
 		if(getTerrain(this.x, this.y)){
 			terrain_icon = getTerrain(this.x, this.y).icon
 		}
-		let attrHtml="None";
+		
 		let weaponHtml="<span'>Weapon:None</span>";
 		if(this.weapon){
 			weaponHtml = "<span onClick='show_item_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
@@ -181,13 +181,23 @@ class Char {
 				statusHtml=statusHtml+"<span onClick='show_status_info("+tP.id+","+eff_id+")'>"+eff.icon+"</span>"
 			});
 		}
+		let attrHtml="";
+		if(this.attributes.length>0){
+			this.attributes.forEach(function(attr){
+				if(attr.display){
+					attrHtml=attrHtml+attr.name+",";
+				}
+			});
+		}
+		if(attrHtml=="")
+			attrHtml="None"
+		if(attrHtml[attrHtml.length-1]==',')
+			attrHtml = attrHtml.substring(0, attrHtml.length-1)
 		//if dead
 		let statusMsgHTML = this.statusMessage;
 		if(this.health<=0){
 			statusMsgHTML = this.death;
-		}
-
-		
+		}		
 		let fightChance = 50;
 		let peaceChance = 50;
 		fightChance=fightChance+this.aggroB;
@@ -226,10 +236,10 @@ class Char {
 						"<span>Aggro Bonus: "+roundDec(this.aggroB)+"</span><br>"+	
 						"<span>Fight Chance: "+roundDec(fightChance/(peaceChance+fightChance)*100)+"%</span><br>"+
 					"</div>"+
-					"<div style='float:right;  width: 100px; position:absolute; right:15px;'>"+
+					"<div style='float:right;  width: 115px; position:absolute; right:0px;'>"+
 						offhandHtml+"<br>"+
 						"<span>Speed: "+roundDec(this.moveSpeed* this.moveSpeedB)+"</span><br>"+
-						"<span>Speed Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
+						"<span>Move Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
 						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
 						"<span>Vision: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
 						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
@@ -350,24 +360,7 @@ class Char {
 		if(getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).calc_bonuses(this)
 		}
-		/*
-		switch(getTerrainType(this.x,this.y)){
-			//mountain increases sight
-			case "mtn":
-				this.sightRangeB += 100;
-				break;
-			case "tree":
-				this.sightRangeB -= 50;
-				this.fightRangeB -= 4;
-				this.visibilityB -= 10;
-				break;
-			case "water":
-				this.fightRangeB = 0;
-				break;
-			default:
-				break;
-		} 
-		*/
+
 		if(this.fightDmgB <0){
 			this.fightDmgB = 0;
 		}
@@ -419,10 +412,18 @@ class Char {
 			eff.effect(state, data);
 		});		
 	}	
+	
+	//apply attribute effects to self
+	apply_attr_effects(state, data={}){
+		this.attributes.forEach(function(attr,index){
+			attr.effect(state, data);
+		});		
+	}	
 
 	apply_all_effects(state, data={}){
 		this.apply_inv_effects(state, data);
 		this.apply_status_effects(state, data);
+		this.apply_attr_effects(state,data);
 		// this.apply_terrain_effects(state, data);
 	}
 		
@@ -510,6 +511,26 @@ class Char {
 	//removing status effect
 	remove_status_effect(status_eff){
 		this.status_effects = arrayRemove(this.status_effects, status_eff);
+	}
+	
+	//gets attribute from player 
+	get_attr(attr_name){
+		let temp_attr=""
+		this.attributes.forEach(function(attr){
+			if(attr.name == attr_name){
+				temp_attr = attr;
+			}
+		});	
+		return temp_attr;
+	}
+	//checking if the player has an attribute by name
+	has_attr(attr_name){
+		for(let i=0; i<this.attributes.length; i++){
+			if(this.attributes[i].name==attr_name){
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	//action planning

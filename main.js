@@ -68,7 +68,7 @@ $( document ).ready(function(){
 			// resetPlayers();
 			log_message("loading data")
 			$('#cnt_players').html("");
-			loadPlayers(fr.result);
+			loadPlayersTxt(fr.result);
 		}
 		fr.readAsText(this.files[0]);
 	})
@@ -128,7 +128,7 @@ function Init(){
 	});
 	*/
 	$('#cnt_players').html("");
-	loadPlayers(chartext);
+	loadPlayersTxt(chartext);
 	//add empty row at the end
 	// $('#cnt_players').append(player_line);
 	initDone = true;
@@ -147,12 +147,11 @@ function resetPlayers(){
 }
 
 //load players
-function loadPlayers(player_txt){
+function loadPlayersTxt(player_txt){
 	player_txt=player_txt.replace(/\r\n/g,"\n")
 	let player_lst = player_txt.split("\n");
 	$('#cnt_players').html("");
 	player_lst.forEach(function(player_data){
-		// log_message(player_data)
 		let player_data_lst = player_data.split(",");
 		if(player_data_lst[0]){
 			//attribute input
@@ -163,7 +162,7 @@ function loadPlayers(player_txt){
 					attr_txt = attr_txt+attr+','
 				}
 			});	
-			attr_txt = attr_txt.substring(0, attr_txt.length-1)
+			attr_txt = attr_txt.substring(0, attr_txt.length-1)		//remove last ,
 			let morals = {
 				"R":"Random",
 				"L":"Lawful",
@@ -182,6 +181,7 @@ function loadPlayers(player_txt){
 			if(!(player_data_lst[4] in personalities)){
 				player_data_lst[4]="R"
 			}
+			//add into the table
 			$('#cnt_players').append(
 				"<div class='cnt_player'>"+
 					//name input
@@ -311,14 +311,11 @@ function startGame(){
 		//create player object
 		if(charlist[i]){
 			//attributes
-			let attr = charlist[i][2].replace(/ /g, "");
+			let attr_txt = charlist[i][2].replace(/ /g, "");
 			let attr_lst = []
-			attr_lst = [...new Set(attr.split(","))];
+			attr_lst = [...new Set(attr_txt.split(","))];
 			let filtered_attr = []
-			attr_lst.forEach(function(a){
-				if(a != "")
-					filtered_attr.push(a);
-			});
+
 
 			let moral = ""
 			if(charlist[i][3]=="" || charlist[i][3]=="Random")
@@ -331,8 +328,12 @@ function startGame(){
 				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
 			else
 				personality = charlist[i][4]
-			
-			tempChar = new Char(charlist[i][0],charlist[i][1],x,y, filtered_attr, moral, personality);
+			tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
+			attr_lst.forEach(function(attr){
+				if(attr != ""){
+					tempChar.attributes.push(create_attr(attr, tempChar));
+				}
+			});
 		} else {
 			tempChar = new Char("char" + i,"",x,y,[],"Neutral","Neutral");
 		}
@@ -703,6 +704,11 @@ function updateTable(){
 		}
 		players.forEach(function(chara,index){
 			//prepare player data
+			//character icons
+			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+			
+			//weapon
 			let wep_text=""
 			if(chara.weapon){
 				wep_text+=chara.weapon.icon;
@@ -710,10 +716,10 @@ function updateTable(){
 			if(chara.offhand){
 				wep_text+=chara.offhand.icon;
 			}
-
-			let status_text=""
-			// let icon_status_text = "<br>";
-			let icon_status_text = "";
+			$("#char_" + chara.id + " .charWeap").html(wep_text);
+			//status effect
+			let status_text=""				//side bar
+			let icon_status_text = "";		//char icon
 			let icon_count=0;
 			chara.status_effects.forEach(function(eff,index){		
 				status_text+=eff.icon;
@@ -724,24 +730,7 @@ function updateTable(){
 					}	
 				}
 			});
-			
-			//character icons
-			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-			
-			
 			$("#char_" + chara.id + " .charEff").html(icon_status_text);
-
-			/*
-			if(chara.weapon){
-				//$("#char_" + chara.id + " .charWeap").text(chara.weapon.icon);
-				$("#char_" + chara.id + " .charWeap").html(chara.weapon.icon);
-			} else {
-				$("#char_" + chara.id + " .charWeap").text("");
-			}
-			*/
-			$("#char_" + chara.id + " .charWeap").html(wep_text);
-			
 			
 			//info bar
 			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
@@ -774,14 +763,6 @@ function updateTable(){
 		
 		//turn existing messages transparent
 		$('#messages td').css('opacity','0.3');
-		/*
-		//add relevant messages
-		players.forEach(function(chara,index){
-			if(chara.plannedAction != "move" && chara.plannedAction != "sleep" && chara.plannedAction != "forage"){
-				$('#eventMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.name + " " + chara.statusMessage + "</td>>");
-			}
-		});
-		*/
 		
 		events.forEach(function(msg,index){
 			let chara = msg.chara;
@@ -813,20 +794,6 @@ function updateTable(){
 				chara.diedMessage = "Done";
 			}
 		});
-		
-
-	/*
-	if($('#table').css('display')=='block'){
-	} else {//list events
-		//
-		if(messages.length - 1 > lastMessage){
-			for(let i = lastMessage + 1;i < messages.length;i++){
-				$('#messages tbody').prepend("<tr><td>Day " + messages[i][2] + " " + messages[i][3] + ":00</td><td><img src='" + messages[i][0].img + "'></img>" + messages[i][1] + "</td>>");
-			}
-			lastMessage = messages.length - 1;
-		}
-	}
-	*/
 }
 //remove value from an array
 function arrayRemove(arr, value) { 

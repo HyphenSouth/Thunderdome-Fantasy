@@ -133,7 +133,6 @@ class Item{
 			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"		
 		if(this.moveSpeedB != 1)
 			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
-		
 		return html;
 	}
 	

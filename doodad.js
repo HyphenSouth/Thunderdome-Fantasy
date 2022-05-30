@@ -338,22 +338,31 @@ class DecoyEntity extends MovableEntity{
 		this.icon = "";
 		this.img = this.owner.img
 		this.moveSpeed = 20
-		// this.icon = "🤖";
+		
 		//trigger radius
 		this.triggerRange = 50;
 		//chance to trigger
 		this.triggerChance = 90;
 		this.ownerTriggerChance = 0;
 		//how long doodad can stay out
+		
 		this.duration=10;
 		this.followers=[];
 		this.attackers=[];
+		this.active=true;
+		this.attack_func = function(attacker, tD){
+			log_message(attacker.name+" attacks "+tD.name);
+			attacker.statusMessage = "attacks "+ tD.name;
+		}	//func when attacked
 		decoy_count++;
 	}
 	trigger(trigger_player){
 		let tempEff = new DecoyEffect(1, 1, this.owner, this)
 		// tempEff.name = "illusion"
 		trigger_player.inflict_status_effect(tempEff);
+	}
+	attacked(attacker){
+		this.attack_func(attacker, this)
 	}
 	
 	draw(){
@@ -374,10 +383,15 @@ class DecoyEntity extends MovableEntity{
 		super.destroy()
 	}
 	update(){
-		this.followers=[];
-		this.attackers=[];
-		this.moveRandom();
-		super.update();
+		if(this.active){
+			this.followers=[];
+			this.attackers=[];
+			this.moveRandom();
+			super.update();
+		}
+		else{
+			this.destroy();
+		}
 	}
 }
 

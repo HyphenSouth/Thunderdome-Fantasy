@@ -20,16 +20,25 @@ var food_data = {
 		"uses": [2,4],
 		"heal": 8
 	},
+	"str_potion" : {
+		"icon" : "./icons/str_pot.png",
+		"icon_type" : "img",
+		"uses": 1,
+	},
 	"ebiroll" : {
 		"icon":"🦐", 
 		"uses": 1,
 		"heal": 30
 	}
 }
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",10]]
 function create_food(food_name){
 	switch(food_name){
 		case "ebiroll":
 			return new Ebiroll();
+			break;
+		case "str_potion":
+			return new StrPotion();
 			break;
 		default:
 			if(food_name in food_data){
@@ -72,11 +81,19 @@ class Food extends Offhand{
 		}
 		return true;
 	}
+	
+	eat(){
+		this.wielder.heal_damage(this.heal, this, "food")
+		this.wielder.heal += this.energy_heal;
+		this.wielder.statusMessage =  "eats a " +this.name;
+		this.wielder.resetPlannedAction();
+		this.use();
+	}
+	
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
 				let health_percent = ((this.wielder.health+this.heal*0.4)/this.wielder.maxHealth) *100;
-				//forage if health is low
 				if(health_percent < roll_range(10,100) && getTerrain(this.wielder.x,this.wielder.y).danger==0 && this.wielder.lastAction != "foraging" && this.wielder.lastAction != "sleeping"){
 					//set priority for foraging depending on energy
 					let eatLv=3;
@@ -87,17 +104,14 @@ class Food extends Offhand{
 				}
 				break;
 			case "eat":
-				this.wielder.heal_damage(this.heal, this, "food")
-				this.wielder.heal += this.energy_heal;
-				this.wielder.statusMessage =  "eats a " +this.name;
-				this.wielder.resetPlannedAction();
-				this.use();
+				this.eat();
 				break;
 			default:
 				super.effect(state, data)
 				break;
 		}
-	}	
+	}
+	
 	show_info(){
 		let item_info = 
 		"<div class='info'>"+
@@ -120,6 +134,37 @@ class Food extends Offhand{
 	}
 }
 
+class StrPotion extends Food{
+	constructor() {
+		super("str_potion")
+		this.display_name = 'Strength Potion'
+	}
+	equip(wielder){
+		super.equip(wielder)
+		this.wielder.statusMessage =  "found a strength potion";
+		return true;
+	}
+	eat(){
+		let str_eff = new Buff("strength", 2, 4, {"fightBonus":[1,0.1]})
+		str_eff.icon = "💪";
+		this.wielder.inflict_status_effect(str_eff)
+		this.wielder.statusMessage =  "drinks a strength potion";
+		this.wielder.resetPlannedAction();
+		this.use();
+	}
+	effect(state, data={}){
+		switch(state){
+			case "planAction":
+				if(25 + this.wielder.inRangeOf.length*5  + this.wielder.aggroB/20 > roll_range(0,100)){
+					this.wielder.setPlannedAction("eat", 6);
+				}
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+}
 
 class Ebiroll extends Food{
 	constructor() {
@@ -130,33 +175,27 @@ class Ebiroll extends Food{
 		this.wielder.statusMessage =  "found an 🌊Ebiroll🌊!";
 		return true;
 	}
-	effect(state, data={}){
-		switch(state){
-			case "eat":
-				if(Math.random()<0.5){
-					this.wielder.heal_damage(this.heal, this, "food")
-					this.wielder.heal += this.energy_heal;
-					this.wielder.statusMessage =  "eats the Ebiroll";
-				}
-				//eating a whole shrimp hurts you
-				else{
-					let dmg = roll_range(1,10)
-					this.wielder.take_damage(dmg, this, "food")
-					if(this.wielder.health<=0){
-						this.wielder.statusMessage =  "chokes to death on the Ebiroll";
-						this.wielder.death =  "choked on an Ebiroll";
-					}
-					else{
-						this.wielder.statusMessage =  "chokes on the Ebiroll";
-					}
-				}
-				this.wielder.resetPlannedAction();
-				this.use();
-				break;
-			default:
-				super.effect(state, data)
-				break;
-		}	
+	
+	eat(){
+		if(Math.random()<0.5){
+			this.wielder.heal_damage(this.heal, this, "food")
+			this.wielder.heal += this.energy_heal;
+			this.wielder.statusMessage =  "eats the Ebiroll";
+		}
+		//eating a whole shrimp hurts you
+		else{
+			let dmg = roll_range(1,10)
+			this.wielder.take_damage(dmg, this, "food")
+			if(this.wielder.health<=0){
+				this.wielder.statusMessage =  "chokes to death on the Ebiroll";
+				this.wielder.death =  "choked on an Ebiroll";
+			}
+			else{
+				this.wielder.statusMessage =  "chokes on the Ebiroll";
+			}
+		}
+		this.wielder.resetPlannedAction();
+		this.use();
 	}
 	item_html(){
 		let html = 	super.item_html()+
