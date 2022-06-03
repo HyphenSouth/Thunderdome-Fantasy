@@ -31,6 +31,25 @@
 	</div>
 	<!-- sidebar -->
 	<div id='side'>
+		<!-- player prep screen, only present at start -->
+		<div id='player_prep' style='padding-top: 30px; padding-bottom: -30px; overflow-y:scroll; height:calc(100% - 50px);'>
+			<input id='txt_spreadTerrain' value=3 style='width:40px'></input> Water & Mountain Spread<br>
+			<button onClick="generateTerrain()">Generate Terrain</button>
+			<button onClick="startGame()">Start Game</button><br>
+			
+			<b>Load Players</b><input text="Load Players" type="file" id="load_file"><br>	
+			<b>Save Players</b><input id='save_file' style='width:100px'></input><button onClick="savePlayers()" >Save Players</button>
+			<input type="radio" id="save_csv" name="save_type" value="csv" checked>
+			<label for="save_csv">csv</label>
+			<input type="radio" id="save_json" name="save_type" value="json">
+			<label for="save_json">json</label>
+			<br>	
+			<!-- <button id='load_file'>Load Players</button> -->
+			
+			<div id='cnt_players'></div>
+			<button onClick="resetPlayers()">Clear Players</button>
+		</div>
+		
 		<!-- nav bar at the top -->
 		<div id='nav_bar' style='display:none;'>
 			<button onClick="auto()">Auto</button>
@@ -41,20 +60,6 @@
 			<span style='margin-left:10px; width:130; display: inline-block;' id='ded_cnt'></span>
 			<button onClick="hidePlayers()">Hide Players</button>
 			<!-- <button onClick="showTerrain()">Terrain</button> -->
-		</div>
-		
-		<!-- player prep screen, only present at start -->
-		<div id='player_prep' style='padding-top: 30px; padding-bottom: -30px; overflow-y:scroll; height:calc(100% - 50px);'>
-			<input id='txt_spreadTerrain' value=3 style='width:40px'></input> Water & Mountain Spread<br>
-			<button onClick="generateTerrain()">Generate Terrain</button>
-			<button onClick="startGame()">Start Game</button><br>
-			
-			<b>Load Players</b><input text="Load Players" type="file" id="load_file"><br>
-			<b>Save Players</b><input id='save_file' style='width:100px'></input><button onClick="savePlayers()" >Save Players</button><br>
-			
-			<!-- <button id='load_file'>Load Players</button> -->
-			<div id='cnt_players'></div>
-			<button onClick="resetPlayers()">Clear Players</button>
 		</div>
 		
 		<div id='char_lst' style='display:none; margin-top: 30px;'>
@@ -108,6 +113,10 @@ html,body{
 	height:100%;
 	color:white;
 	overflow-y: hidden; 
+}
+/*character prep*/
+.cnt_player .disable select, .cnt_player .disable input,{
+	
 }
 
 /*nav bar at top of sidebar*/

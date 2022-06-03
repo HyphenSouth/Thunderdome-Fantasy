@@ -263,15 +263,13 @@ class Charm extends StatusEffect{
 		this.target=new_eff.target;
 		this.follow_message=new_eff.follow_message;
 	}
-	stack_effect(eff){
+	stack_effect(new_eff){
 		//replace charm with stronger charm
-		if(eff.level>=this.level){
-			//if(Math.random() < 0.05+(eff.level - this.level)*0.1){
-				this.replace_eff(eff)
-				this.aggro=eff.aggro;
-				this.follow_message = eff.follow_message;
+		if(new_eff.level>=this.level){
+			if(Math.random() < 0.05+(new_eff.level - this.level)*0.1){
+				this.replace_eff(new_eff);
 				log_message("replaced charm");
-			//}
+			}
 		}
 		else{
 			log_message("cannot override charm")
@@ -284,14 +282,14 @@ class Charm extends StatusEffect{
 			case "planAction":
 				log_message(this.player.name + " charm planning");
 				//force player to attack target
-				if(this.aggro && this.player.inRangeOfPlayer(this.target)){
+				if(this.aggro && this.player.inRangeOfPlayer(this.target) && this.level * 10 >roll_range(0,105)){
 					if(this.player.setPlannedAction("fight", 11)){
 						log_message(this.player.name +" forced to fight " + this.target.name)
 						this.player.plannedTarget = this.target;
 					}
 				}
 				//force player to follow target
-				else if(this.player.awareOfPlayer(this.target)){
+				else if(this.player.awareOfPlayer(this.target) && this.level * 9 >roll_range(0,100)){
 					if(this.player.setPlannedAction("follow", 11)){
 						log_message(this.player.name +" forced to follow " + this.target.name)
 						this.player.plannedTarget = this.target;
@@ -303,17 +301,19 @@ class Charm extends StatusEffect{
 				//set custom follow message
 				if(oP==this.target && this.follow_message != ""){
 					this.player.statusMessage = this.follow_message;
-				}				
+				}
+			/*
 			case "aggroCheck":
 				oP=data['opponent'];
 				log_message("charm aggro check");
 				//if target is in range, force aggro onto them
 				if(this.aggro && oP==this.target){
 					log_message(this.player.name +" found target")
-					this.player.aggroB +=200;
-					this.player.peaceB -= 200
+					this.player.aggroB += this.level*10;
+					this.player.peaceB -= this.level*10
 				}
 				break;
+			*/
 			default:
 				super.effect(state, data);
 				break;

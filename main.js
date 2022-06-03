@@ -37,46 +37,28 @@ var dangerActive=false
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var event_length = 130	//max amount of events displayed
 
-var player_line = 
-	"<div class='cnt_player'>"+
-		//name input
-		"<input class='name' value=''>"+
-		//img input
-		"<input class='img' value=''>"+
-		//attribute input
-		"<input class='attr' value=''>"+
-		//moral select
-		"<select class='moral'>"+
-			"<option value='Random'>R</option>"+
-			"<option value='Lawful'>L</option>"+
-			"<option value='Neutral'>N</option>"+
-			"<option value='Chaotic'>C</option>"+
-		"</select>"+
-		//personality select
-		"<select class='personality'>"+
-			"<option value='Random'>R</option>"+
-			"<option value='Good'>G</option>"+
-			"<option value='Neutral'>N</option>"+
-			"<option value='Evil'>E</option>"+
-		"</select>"+
-	"</div>"
-
 $( document ).ready(function(){
+	//load files
 	document.getElementById('load_file').addEventListener('change', function() {
 		var fr=new FileReader();
-		fr.onload=function(){
+		fr.onload=function(readerEvt){
 			// resetPlayers();
-			log_message("loading data")
 			$('#cnt_players').html("");
-			loadPlayersTxt(fr.result);
+			if(fileType=="text/csv"){
+				log_message("loading data")
+				loadPlayersTxt(fr.result);
+			}
+			else if(fileType=="application/json"){
+				log_message("loading data")
+				loadPlayersJson(JSON.parse(fr.result));
+			}
+			$('#cnt_players').append(createPlayerLine());
 		}
 		fr.readAsText(this.files[0]);
+		let fileType = this.files[0].type
+		
 	})
 	Init();
-	//draw each player
-	players.forEach(function(chara,index){
-		chara.draw();
-	});
 });
 
 //initialize the start screen
@@ -99,43 +81,18 @@ function Init(){
 	// $('#danger').css('visibility', 'visible');
 	$('#danger').height($('#map').height()-10)
 	$('#danger').width($('#map').width()-10)
-	/*
-	//put player icons into the player div to generate player table on start screen
-	charlist.forEach(function(i,index){
-		$('#cnt_players').append(
-			"<div class='cnt_player'>"+
-				//name input
-				"<input class='name' value='" + i[0] + "'>"+
-				//img input
-				"<input class='img' value='" + i[1] + "'>"+
-				//attribute input
-				"<input class='attr'>"+
-				//moral select
-				"<select class='moral'>"+
-					"<option value='Random'>R</option>"+
-					"<option value='Lawful'>L</option>"+
-					"<option value='Neutral'>N</option>"+
-					"<option value='Chaotic'>C</option>"+
-				"</select>"+
-				//personality select
-				"<select class='personality'>"+
-					"<option value='Random'>R</option>"+
-					"<option value='Good'>G</option>"+
-					"<option value='Neutral'>N</option>"+
-					"<option value='Evil'>E</option>"+
-				"</select>"+
-			"</div>");
-	});
-	*/
+
 	$('#cnt_players').html("");
-	loadPlayersTxt(chartext);
+	// loadPlayersTxt(chartext);
+	loadPlayersJson(charlist);
+
 	//add empty row at the end
-	// $('#cnt_players').append(player_line);
+	$('#cnt_players').append(createPlayerLine());
 	initDone = true;
 	//if a player as added on the last row, add new empty row below it
 	$('#cnt_players').on('change','.name',function(){
 		if($('#cnt_players .name').last().val()){
-			$('#cnt_players').append(player_line);
+			$('#cnt_players').append(createPlayerLine());
 		}
 	});
 }
@@ -146,79 +103,112 @@ function resetPlayers(){
 	$('#cnt_players').html(player_line);
 }
 
-//load players
+//load players from csv
 function loadPlayersTxt(player_txt){
 	player_txt=player_txt.replace(/\r\n/g,"\n")
 	let player_lst = player_txt.split("\n");
-	$('#cnt_players').html("");
-	player_lst.forEach(function(player_data){
+	player_lst.forEach(function(player_data, index){
 		let player_data_lst = player_data.split(",");
 		if(player_data_lst[0]){
-			//attribute input
-			let attr_lst = player_data_lst[2].split(";");
+			let img_txt=""
+			if(player_data_lst.length>=2){
+				img_txt = player_data_lst[1] 
+			}
+			
 			let attr_txt = ""
-			attr_lst.forEach(function(attr){
+			if(player_data_lst.length>=3){
+				//process attributes
+				let attr_lst = player_data_lst[2].split(";");
+				attr_lst.forEach(function(attr){
+					if(attr!=""){
+						attr_txt = attr_txt+attr+','
+					}
+				});	
+				//remove last comma
+				attr_txt = attr_txt.substring(0, attr_txt.length-1)		//remove last comma
+			}
+			
+			let morals = {"R":"Random","L":"Lawful","N":"Neutral","C":"Chaotic"}
+			let moral_txt = "R"
+			if(player_data_lst.length>=4 && (player_data_lst[3] in morals)){
+				moral_txt = player_data_lst[3]
+			}
+			
+			let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
+			let personalities_txt = "R"
+			if(player_data_lst.length>=5 && (player_data_lst[4] in personalities)){
+				personalities_txt = player_data_lst[4]
+			}
+
+			//add into the table
+			$('#cnt_players').append(createPlayerLine(player_data_lst[0], img_txt, attr_txt, moral_txt, personalities_txt));
+		}
+	});
+}
+
+//load players from json
+function loadPlayersJson(players_obj){
+	players_obj.forEach(function(player_data, index){	
+		let attr_txt = ""
+		if(player_data.attr){
+			player_data.attr.forEach(function(attr){
 				if(attr!=""){
 					attr_txt = attr_txt+attr+','
 				}
 			});	
-			attr_txt = attr_txt.substring(0, attr_txt.length-1)		//remove last ,
-			let morals = {
-				"R":"Random",
-				"L":"Lawful",
-				"N":"Neutral",
-				"C":"Chaotic"
-			}
-			if(!(player_data_lst[3] in morals)){
-				player_data_lst[3]="R"
-			}
-			let personalities = {
-				"R":"Random",
-				"G":"Good",
-				"N":"Neutral",
-				"E":"Evil",
-			}
-			if(!(player_data_lst[4] in personalities)){
-				player_data_lst[4]="R"
-			}
-			//add into the table
-			$('#cnt_players').append(
-				"<div class='cnt_player'>"+
-					//name input
-					"<input class='name' value='" + player_data_lst[0] + "'>"+
-					//img input
-					"<input class='img' value='" + player_data_lst[1] + "'>"+
-					//attribute input
-					"<input class='attr'value='" + attr_txt + "'>"+
-					//moral select
-					"<select class='moral'>"+
-						"<option value='"+morals[player_data_lst[3]] +"' selected hidden>"+player_data_lst[3] +"</option>"+
-						"<option value='Random'>R</option>"+
-						"<option value='Lawful'>L</option>"+
-						"<option value='Neutral'>N</option>"+
-						"<option value='Chaotic'>C</option>"+
-					"</select>"+
-					//personality select
-					"<select class='personality'>"+
-						"<option value='"+personalities[player_data_lst[4]] +"' selected hidden>"+player_data_lst[4] +"</option>"+
-						"<option value='Random'>R</option>"+
-						"<option value='Good'>G</option>"+
-						"<option value='Neutral'>N</option>"+
-						"<option value='Evil'>E</option>"+
-					"</select>"+
-				"</div>");		
+			//remove last comma
+			attr_txt = attr_txt.substring(0, attr_txt.length-1)
 		}
+		let morals = {"R":"Random","L":"Lawful","N":"Neutral","C":"Chaotic"}
+		let moral_txt = "R"
+		if(player_data.moral && (player_data.moral in morals)){
+			moral_txt = player_data.moral
+		}
+		
+		let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
+		let personalities_txt = "R"
+		if(player_data.personality && (player_data.personality in personalities)){
+			personalities_txt = player_data.personality
+		}
+
+		$('#cnt_players').append(createPlayerLine(player_data.name, player_data.img, attr_txt, moral_txt, personalities_txt));
+
 	});
-	$('#cnt_players').append(player_line);
-	// var file = e.target.files[0];
+
+}
+
+function createPlayerLine(name='', img='', attr='', moral='R', personality='R'){
+	let player_line = `<div class='cnt_player'>
+		<input class='name' value='${name}'><input class='img' value='${img}'><input class='attr' value='${attr}'><select class='moral'>
+			<option value='${moral}' selected hidden>${moral}</option>
+			<option value='Random'>R</option>
+			<option value='Lawful'>L</option>
+			<option value='Neutral'>N</option>
+			<option value='Chaotic'>C</option>
+		</select><select class='personality'>
+			<option value='${personality}' selected hidden>${personality}</option>
+			<option value='Random'>R</option>
+			<option value='Good'>G</option>
+			<option value='Neutral'>N</option>
+			<option value='Evil'>E</option>
+		</select>
+		</div>`
+	return player_line
 }
 
 //save players
 function savePlayers(){
-	log_message("saving")
-	let target_file = ""
-	target_file = $('#save_file').val();
-	
+	if($('input[name="save_type"]:checked').val()=='csv'){
+		log_message("saving as csv")
+		savePlayersTxt();
+	}
+	else{
+		log_message("saving as json")
+		savePlayersJson();
+	}
+}
+
+function savePlayersTxt(){
 	// csv
 	let data = ""
 	$('#cnt_players .cnt_player').each(function(){
@@ -228,7 +218,7 @@ function savePlayers(){
 			data = data+$(this).find('.name').val()+",";
 			data = data+$(this).find('.img').val()+",";
 
-			let attr = $(this).find('.attr').val().replace(/ /g, "");
+			let attr = $(this).find('.attr').val().replace(/ /g, "_");
 			let attr_lst = []
 			attr_lst = [...new Set(attr.split(","))];
 			let attr_txt = ""
@@ -242,34 +232,49 @@ function savePlayers(){
 			data=data+"\n"
 		}
 	});
-	/*
-		// json
-		let char_list_data = [];
-		$('#cnt_players .cnt_player').each(function(){
+	let target_file = ""
+	target_file = $('#save_file').val();
+	// log_message(save_txt)
+	if(target_file!="" && data!=""){	
+		let blob = new Blob([data],{type: "text/plain;charset=utf-8"});
+		let a = document.createElement('a');
+		a.download = target_file+".csv";
+		a.href = window.URL.createObjectURL(blob);
+		a.click();
+	}
+}
+
+function savePlayersJson(){
+	// csv
+	let char_list_data = [];
+	$('#cnt_players .cnt_player').each(function(){
 		//if there is a name in this column
 		if($(this).find('.name').val()){
 			// let char_name =  $(this).find('.name').val();
 			let char_obj = {}
 			char_obj.name = $(this).find('.name').val();
 			char_obj.img = $(this).find('.img').val();
-			let attr = $(this).find('.attr').val().replace(/ /g, "");
-			let attr_lst = []
-			attr_lst = [...new Set(attr.split(","))];
-			char_obj.attr = attr_lst;
-			char_obj.moral = $(this).find('.moral').val()[0];
-			char_obj.personality = $(this).find('.personality').val()[0];
+			let attr = $(this).find('.attr').val().replace(/ /g, "_");
+			let attr_lst = [...new Set(attr.split(","))];
+			if(attr_lst.length>0 && !(attr_lst.length==1 && attr_lst[0]=="")){
+				char_obj.attr = attr_lst;
+			}
+			if($(this).find('.moral').val()[0]!='R'){
+				char_obj.moral = $(this).find('.moral').val()[0];
+			}
+			if($(this).find('.personality').val()[0]!='R'){
+				char_obj.personality = $(this).find('.personality').val()[0];
+			}				
 			char_list_data.push(char_obj);
-			// char_list_data[char_name] = char_obj;
 		}
 	});
-	let data = JSON.stringify(char_list_data);
-	*/
-
-	// log_message(save_txt)
-	if(target_file!="" && data!=""){	
-		let blob = new Blob([data],{type: "text/plain;charset=utf-8"});
+	
+	let target_file = ""
+	target_file = $('#save_file').val();
+	if(target_file!="" && char_list_data!=""){	
+		let blob = new Blob([JSON.stringify(char_list_data)],{type: "text/plain;charset=utf-8"});
 		let a = document.createElement('a');
-		a.download = target_file+".csv";
+		a.download = target_file+".json";
 		a.href = window.URL.createObjectURL(blob);
 		a.click();
 	}
@@ -311,7 +316,7 @@ function startGame(){
 		//create player object
 		if(charlist[i]){
 			//attributes
-			let attr_txt = charlist[i][2].replace(/ /g, "");
+			let attr_txt = charlist[i][2].replace(/ /g, "_");
 			let attr_lst = []
 			attr_lst = [...new Set(attr_txt.split(","))];
 			let filtered_attr = []
@@ -374,7 +379,6 @@ document.addEventListener('keydown', (e) => {
 		}
 	}
 });
-
 
 
 //progress turn for each player

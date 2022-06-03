@@ -645,19 +645,21 @@ class Nanasatsu extends Weapon {
 			//seen by player
 			case "opAware":
 				oP=data['opponent'];
-				// if (Math.random() > 0.3){
+				if (Math.random() > 0.3){
 					let temp_charm = new Charm(this.wielder);
-					temp_charm.level=2;
+					temp_charm.level=10;
 					temp_charm.aggro=true;
 					temp_charm.follow_message = "following SEX SWORD"
 					oP.inflict_status_effect(temp_charm);
-				// }
+				}
 				break;
 			//followed by another player
+			/*
 			case "followTarget":
 				oP=data['opponent'];
 				oP.statusMessage = "following SEX SWORD";
 				break;
+			*/
 			default:
 				super.effect(state, data);
 				break;
