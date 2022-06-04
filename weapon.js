@@ -84,9 +84,9 @@ var weapon_data = {
 		"icon" : "./icons/ancient_staff.png",
 		"icon_type" : "img",
 		"dmg_type" : "magic",
-		"rangeBonus" : 20,
+		"rangeBonus" : 24,
 		"fightBonus" : 1.2,
-		"uses" : 80		
+		"uses" : 60		
 	},
 }
 var wep_prob = 3;
@@ -95,7 +95,7 @@ var spicy = true;
 var defaultWeaponOdds = [
 	["knife",30],["gun",20],["lance",25],["bow",20],
 	["katana", 35], ["shotgun", 35], ["sniper",20],
-	["clang",5], ["flamethrower",20], 
+	["clang",5], ["flamethrower",20], ["ancient", 5000],
 	["Nothing",500]];
 
 function get_weapon_odds(tP){
@@ -160,6 +160,9 @@ function create_weapon(weapon_name){
 			break;		
 		case "flamethrower":
 			return new Flamethrower();
+			break;	
+		case "ancient":
+			return new Ancient();
 			break;
 		default:
 			if(weapon_name in weapon_data){
@@ -861,6 +864,110 @@ class Flamethrower extends Weapon{
 			"<span>Sets opponents on fire</span><br>"+	
 			"<span>Sets nearby players on fire</span><br>"+
 			"<span>Sets ground on fire</span>"+
+		"</span>"
+		return html;
+	}
+}
+class Ancient extends Weapon{
+	constructor() {
+		super("ancient");
+		this.display_name = 'Ancient Staff'
+		this.last_spell = ['','']
+		this.cost_data = {
+			'smoke':5,
+			'shadow':8,
+			'blood':12,
+			'ice':15,			
+		}
+		this.aoe_cost = 1.5
+		this.aoe_radius = 24
+	}	
+	use(){
+		if(this.uses<5){
+			this.uses=0;
+		}
+	}
+	effect(state, data={}){
+		let oP = ''
+		switch(state){
+			case "attack":
+				this.last_spell = ['','']
+				// super.effect("attack", data);
+				oP = data['opponent']
+				let spell = ['','']
+				let cost = 0; 
+				//insufficient runes
+				if(this.uses < this.cost_data['smoke']){
+					this.wielder.fightDmgB=0;
+					this.wielder.statusMessage = "does not have enough runes to attack " +oP.name;
+					return
+				}
+				
+				//choose spell type
+				let spell_lst = [['smoke',1]]
+				if(this.uses >= this.cost_data['ice']){
+					spell_lst = [['smoke',10], ['shadow',5],['blood',15+ 40*(1-(this.wielder.health/this.wielder.maxHealth))],['ice',20]]
+				}
+				else if(this.uses >= this.cost_data['blood']){
+					spell_lst = [['smoke',10], ['shadow',10],['blood',20+ 40*(1-(this.wielder.health/this.wielder.maxHealth))]]
+				}
+				else if(this.uses >= this.cost_data['shadow']){
+					spell_lst = [['smoke',10], ['shadow',20]]
+				}
+				spell[0] = roll(spell_lst)
+				spell[1] = 'blitz'
+				cost = this.cost_data[spell[0]]
+								
+				//aoe
+				if(this.uses>= Math.round(cost*this.aoe_cost) ){
+					let nearby_lst = oP.nearbyPlayers(this.aoe_radius)
+					if(nearby_lst.length>0 && 40 + nearby_lst.length * 5 > roll_range(0,100)){
+						spell[1] = 'barrage'
+						cost = Math.round(cost*this.aoe_cost) 
+					}					
+				}
+				log_message(spell)				
+				this.wielder.statusMessage = "casts " + spell[0] +' '+ spell[1] + " on " +oP.name;
+				this.last_spell = spell
+				this.uses = this.uses-cost
+				this.use();
+				break;
+			case "dealDmg":
+				oP=data['opponent'];
+				let dmg=data['damage'];			
+				if(this.last_spell[0]=='blood'){
+					//heal on hit
+					log_message(this.wielder.name + " BLOOD attack")
+					// log_message(this.wielder.health + " before");
+					log_message(dmg);
+					this.wielder.health += Math.pow(dmg,0.66);
+					// log_message(this.wielder.health + " after");
+				}
+		
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	show_info(){
+		let item_info = 
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"+
+			"<span><b>Runes:</b>"+this.uses+"</span><br>"+
+			this.item_html()+
+		"</div>"
+		
+				
+		$('#extra_info_container').html(item_info);
+	}
+
+	item_html(){
+		let html = super.item_html()+
+		"<span class='desc'>"+
+			"<span>Casts one of four spells</span><br>"+	
 		"</span>"
 		return html;
 	}

@@ -6,9 +6,24 @@ function create_attr(attr_name, player){
 		case "cunny":
 			return new Cunny(player);
 			break;		
-		case "cunny":
+		case "joshiraku":
 			return new Joshiraku(player);
 			break;		
+		case "bong":
+			return new Bong(player)
+			break;
+		case "melee":
+			return new Melee(player)
+			break;
+		case "ranger":
+			return new Ranger(player)
+			break;
+		case "magic":
+			return new Magic(player)
+			break;
+		case "bigguy":
+			return new BigGuy(player)
+			break;
 		default:
 			return new Attr(attr_name, player)
 			break;
@@ -61,10 +76,10 @@ class Joshiraku extends Attr{
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
-				let img = this.imgs[roll_range(0,this.imgs.length)]
+				let img = this.imgs[roll_range(0,this.imgs.length-1)]
 				this.player.img = img;
-				this.player.div.find('.charText').text(name)
-				this.player.tblDiv.find('.info div:first-child b').text(name)
+				this.player.div.css('background-image', 'url("'+img+'")');
+				playerStatic[0].tblDiv.find('img').attr("src", img)
 				break;
 		}
 	}
@@ -98,7 +113,88 @@ class Cunny extends Attr{
 	}
 }
 
+class Bong extends Attr{
+	constructor(player){
+		super("bong", player);
+	}
+	
+	tea(){
+		this.player.energy += this.player.maxEnergy*0.5;
+		this.player.health += this.player.maxHealth*0.3;
+		this.player.lastAction = "tea";
+		this.player.statusMessage = "Stops to drink tea";
+		this.player.resetPlannedAction();
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "planAction":
+				if(hour == 15){
+					this.player.setPlannedAction("tea", 5);
+				}
+				break;
+			case "tea":
+				this.tea();
+				break;
+		}
+	}
+}
 
+class Melee extends Attr{
+	constructor(player){
+		super("melee", player);
+	}
+	calc_bonuses(){
+		if(!this.player.weapon){
+			this.player.fightDmgB *= 1.05
+		}
+		else{
+			if(this.player.weapon.dmg_type=='melee'){
+				this.player.fightDmgB *= 1.1
+			}
+		}
+	}
+}
+class Ranger extends Attr{
+	constructor(player){
+		super("ranger", player);
+	}
+	
+	calc_bonuses(){
+		if(this.player.weapon && this.player.weapon.dmg_type=='ranged'){
+			this.player.fightDmgB *= 1.1;
+			this.player.fightRangeB += 10;
+		}
+		this.player.sightRangeB += 10;
+	}
+}
+class Magic extends Attr{
+	constructor(player){
+		super("magic", player);
+	}
+	
+	calc_bonuses(){
+		if(this.player.weapon && this.player.weapon.dmg_type=='magic'){
+			this.player.fightDmgB *= 1.2;
+			this.player.fightRangeB += 10;
+		}
+	}
+}
+
+class BigGuy extends Attr{
+	constructor(player){
+		super("bigguy", player);
+	}
+	
+	calc_bonuses(){
+		if(!this.player.weapon){
+			this.player.fightDmgB *= 1.1
+		}
+		this.player.dmgReductionB*=0.9
+		this.player.moveSpeedB *= 0.75
+		this.player.visibilityB += 30
+	}
+}
 
 
 

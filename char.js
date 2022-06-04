@@ -338,9 +338,13 @@ class Char {
 		if(this.moral == 'Chaotic'){
 			this.aggroB = 100;
 		}
-
+		
+		this.attributes.forEach(function(attr){
+			attr.calc_bonuses();
+		});
+	
 		//apply bonuses from statuses
-		this.status_effects.forEach(function(eff,index){
+		this.status_effects.forEach(function(eff){
 			eff.calc_bonuses();
 		});
 		

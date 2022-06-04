@@ -129,15 +129,15 @@ function loadPlayersTxt(player_txt){
 			}
 			
 			let morals = {"R":"Random","L":"Lawful","N":"Neutral","C":"Chaotic"}
-			let moral_txt = "R"
+			let moral_txt = "Random"
 			if(player_data_lst.length>=4 && (player_data_lst[3] in morals)){
-				moral_txt = player_data_lst[3]
+				moral_txt = morals[player_data_lst[3]]
 			}
 			
 			let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
-			let personalities_txt = "R"
+			let personalities_txt = "Random"
 			if(player_data_lst.length>=5 && (player_data_lst[4] in personalities)){
-				personalities_txt = player_data_lst[4]
+				personalities_txt = personalities[player_data_lst[4]]
 			}
 
 			//add into the table
@@ -160,15 +160,15 @@ function loadPlayersJson(players_obj){
 			attr_txt = attr_txt.substring(0, attr_txt.length-1)
 		}
 		let morals = {"R":"Random","L":"Lawful","N":"Neutral","C":"Chaotic"}
-		let moral_txt = "R"
+		let moral_txt = "Random"
 		if(player_data.moral && (player_data.moral in morals)){
-			moral_txt = player_data.moral
+			moral_txt = morals[player_data.moral]
 		}
 		
 		let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
-		let personalities_txt = "R"
+		let personalities_txt = "Random"
 		if(player_data.personality && (player_data.personality in personalities)){
-			personalities_txt = player_data.personality
+			personalities_txt = personalities[player_data.personality]
 		}
 
 		$('#cnt_players').append(createPlayerLine(player_data.name, player_data.img, attr_txt, moral_txt, personalities_txt));
@@ -177,16 +177,16 @@ function loadPlayersJson(players_obj){
 
 }
 
-function createPlayerLine(name='', img='', attr='', moral='R', personality='R'){
+function createPlayerLine(name='', img='', attr='', moral='Random', personality='Random'){
 	let player_line = `<div class='cnt_player'>
 		<input class='name' value='${name}'><input class='img' value='${img}'><input class='attr' value='${attr}'><select class='moral'>
-			<option value='${moral}' selected hidden>${moral}</option>
+			<option value='${moral}' selected hidden>${moral[0]}</option>
 			<option value='Random'>R</option>
 			<option value='Lawful'>L</option>
 			<option value='Neutral'>N</option>
 			<option value='Chaotic'>C</option>
 		</select><select class='personality'>
-			<option value='${personality}' selected hidden>${personality}</option>
+			<option value='${personality}' selected hidden>${personality[0]}</option>
 			<option value='Random'>R</option>
 			<option value='Good'>G</option>
 			<option value='Neutral'>N</option>

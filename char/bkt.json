@@ -1,1 +1,211 @@
-[{"name":"_North","img":"https://witcheffect.com/sprites/pixels/Madotsuki%20v3%20Witch.gif","attr":["bigguy","leaf"],"moral":true,"personality":"N"},{"name":"otheranonymous","img":"https://files.catbox.moe/07kept.png"},{"name":"urushisenpai","img":"https://files.catbox.moe/hm2ohk.png"},{"name":"literallyme","img":"https://files.catbox.moe/ju7lde.png"},{"name":"Whaboutthat","img":"https://files.catbox.moe/864w5x.png"},{"name":"KingofZ","img":"https://files.catbox.moe/7fsxep.png"},{"name":"TheKestrel","img":"https://witcheffect.com/sprites/pixels/Yuno%20v3.png"},{"name":"shaseishaman","img":"https://files.catbox.moe/2qajhf.png"},{"name":"Dreadzone","img":"https://files.catbox.moe/xpg13k.png"},{"name":"Siegutora","img":"https://witcheffect.com/sprites/pixels/Taiga%20Aisaka%20v3.png"},{"name":"RedmanAnon","img":"https://cdn.discordapp.com/attachments/754183667856703549/754186844085813329/redman-redux.png"},{"name":"pengin","img":"https://files.catbox.moe/xunr92.png"},{"name":"SeaSlug","img":"https://witcheffect.com/sprites/pixels/Hatsune%20Miku%20v3.png"},{"name":"wydferr","img":"https://witcheffect.com/sprites/pixels/Ritsu%20Tainaka%20v3.gif"},{"name":"gomennasai","img":"https://files.catbox.moe/9v9bnw.png"},{"name":"season3","img":"https://files.catbox.moe/ho67l6.png"},{"name":"orange22","img":"https://witcheffect.com/sprites/pixels/Ami%20Kawashima%20v3.png"},{"name":"PlasticDonut","img":"https://files.catbox.moe/h1almd.png"},{"name":"asada_san","img":"https://media.discordapp.net/attachments/214033499814887425/760334351367405629/x3a5ri.png"},{"name":"Asd","img":"https://witcheffect.com/sprites/pixels/Kurisu%20v3.png"},{"name":"Haly","img":"https://cdn.discordapp.com/attachments/659272810551574549/816924957313335326/haly-v3-fucking-kill-me.png"},{"name":"Nojiko","img":"https://files.catbox.moe/x4xdn2.png"},{"name":"shimarin","img":"https://files.catbox.moe/mdop6d.png"},{"name":"Colin_Mochrie","img":"https://witcheffect.com/sprites/pixels/Chen%20v2.png"},{"name":"Nioro","img":"https://witcheffect.com/sprites/pixels/Vivi%20v3.png"},{"name":"Jannus","img":"https://witcheffect.com/sprites/pixels/Beatrice%20v3.png"},{"name":"fourfives","img":"https://witcheffect.com/sprites/pixels/Hedwig%20v3.png"},{"name":"beldorf","img":"https://z.zz.ht/gv8P0.png"},{"name":"markofromtropoja","img":"https://witcheffect.com/sprites/pixels/Kaiki%20Deishu%20v2.png"},{"name":"jol66","img":"https://cdn.discordapp.com/attachments/781382439359873044/834222967117971526/aya_syameimaru.png"},{"name":"Okonogi","img":"https://witcheffect.com/sprites/pixels/Keropoyo%20v3.png"},{"name":"moebro38","img":"https://cdn.discordapp.com/attachments/781382439359873044/836411581498916874/moebro_v1.png"},{"name":"Jashin-chan-san","img":"https://witcheffect.com/sprites/pixels/Jashin-chan%20v3.png"},{"name":"ThePaizuriKid","img":"https://witcheffect.com/sprites/pixels/Perrine%20v3.png"},{"name":"speedy","img":"https://witcheffect.com/sprites/pixels/Yukikaze%20v3.png"},{"name":"Nakadashi-Kun","img":"https://witcheffect.com/sprites/pixels/Minnie%20May%20v3.png"},{"name":"RealSteveHumanBeing","img":"https://witcheffect.com/sprites/pixels/Nyaruko%20v3.png"},{"name":"Gasp","img":"https://witcheffect.com/sprites/pixels/Fubuki%20v3.png"},{"name":"rorikani","img":"https://witcheffect.com/sprites/pixels/Bernkastel%20v3.png"},{"name":"Cremia","img":"https://witcheffect.com/sprites/pixels/Nu-13%20v3.png"},{"name":"MicrocomputerMaster","img":"https://witcheffect.com/sprites/pixels/Daru%20v3.png"},{"name":"spanon","img":"https://cdn.discordapp.com/attachments/942639553120972820/960370092590399578/Arumi.png"},{"name":"MaiNigguDesu","img":"https://witcheffect.com/sprites/pixels/Shiro%20v3.png"},{"name":"Nani_","img":"https://witcheffect.com/sprites/pixels/Karen%20Kujou%20v2.png"},{"name":"carlitogo","img":"https://cdn.discordapp.com/attachments/942639553120972820/948378619112218665/Reimu_carlito_v1.png"},{"name":"64","img":"https://witcheffect.com/sprites/pixels/Erica%20v3.png"},{"name":"Selmon","img":"https://witcheffect.com/sprites/pixels/Chidori%20v3.png"},{"name":"steelio","img":"https://witcheffect.com/sprites/pixels/Miss%20Steak%20v1.png"},{"name":"fewgee","img":"https://witcheffect.com/sprites/pixels/Miss%20Steak%20v1.png"},{"name":"sarlacc","img":"https://witcheffect.com/sprites/pixels/Louise%20v3.png"}]
+[
+	{
+		"name": "_North",
+		"img": "https://witcheffect.com/sprites/pixels/Madotsuki%20v3%20Witch.gif",
+		"attr": [
+			"bigguy",
+			"leaf"
+		],
+		"moral": "N",
+		"personality": "N"
+	},
+	{
+		"name": "otheranonymous",
+		"img": "https://files.catbox.moe/07kept.png"
+	},
+	{
+		"name": "urushisenpai",
+		"img": "https://files.catbox.moe/hm2ohk.png"
+	},
+	{
+		"name": "literallyme",
+		"img": "https://files.catbox.moe/ju7lde.png"
+	},
+	{
+		"name": "Whaboutthat",
+		"img": "https://files.catbox.moe/864w5x.png"
+	},
+	{
+		"name": "KingofZ",
+		"img": "https://files.catbox.moe/7fsxep.png"
+	},
+	{
+		"name": "TheKestrel",
+		"img": "https://witcheffect.com/sprites/pixels/Yuno%20v3.png"
+	},
+	{
+		"name": "shaseishaman",
+		"img": "https://files.catbox.moe/2qajhf.png"
+	},
+	{
+		"name": "Dreadzone",
+		"img": "https://files.catbox.moe/xpg13k.png"
+	},
+	{
+		"name": "Siegutora",
+		"img": "https://witcheffect.com/sprites/pixels/Taiga%20Aisaka%20v3.png"
+	},
+	{
+		"name": "RedmanAnon",
+		"img": "https://cdn.discordapp.com/attachments/754183667856703549/754186844085813329/redman-redux.png"
+	},
+	{
+		"name": "pengin",
+		"img": "https://files.catbox.moe/xunr92.png"
+	},
+	{
+		"name": "SeaSlug",
+		"img": "https://witcheffect.com/sprites/pixels/Hatsune%20Miku%20v3.png"
+	},
+	{
+		"name": "wydferr",
+		"img": "https://witcheffect.com/sprites/pixels/Ritsu%20Tainaka%20v3.gif"
+	},
+	{
+		"name": "gomennasai",
+		"img": "https://files.catbox.moe/9v9bnw.png"
+	},
+	{
+		"name": "season3",
+		"img": "https://files.catbox.moe/ho67l6.png",
+		"attr": [
+			"bong"
+		]
+	},
+	{
+		"name": "orange22",
+		"img": "https://witcheffect.com/sprites/pixels/Ami%20Kawashima%20v3.png"
+	},
+	{
+		"name": "PlasticDonut",
+		"img": "https://files.catbox.moe/h1almd.png"
+	},
+	{
+		"name": "asada_san",
+		"img": "https://media.discordapp.net/attachments/214033499814887425/760334351367405629/x3a5ri.png"
+	},
+	{
+		"name": "Asd",
+		"img": "https://witcheffect.com/sprites/pixels/Kurisu%20v3.png"
+	},
+	{
+		"name": "Haly",
+		"img": "https://cdn.discordapp.com/attachments/659272810551574549/816924957313335326/haly-v3-fucking-kill-me.png"
+	},
+	{
+		"name": "Nojiko",
+		"img": "https://files.catbox.moe/x4xdn2.png"
+	},
+	{
+		"name": "shimarin",
+		"img": "https://files.catbox.moe/mdop6d.png"
+	},
+	{
+		"name": "Colin_Mochrie",
+		"img": "https://witcheffect.com/sprites/pixels/Chen%20v2.png"
+	},
+	{
+		"name": "Nioro",
+		"img": "https://witcheffect.com/sprites/pixels/Vivi%20v3.png"
+	},
+	{
+		"name": "Jannus",
+		"img": "https://witcheffect.com/sprites/pixels/Beatrice%20v3.png"
+	},
+	{
+		"name": "fourfives",
+		"img": "https://witcheffect.com/sprites/pixels/Hedwig%20v3.png"
+	},
+	{
+		"name": "beldorf",
+		"img": "https://z.zz.ht/gv8P0.png"
+	},
+	{
+		"name": "markofromtropoja",
+		"img": "https://witcheffect.com/sprites/pixels/Kaiki%20Deishu%20v2.png"
+	},
+	{
+		"name": "jol66",
+		"img": "https://cdn.discordapp.com/attachments/781382439359873044/834222967117971526/aya_syameimaru.png"
+	},
+	{
+		"name": "Okonogi",
+		"img": "https://witcheffect.com/sprites/pixels/Keropoyo%20v3.png"
+	},
+	{
+		"name": "moebro38",
+		"img": "https://cdn.discordapp.com/attachments/781382439359873044/836411581498916874/moebro_v1.png"
+	},
+	{
+		"name": "Jashin-chan-san",
+		"img": "https://witcheffect.com/sprites/pixels/Jashin-chan%20v3.png"
+	},
+	{
+		"name": "ThePaizuriKid",
+		"img": "https://witcheffect.com/sprites/pixels/Perrine%20v3.png"
+	},
+	{
+		"name": "speedy",
+		"img": "https://witcheffect.com/sprites/pixels/Yukikaze%20v3.png"
+	},
+	{
+		"name": "Nakadashi-Kun",
+		"img": "https://witcheffect.com/sprites/pixels/Minnie%20May%20v3.png"
+	},
+	{
+		"name": "RealSteveHumanBeing",
+		"img": "https://witcheffect.com/sprites/pixels/Nyaruko%20v3.png"
+	},
+	{
+		"name": "Gasp",
+		"img": "https://witcheffect.com/sprites/pixels/Fubuki%20v3.png"
+	},
+	{
+		"name": "rorikani",
+		"img": "https://witcheffect.com/sprites/pixels/Bernkastel%20v3.png"
+	},
+	{
+		"name": "Cremia",
+		"img": "https://witcheffect.com/sprites/pixels/Nu-13%20v3.png"
+	},
+	{
+		"name": "MicrocomputerMaster",
+		"img": "https://witcheffect.com/sprites/pixels/Daru%20v3.png"
+	},
+	{
+		"name": "spanon",
+		"img": "https://cdn.discordapp.com/attachments/942639553120972820/960370092590399578/Arumi.png"
+	},
+	{
+		"name": "MaiNigguDesu",
+		"img": "https://witcheffect.com/sprites/pixels/Shiro%20v3.png"
+	},
+	{
+		"name": "Nani_",
+		"img": "https://witcheffect.com/sprites/pixels/Karen%20Kujou%20v2.png"
+	},
+	{
+		"name": "carlitogo",
+		"img": "https://cdn.discordapp.com/attachments/942639553120972820/948378619112218665/Reimu_carlito_v1.png"
+	},
+	{
+		"name": "64",
+		"img": "https://witcheffect.com/sprites/pixels/Erica%20v3.png"
+	},
+	{
+		"name": "Selmon",
+		"img": "https://witcheffect.com/sprites/pixels/Chidori%20v3.png"
+	},
+	{
+		"name": "steelio",
+		"img": "https://witcheffect.com/sprites/pixels/Miss%20Steak%20v1.png"
+	},
+	{
+		"name": "fewgee",
+		"img": "https://witcheffect.com/sprites/pixels/Miss%20Steak%20v1.png"
+	},
+	{
+		"name": "sarlacc",
+		"img": "https://witcheffect.com/sprites/pixels/Louise%20v3.png"
+	}
+]

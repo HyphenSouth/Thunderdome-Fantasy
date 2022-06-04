@@ -478,10 +478,10 @@ class Mirror extends Offhand{
 		let choose = false
 		
 		//check if user can choose target
-		/*
-		if(){
+		
+		if(this.wielder.has_attr('magic')){
 			choose=true;
-		}*/
+		}
 		//sword force attack if user cannot choose
 		if(this.wielder.weapon){
 			if(this.wielder.weapon.name=="nanasatsu" && !choose){

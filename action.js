@@ -125,8 +125,6 @@ function attack(attacker, defender, counter){
 	dmg = rollDmg(attacker, defender);
 
 	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type});
-	// defender.apply_all_effects("takeDmg", {"source":attacker, "damage":dmg, "dmg_type":dmg_type});
-	
 	// defender.health -= dmg;
 	defender.take_damage(dmg, attacker, dmg_type)
 	attacker.exp += dmg;

@@ -31,48 +31,48 @@ var charlist_test = [
 var charlist_gochiusa = [
 	{
 		"name": "Kafuu Chino",
-		"img": "",
+		"img": "https://cdn.myanimelist.net/images/characters/16/244251.jpg",
 		"attr": [
 			"cunny"
 		]
 	},
 	{
 		"name": "Hoto Cocoa",
-		"img": ""
+		"img": "https://cdn.myanimelist.net/images/characters/11/242945.jpg"
 	},
 	{
 		"name": "Tedeza Rize ",
-		"img": ""
+		"img": "https://cdn.myanimelist.net/images/characters/15/243377.jpg"
 	},
 	{
 		"name": "Ujimatsu Chiya ",
-		"img": ""
+		"img": "https://cdn.myanimelist.net/images/characters/7/294262.jpg"
 	},
 	{
-		"name": "Kirima Sxaro",
-		"img": ""
+		"name": "Kirima Sxarp",
+		"img": "https://cdn.myanimelist.net/images/characters/13/294263.jpg"
 	},
 	{
 		"name": "Jouga Maya",
-		"img": "",
+		"img": "https://cdn.myanimelist.net/images/characters/14/420599.jpg",
 		"attr": [
 			"cunny"
 		]
 	},
 	{
 		"name": "Nut in Megu",
-		"img": "",
+		"img": "https://cdn.myanimelist.net/images/characters/11/420598.jpg",
 		"attr": [
 			"cunny"
 		]
 	},
 	{
 		"name": "Tippy",
-		"img": ""
+		"img": "https://cdn.myanimelist.net/images/characters/5/242879.jpg"
 	},
 	{
 		"name": "Aoyama Blue Mountain",
-		"img": ""
+		"img": "https://cdn.myanimelist.net/images/characters/16/294260.jpg"
 	}
 ]
 var charlist = charlist_gochiusa;
