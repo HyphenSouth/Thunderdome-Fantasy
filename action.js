@@ -47,19 +47,33 @@ function inRangeOfCheck(tP){
 	});
 	return tempArr;
 }
-
+var baseFightChance = 50;
+var basePeaceChance = 50;
 function aggroCheck(tP, oP){
 	//check if tP wants to fight oP
-	let fightChance = 50;
-	let peaceChance = 50;
+	let fightChance = baseFightChance;
+	let peaceChance = basePeaceChance;
+	
 	if(tP.personality == oP.personality){
+		//same personality
 		peaceChance += 40;
 		fightChance -= 20;
 	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+		//opposing personality
 		fightChance += 40;
 		peaceChance -= 20;
 	}
-
+	if(tP.moral == 'Chaotic'){
+		peaceChance += oP.intimidation
+	}
+	if(tP.moral == 'Lawful'){
+		fightChance += oP.intimidation
+	}
+	if(tP.moral == 'Neutral'){
+		fightChance += Math.round(oP.intimidation/2)
+		peaceChance += Math.round(oP.intimidation/2)
+	}
+	
 	//check if tP has special aggro effects
 	tP.apply_all_effects("aggroCheck", {"opponent":oP});
 	//check if oP forces tP to aggro

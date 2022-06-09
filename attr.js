@@ -90,7 +90,8 @@ class Cunny extends Attr{
 		super("cunny", player);
 	}
 	calc_bonuses(){
-		this.moveSpeedB*=1.2;
+		this.player.moveSpeedB*=1.5;
+		this.player.intimidation -=10;
 	}
 	effect(state, data={}){
 		switch(state){
@@ -193,6 +194,7 @@ class BigGuy extends Attr{
 		this.player.dmgReductionB*=0.9
 		this.player.moveSpeedB *= 0.75
 		this.player.visibilityB += 30
+		this.player.intimidation +=15;
 	}
 }
 

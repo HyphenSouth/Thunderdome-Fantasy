@@ -1005,7 +1005,7 @@ function roll(options){
 	// log_message(options);
 	options.forEach(function(choice,index){
 		if(choice[1]>0){
-			total_weight = total_weight + choice[1]
+			total_weight = total_weight + Math.round(choice[1])
 		}
 	});
 	let roll_choice = roll_range(1,total_weight)

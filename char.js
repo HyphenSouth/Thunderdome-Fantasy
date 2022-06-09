@@ -49,6 +49,7 @@ class Char {
 		//peacefulness
 		this.aggroB = 0;
 		this.peaceB = 0;
+		this.intimidation = 0;
 
 		//how visible they are
 		this.visibility = 100;
@@ -198,8 +199,8 @@ class Char {
 		if(this.health<=0){
 			statusMsgHTML = this.death;
 		}		
-		let fightChance = 50;
-		let peaceChance = 50;
+		let fightChance = baseFightChance;
+		let peaceChance = basePeaceChance;
 		fightChance=fightChance+this.aggroB;
 		peaceChance=peaceChance+this.peaceB;
 		if(fightChance<1)
@@ -232,9 +233,9 @@ class Char {
 						"<span>Max Dmg:"+ roundDec(this.fightDmg*this.fightDmgB) +"</span><br>"+
 						"<span>Dmg Bonus: x"+ roundDec(this.fightDmgB) +"</span><br>"+
 						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
-						"<span>Peace Bonus: "+roundDec(this.peaceB)+"</span><br>"+
-						"<span>Aggro Bonus: "+roundDec(this.aggroB)+"</span><br>"+	
+						"<span>Peace/Aggro: "+Math.round(this.peaceB)+"/"+Math.round(this.aggroB)+"</span><br>"+
 						"<span>Fight Chance: "+roundDec(fightChance/(peaceChance+fightChance)*100)+"%</span><br>"+
+						"<span>Intimidation: "+(this.intimidation)+"</span><br>"+
 					"</div>"+
 					"<div style='float:right;  width: 115px; position:absolute; right:0px;'>"+
 						offhandHtml+"<br>"+
@@ -318,18 +319,21 @@ class Char {
 		
 		this.aggroB=0
 		this.peaceB=0
+		this.intimidation = 0;
 		
 		// good = less damage dealt and taken
 		// evil = more damage dealt and taken
 		if(this.personality == 'Good'){
-			this.fightDmgB = 0.8;
-			this.dmgReductionB = 0.8;
+			// this.fightDmgB = 0.8;
+			// this.dmgReductionB = 0.8;
+			this.intimidation -= 20;
 		}
 		if(this.personality == 'Evil'){
-			this.fightDmgB = 1.25;
-			this.dmgReductionB = 1.25;
+			// this.fightDmgB = 1.25;
+			// this.dmgReductionB = 1.25;
+			this.intimidation += 10;
 		}
-		
+		this.intimidation += this.kills * 5
 
 		//chaotic = more likely to be aggro
 		//lawful = more likely to be peaceful
@@ -498,7 +502,7 @@ class Char {
 			//add new effect into list
 			this.status_effects.push(status_eff);
 			status_eff.afflict(this);
-			this.apply_inv_effects("newStatus", {"eff": status_eff});
+			this.apply_all_effects("newStatus", {"eff": status_eff});
 			log_message(this.name +" is afflicted with " + status_eff.name, 1);
 		}
 	}

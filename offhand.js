@@ -327,14 +327,18 @@ class Vape extends Offhand{
 							attacker.statusMessage = "destroys "+ tD.name;
 							tD.icon = "☁️";
 							tD.active=false
-							let choke_eff = new Buff("smoked", 2, 8, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+							// let choke_eff = new Buff("vaped", 2, 8, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+							let choke_eff = new Smoke(2, 4, this.wielder)
 							choke_eff.icon = "☁️";
+							choke_eff.display_name = "Vaped"
 							attacker.inflict_status_effect(choke_eff)
 							players.forEach(function(oP,index){
 								let dist = hypD(oP.x - tD.x,oP.y - tD.y);
 								if(dist <= 50 && oP.health>0 && oP!=attacker && oP!=tD.owner){
-									let choke_eff = new Buff("smoked", 1, 5, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+									// let choke_eff = new Buff("vaped", 1, 5, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
+									let choke_eff = new Smoke(1, 3, tD.wielder)
 									choke_eff.icon = "☁️";
+									choke_eff.display_name = "Vaped"
 									oP.inflict_status_effect(choke_eff)
 								}
 							});

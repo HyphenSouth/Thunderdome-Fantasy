@@ -11,6 +11,7 @@
 	
 	this.peaceBonus=0
 	this.aggroBonus=0		
+	this.intimidationBonus=0;
 	
 	this.moveSpeedB = 1;
 	
@@ -46,7 +47,8 @@ class Item{
 		this.dmgReductionB = 1;
 		
 		this.peaceBonus=0
-		this.aggroBonus=0		
+		this.aggroBonus=0
+		this.intimidationBonus=0;
 		
 		this.moveSpeedB = 1;
 
@@ -64,6 +66,7 @@ class Item{
 		
 		this.wielder.peaceB += this.peaceBonus;
 		this.wielder.aggroB += this.aggroBonus;
+		this.wielder.intimidation += this.intimidationBonus;
 				
 		this.wielder.moveSpeedB *= this.moveSpeedB;
 	}
@@ -78,9 +81,9 @@ class Item{
 	
 	use(){
 		this.uses--;
-		// if(this.uses == 0){
-			// this.destroy();
-		// }
+		if(this.uses == 0){
+			this.destroy();
+		}
 	}
 	
 	show_info(){
@@ -91,25 +94,6 @@ class Item{
 			"<span><b>Uses:</b>"+this.uses+"</span><br>"+
 			this.item_html()+
 		"</div>"
-		
-		/*
-		if(this.fightBonus != 1)
-			item_info=item_info+"<span><b>Dmg Bonus:</b>x"+this.fightBonus+"</span><br>"			
-		if(this.dmgReductionB != 1)
-			item_info=item_info+"<span><b>Dmg Reduction:</b>x"+this.dmgReductionB+"</span><br>"		
-		if(this.rangeBonus != 0)
-			item_info=item_info+"<span><b>Range Bonus:</b>"+this.rangeBonus+"</span><br>"		
-		if(this.sightBonus != 0)
-			item_info=item_info+"<span><b>Sight Bonus:</b>"+this.sightBonus+"</span><br>"		
-		if(this.visibilityB != 0)
-			item_info=item_info+"<span><b>Visibility Bonus:</b>"+this.visibilityB+"</span><br>"		
-		if(this.peaceBonus != 0)
-			item_info=item_info+"<span><b>Peace Bonus:</b>"+this.peaceBonus+"</span><br>"		
-		if(this.aggroBonus != 0)
-			item_info=item_info+"<span><b>Aggro Bonus:</b>"+this.aggroBonus+"</span><br>"		
-		if(this.moveSpeedB != 1)
-			item_info=item_info+"<span><b>Speed Bonus:</b>x"+this.aggroBonus+"</span><br>"		
-		*/
 				
 		$('#extra_info_container').html(item_info);
 	}
@@ -130,7 +114,9 @@ class Item{
 		if(this.peaceBonus != 0)
 			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
 		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"		
+			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"			
+		if(this.intimidationBonus != 0)
+			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
 		if(this.moveSpeedB != 1)
 			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
 		return html;

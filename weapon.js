@@ -61,6 +61,7 @@ var weapon_data = {
 		"dmg_type" : "melee",
 		"rangeBonus" : 5,
 		"fightBonus" : 1.35,
+		"intimidationBonus" : 20,
 		"uses" : [3,8]		
 	},
 	"flamethrower" : {
@@ -85,7 +86,6 @@ var weapon_data = {
 		"icon_type" : "img",
 		"dmg_type" : "magic",
 		"rangeBonus" : 24,
-		"fightBonus" : 1.2,
 		"uses" : 60		
 	},
 }
@@ -203,6 +203,7 @@ class Weapon extends Item{
 			
 			if("peaceBonus" in data){this.peaceBonus = processDataNum(data["peaceBonus"])}
 			if("aggroBonus" in data){this.aggroBonus = processDataNum(data["aggroBonus"])}
+			if("intimidationBonus" in data){this.intimidationBonus = processDataNum(data["intimidationBonus"])}
 			
 			if("moveSpeedB" in data){this.moveSpeedB = processDataNum(data["moveSpeedB"])}
 			
@@ -586,7 +587,9 @@ class Nanasatsu extends Weapon {
 		}
 		return true;
 	}	
-	
+	replace_wep(new_weapon){
+		return false;
+	}
 	effect(state, data={}){
 		let dmg=0;
 		let oP="";
@@ -633,17 +636,17 @@ class Nanasatsu extends Weapon {
 			case "lose":
 				oP=data['opponent'];
 				//transfer ownership to killer if killer is charmed
-				//if(Math.random() > 0.1){
+				if(Math.random() > 0.1){
 					if(oP.get_status_effect("charm")){
 						if(oP.get_status_effect("charm").target==this.wielder){
 							this.wielder.unequip_item("wep");
 							this.prev_owners++;
-							if(oP.equip_item(this,"wep")){
+							if(oP.equip_item(this)){
 								log_message("sex sword is passed onto " + oP.name);
 							}
 						}
 					}
-				//}				
+				}				
 				break;
 			//seen by player
 			case "opAware":
@@ -698,7 +701,9 @@ class Spicy extends Weapon {
 		this.wielder.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
 		return true;
 	}	
-	
+	replace_wep(new_weapon){
+		return false;
+	}
 	effect(state, data={}){
 		let dmg=0;
 		let oP="";
@@ -765,7 +770,7 @@ class Clang extends Weapon {
 		this.calc_bonuses();
 		this.wielder.statusMessage =  "goes berserk";
 		let never = new Berserk(2,10);
-		this.wielder.inflict_status_effect(never);	
+		this.wielder.inflict_status_effect(never);
 		return true;
 	}	
 	
@@ -877,24 +882,43 @@ class Ancient extends Weapon{
 			'smoke':5,
 			'shadow':8,
 			'blood':12,
-			'ice':15,			
+			'ice':15		
 		}
 		this.aoe_cost = 1.5
 		this.aoe_radius = 24
+		
+		this.dmg_data = {
+			'smoke':1.2,
+			'shadow':1.4,
+			'blood':1.5,
+			'ice':1.7	
+		}
+		this.aoe_dmg = 1.1
 	}	
 	use(){
 		if(this.uses<5){
 			this.uses=0;
+			this.destroy();
 		}
 	}
+	
+	equip(wielder){
+		super.equip(wielder);
+		this.wielder.statusMessage = "found an ancient staff";
+		return true;
+	}	
 	effect(state, data={}){
 		let oP = ''
 		switch(state){
 			case "attack":
+				if(data['counter']==false){
+					this.wielder.inflict_status_effect(new Skulled(3));
+				}
+				
 				this.last_spell = ['','']
 				// super.effect("attack", data);
 				oP = data['opponent']
-				let spell = ['','']
+				let spell = ['smoke','blitz']
 				let cost = 0; 
 				//insufficient runes
 				if(this.uses < this.cost_data['smoke']){
@@ -906,29 +930,98 @@ class Ancient extends Weapon{
 				//choose spell type
 				let spell_lst = [['smoke',1]]
 				if(this.uses >= this.cost_data['ice']){
-					spell_lst = [['smoke',10], ['shadow',5],['blood',15+ 40*(1-(this.wielder.health/this.wielder.maxHealth))],['ice',20]]
+					spell_lst = [['smoke',8], ['shadow',5],['blood',500+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))],['ice',10]]
 				}
 				else if(this.uses >= this.cost_data['blood']){
-					spell_lst = [['smoke',10], ['shadow',10],['blood',20+ 40*(1-(this.wielder.health/this.wielder.maxHealth))]]
+					spell_lst = [['smoke',10], ['shadow',10],['blood',1000+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))]]
 				}
 				else if(this.uses >= this.cost_data['shadow']){
 					spell_lst = [['smoke',10], ['shadow',20]]
 				}
+				log_message(spell_lst)
 				spell[0] = roll(spell_lst)
 				spell[1] = 'blitz'
 				cost = this.cost_data[spell[0]]
 								
-				//aoe
+				//aoe select
+				let nearby_lst = []
 				if(this.uses>= Math.round(cost*this.aoe_cost) ){
-					let nearby_lst = oP.nearbyPlayers(this.aoe_radius)
+					nearby_lst = oP.nearbyPlayers(this.aoe_radius)
 					if(nearby_lst.length>0 && 40 + nearby_lst.length * 5 > roll_range(0,100)){
 						spell[1] = 'barrage'
 						cost = Math.round(cost*this.aoe_cost) 
 					}					
 				}
-				log_message(spell)				
-				this.wielder.statusMessage = "casts " + spell[0] +' '+ spell[1] + " on " +oP.name;
+				log_message(spell)	
+				
+				//cast
+				this.wielder.fightDmgB *= this.dmg_data[spell[0]]
 				this.last_spell = spell
+				//spell effects
+				switch(spell[0]){
+					case 'smoke':
+						oP.inflict_status_effect(new Smoke(4, 5, this.wielder))
+						break;
+					case 'shadow':
+						let temp_blind = new Buff('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.wielder)
+						temp_blind.icon = "👁️"
+						oP.inflict_status_effect(temp_blind)
+						break;
+					case 'ice':
+						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.wielder))
+						break;
+				}
+				//aoe attack
+				if(spell[1]=='barrage'){
+					this.wielder.fightDmgB *= this.aoe_dmg
+					let hits = 0;
+					for(let i=0; i<nearby_lst.length; i++){
+						let dmg = 0
+						let aoe_target = nearby_lst[i]
+						if(aoe_target!=this.wielder && Math.random()<0.6){
+							switch(spell[0]){
+								case 'smoke':
+									dmg = roll_range(1, 5)
+									oP.inflict_status_effect(new Smoke(2, 5, this.wielder))
+									break;
+								case 'shadow':
+									dmg = roll_range(1, 10)
+									let temp_blind = new Buff('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.wielder)
+									temp_blind.icon = "👁️"
+									aoe_target.inflict_status_effect(temp_blind)
+									break;
+								case 'blood':
+									dmg = roll_range(1, 8)
+									log_message(this.wielder.name + " BLOOD aoe attack")
+									this.wielder.health += Math.pow(dmg,0.66);
+									break;
+								case 'ice':
+									dmg = roll_range(1, 15)		
+									aoe_target.inflict_status_effect(new Frozen(1,roll_range(1,2), this.wielder))
+									break;
+							}
+							aoe_target.take_damage(dmg, this.wielder, 'magic')
+							//on hit
+							if(aoe_target.health <=0){
+								aoe_target.death="killed by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1];
+								pushMessage(aoe_target, "killed by  "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]);
+								this.wielder.kills++;
+							}
+							else{
+								aoe_target.statusMessage = "hit by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]
+								pushMessage(aoe_target, "hit by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]);
+							}
+							aoe_target.finishedAction = true;
+							aoe_target.resetPlannedAction();
+							hits++;
+						}
+						if(hits>=8){
+							break;
+						}
+					}
+				}
+				
+				this.wielder.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
 				this.uses = this.uses-cost
 				this.use();
 				break;
@@ -943,7 +1036,6 @@ class Ancient extends Weapon{
 					this.wielder.health += Math.pow(dmg,0.66);
 					// log_message(this.wielder.health + " after");
 				}
-		
 				break;
 			default:
 				super.effect(state, data);
