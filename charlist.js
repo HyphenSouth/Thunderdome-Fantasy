@@ -38,7 +38,10 @@ var charlist_gochiusa = [
 	},
 	{
 		"name": "Hoto Cocoa",
-		"img": "https://cdn.myanimelist.net/images/characters/11/242945.jpg"
+		"img": "https://cdn.myanimelist.net/images/characters/11/242945.jpg",
+		"attr": [
+			"butai"
+		]
 	},
 	{
 		"name": "Tedeza Rize ",

@@ -33,6 +33,15 @@ function setItemIcon(icon){
 	return '<img class="item_img" src="' + icon +'"></img>';
 }
 
+function get_item_odds(tP, item_type){
+	if(item_type=='wep'){
+		return get_weapon_odds(tP)
+	}
+	if(item_type=='off'){
+		return get_offhand_odds(tP)
+	}
+}
+
 class Item{
 	constructor(name){
 		this.name = name;
@@ -70,6 +79,8 @@ class Item{
 				
 		this.wielder.moveSpeedB *= this.moveSpeedB;
 	}
+	
+	item_odds(prob,item_type){}
 	
 	equip(wielder){
 		this.wielder = wielder;

@@ -94,9 +94,9 @@ var sexSword = true;
 var spicy = true;
 var defaultWeaponOdds = [
 	["knife",30],["gun",20],["lance",25],["bow",20],
-	["katana", 35], ["shotgun", 35], ["sniper",20],
-	["clang",5], ["flamethrower",20], ["ancient", 5000],
-	["Nothing",500]];
+	["katana", 25], ["shotgun", 25], ["sniper",20],
+	["clang",10], ["flamethrower",20], ["ancient", 25],
+	["Nothing",400]];
 
 function get_weapon_odds(tP){
 	let weaponOdds = defaultWeaponOdds.slice();
@@ -109,6 +109,20 @@ function get_weapon_odds(tP){
 		weaponOdds.push(["spicy",1]);
 		// weaponOdds.push(["spicy",5000]);
 	}
+	
+	tP.attributes.forEach(function(attr){
+		attr.item_odds(weaponOdds, 'wep');
+	});
+	tP.status_effects.forEach(function(eff){
+		eff.item_odds(weaponOdds, 'wep');
+	});		
+	if(tP.offhand){
+		tP.offhand.item_odds(weaponOdds, 'wep');
+	}
+	if(tP.weapon){
+		tP.weapon.item_odds(weaponOdds, 'wep');
+	}
+	log_message(weaponOdds)
 	return weaponOdds;
 }
 /*
@@ -293,7 +307,6 @@ class Lance extends Weapon {
 				if(roll([["die",1],["live",20000]]) == "die"){
 					this.wielder.health = 0;
 					this.wielder.death = "Died by their own spear";
-					this.wielder.die();
 					log_message(this.wielder.name + ' killed by lance')
 				}
 				break;
@@ -502,7 +515,7 @@ class Shotgun extends Weapon {
 						let temp_wep = this;
 						nearby_lst.forEach(function(unfortunate_victim,index){
 							//cannot hit wielder
-							if(unfortunate_victim != temp_wep.wielder && Math.random()<0.5){
+							if(unfortunate_victim != temp_wep.wielder && unfortunate_victim.health>0 && Math.random()<0.5){
 								log_message("stray hit " + unfortunate_victim.name);
 								//calculate damage based on distance
 								let dmg = (1.1 - target_dist/temp_wep.max_range) * 3;
@@ -603,7 +616,6 @@ class Nanasatsu extends Weapon {
 				//death message
 				if(this.wielder.health <= 0){
 					this.wielder.death = "Succumbed to SEX SWORD";
-					this.wielder.die();
 					log_message(this.wielder.name + ' killed by sword')
 				}
 				break;
@@ -652,8 +664,7 @@ class Nanasatsu extends Weapon {
 			case "opAware":
 				oP=data['opponent'];
 				if (Math.random() > 0.3){
-					let temp_charm = new Charm(this.wielder);
-					temp_charm.level=10;
+					let temp_charm = new Charm(this.wielder,10);
 					temp_charm.aggro=true;
 					temp_charm.follow_message = "following SEX SWORD"
 					oP.inflict_status_effect(temp_charm);
@@ -930,10 +941,10 @@ class Ancient extends Weapon{
 				//choose spell type
 				let spell_lst = [['smoke',1]]
 				if(this.uses >= this.cost_data['ice']){
-					spell_lst = [['smoke',8], ['shadow',5],['blood',500+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))],['ice',10]]
+					spell_lst = [['smoke',8], ['shadow',5],['blood',5+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))],['ice',15]]
 				}
 				else if(this.uses >= this.cost_data['blood']){
-					spell_lst = [['smoke',10], ['shadow',10],['blood',1000+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))]]
+					spell_lst = [['smoke',10], ['shadow',10],['blood',10+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))]]
 				}
 				else if(this.uses >= this.cost_data['shadow']){
 					spell_lst = [['smoke',10], ['shadow',20]]
@@ -963,7 +974,7 @@ class Ancient extends Weapon{
 						oP.inflict_status_effect(new Smoke(4, 5, this.wielder))
 						break;
 					case 'shadow':
-						let temp_blind = new Buff('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.wielder)
+						let temp_blind = new StatusEffect('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.wielder)
 						temp_blind.icon = "👁️"
 						oP.inflict_status_effect(temp_blind)
 						break;
@@ -978,7 +989,7 @@ class Ancient extends Weapon{
 					for(let i=0; i<nearby_lst.length; i++){
 						let dmg = 0
 						let aoe_target = nearby_lst[i]
-						if(aoe_target!=this.wielder && Math.random()<0.6){
+						if(aoe_target!=this.wielder && aoe_target.health >0 && Math.random()<0.6){
 							switch(spell[0]){
 								case 'smoke':
 									dmg = roll_range(1, 5)
@@ -986,7 +997,7 @@ class Ancient extends Weapon{
 									break;
 								case 'shadow':
 									dmg = roll_range(1, 10)
-									let temp_blind = new Buff('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.wielder)
+									let temp_blind = new StatusEffect('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.wielder)
 									temp_blind.icon = "👁️"
 									aoe_target.inflict_status_effect(temp_blind)
 									break;
@@ -1042,7 +1053,7 @@ class Ancient extends Weapon{
 				break;
 		}
 	}
-	
+	//blood barrage breaks if aoe also targets the target
 	show_info(){
 		let item_info = 
 		"<div class='info'>"+

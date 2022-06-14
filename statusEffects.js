@@ -1,18 +1,65 @@
 class StatusEffect{
-	constructor(name){
+	constructor(name, level, duration, data={}){
 		this.name=name;
 		this.display_name=this.name[0].toUpperCase() + this.name.substring(1);
 		this.icon="❓";
 		this.player="";
-		this.duration=1;
-		this.level=0;
+		this.level=level;
+		this.duration=duration;
+				
+		//base amount, level amount
+		this.data = data
+		
+		this.sightBonus = 0;
+		this.visibilityB = 0;
+		this.rangeBonus = 0;
+		this.peaceBonus = 0;
+		this.aggroBonus = 0;
+		this.intimidationBonus = 0;
+		
+		this.fightBonus = 1;
+		this.dmgReductionB = 1;
+		this.moveSpeedB = 1;
+		
+		this.update_data()
 	}
-	afflict(player){
-		this.player=player;	
-	}
-	calc_bonuses(){}
 	
-	stack_effect(new_eff){return true}
+	update_data(){
+		if("sightBonus" in this.data){this.sightBonus = this.data["sightBonus"][0]+ this.level * this.data["sightBonus"][1]}
+		if("visibilityB" in this.data){this.visibilityB = this.data["visibilityB"][0]+ this.level * this.data["visibilityB"][1]}
+		if("rangeBonus" in this.data){this.rangeBonus = this.data["rangeBonus"][0]+ this.level * this.data["rangeBonus"][1]}
+		if("peaceBonus" in this.data){this.peaceBonus = this.data["peaceBonus"][0]+ this.level * this.data["peaceBonus"][1]}
+		if("aggroBonus" in this.data){this.aggroBonus = this.data["aggroBonus"][0]+ this.level * this.data["aggroBonus"][1]}
+		if("intimidationBonus" in this.data){this.intimidationBonus = this.data["intimidationBonus"][0]+ this.level * this.data["intimidationBonus"][1]}
+		
+		if("fightBonus" in this.data){this.fightBonus = this.data["fightBonus"][0]+ this.level * this.data["fightBonus"][1]}
+		if("dmgReductionB" in this.data){this.dmgReductionB = this.data["dmgReductionB"][0]+ this.level * this.data["dmgReductionB"][1]}													   
+		if("moveSpeedB" in this.data){this.moveSpeedB = this.data["moveSpeedB"][0]+ this.level * this.data["moveSpeedB"][1]}		
+	}
+	
+	afflict(player){
+		this.player=player;
+	}
+	
+	calc_bonuses(){
+		this.player.sightRangeB += this.sightBonus
+		this.player.visibilityB += this.visibilityB
+		this.player.fightRangeB += this.rangeBonus
+		this.player.peaceB += this.peaceBonus
+		this.player.aggroB += this.aggroBonus
+		this.player.intimidation += this.intimidationBonus
+												   
+		this.player.fightDmgB *= this.fightBonus
+		this.player.dmgReductionB *= this.dmgReductionB
+		this.player.moveSpeedB *= this.moveSpeedB
+	}
+	item_odds(prob,item_type){}
+	
+	stack_effect(eff){
+		if(eff.level >= this.level){
+			this.replace_eff(eff)
+		}
+	}
 	
 	replace_eff(new_eff){
 		this.name=new_eff.name;
@@ -20,6 +67,8 @@ class StatusEffect{
 		this.icon=new_eff.icon;
 		this.duration=new_eff.duration;
 		this.level=new_eff.level;
+		this.data=new_eff.data;
+		this.update_data()
 	}
 	
 	wear_off(){
@@ -55,15 +104,34 @@ class StatusEffect{
 		$('#extra_info_container').html(status_info);
 	}
 	effect_html(){
-		return "";
+		let html=""
+		if(this.fightBonus != 1)
+			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
+		if(this.dmgReductionB != 1)
+			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
+		if(this.rangeBonus != 0)
+			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
+		if(this.sightBonus != 0)
+			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
+		if(this.visibilityB != 0)
+			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
+		if(this.peaceBonus != 0)
+			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
+		if(this.aggroBonus != 0)
+			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
+		if(this.intimidationBonus != 0)
+			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
+		if(this.moveSpeedB != 1)
+			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
+		return html;
 	}
 }
 
+
 class Trapped extends StatusEffect{
 	constructor(level, owner){
-		super("trapped");
+		super("trapped", level, 2000);
 		this.icon="🕳"
-		this.duration=20;
 		this.turns_trapped=0;
 		this.owner=owner;
 		this.level = level;
@@ -178,16 +246,12 @@ class Trapped extends StatusEffect{
 
 class Charm extends StatusEffect{
 	constructor(target, level){
-		super("charm");
+		super("charm", level, 1);
 		this.target=target;
 		this.icon="💗";
-		this.duration=1;
 		this.aggro=false;	//whether target will be attacked
-		this.level = level;
 		this.follow_message="";
-	}
-	calc_bonuses(){
-		this.player.dmgReductionB *=1.1;
+		this.dmgReductionB = 1.1;
 	}
 	replace_eff(new_eff){
 		this.aggro=new_eff.aggro;
@@ -269,29 +333,25 @@ class Charm extends StatusEffect{
 
 class Berserk extends StatusEffect{
 	constructor(level, duration){
-		super("berserk");
+		super("berserk",level, duration, {'aggroBonus':[0,20]});
 		this.icon="😡";
-		this.duration=duration;
-		this.level = level;
-		this.speed_bonus = 1.5
+		this.moveSpeedB = 1.5
 	}
 	calc_bonuses(){
-		this.player.aggroB +=(this.level*40);
-		this.player.peaceB -=(this.level*40);
-		this.player.fightDmgB *= 1 + (this.level/50) + (this.player.lastFight/50) ;
-		this.player.dmgReductionB *= 1+(this.level/50) + (this.player.lastFight/50);	
-		this.player.moveSpeedB *= this.speed_bonus;
+		// this.player.aggroB +=(this.level*40);
+		// this.player.peaceB -=(this.level*40);
+		this.fightBonus = 1 + (this.level/50) + (this.player.lastFight/50) ;
+		this.dmgReductionB = 1+(this.level/50) + (this.player.lastFight/50);
+		super.calc_bonuses()		
+		// this.player.moveSpeedB *= this.speed_bonus;
 	}
-	stack_effect(eff){
-		if(eff.level >this.level){
-			this.replace_eff(eff)
-		}
-	}
+
 	effect(state, data={}){
 		let oP="";
 		switch(state){
 			case "planAction":
-				/*
+			/*
+				//fight last attacker
 				if(this.player.attackers.length>0){
 					let tP = this.player
 					tP.attackers.forEach(function(oP){
@@ -310,6 +370,7 @@ class Berserk extends StatusEffect{
 					});				
 				}
 				*/
+				
 				if(this.player.inRangeOf.length>0){
 					if(this.player.setPlannedAction("fight", 12)){
 						log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
@@ -334,43 +395,20 @@ class Berserk extends StatusEffect{
 				break;
 		}
 	}
-	
-	effect_html(){
-		let html = 
-			"<span><b>Damage Bonus:</b>x"+roundDec((1 + (this.level/50) + (this.player.lastFight/50)))+"</span><br>"+
-			"<span><b>Speed Bonus:</b>x"+this.speed_bonus+"</span><br>"+
-			"<span><b>Aggro Bonus:</b>"+(this.level*40)+"</span><br>"+
-			"<span><b>Peace Bonus:</b>-"+(this.level*40)+"</span><br>"
-		return html;
-	}	
 }
 
 //increase peace bonus
 class Peace extends StatusEffect{
 	constructor(level, duration){
-		super("peace");
-		this.duration=duration;
-		this.level = level;
+		super("peace", level, duration, {'peaceBonus':[0,20],});
 		this.icon="☮";
 	}
 	calc_bonuses(){
-		this.player.aggroB -=(this.level*40);
-		this.player.peaceB +=(this.level*50);
-		this.player.dmgReductionB *=1-((this.player.lastFight/10+this.level)/50);
+		// this.player.aggroB -=(this.level*40);
+		// this.player.peaceB +=(this.level*50);
+		this.dmgReductionB = 1-((this.player.lastFight/10+this.level)/50);
+		super.calc_bonuses()
 	}
-	stack_effect(eff){
-		if(eff.level >= this.level){
-			this.replace_eff(eff)
-		}
-	}
-	
-	effect_html(){
-		let html = 
-			"<span><b>Peace Bonus:</b>"+roundDec((this.level*50))+"</span><br>"+
-			"<span><b>Aggro Bonus:</b>"+roundDec(-(this.level*40))+"</span><br>"+
-			"<span><b>Damage Reduction:</b>x"+roundDec(1-((this.player.lastFight/10+this.level)/50))+"</span><br>"
-		return html;
-	}		
 }
 
 //peace with increased health regen
@@ -380,15 +418,7 @@ class Comfy extends Peace{
 		this.name="comfy"
 		this.display_name="Comfy"
 		this.icon='<img class="effect_img" src="./icons/campfire.png"></img>';
-		this.duration=duration;
-		this.level = level;
 		this.heal_range = [Math.round(this.level/2), this.level*2]
-	}
-	
-	calc_bonuses(){
-		this.player.aggroB -=(this.level*50);
-		this.player.peaceB +=(this.level*80);
-		this.player.dmgReductionB *=1-((this.player.lastFight/8+this.level)/50);
 	}
 	
 	replace_eff(eff){
@@ -426,10 +456,8 @@ class Comfy extends Peace{
 	}
 	effect_html(){
 		let html = 
-			"<span><b>Peace Bonus:</b>"+roundDec((this.level*80))+"</span><br>"+
-			"<span><b>Aggro Bonus:</b>"+roundDec(-(this.level*50))+"</span><br>"+
-			"<span><b>Damage Reduction:</b>x"+roundDec(1-((this.player.lastFight/8+this.level)/50))+"</span><br>"+
-			"<span><b>Heal Range:</b>"+this.heal_range[0]+"-"+this.heal_range[1]+"</span><br>"
+			"<span><b>Heal Range:</b>"+this.heal_range[0]+"-"+this.heal_range[1]+"</span><br>"+
+			super.effect_html();
 		return html;
 	}	
 }
@@ -437,12 +465,9 @@ class Comfy extends Peace{
 //follows and attacks decoy of the owner
 class DecoyEffect extends StatusEffect{
 	constructor(level, duration, owner, decoy){
-		super("decoy_"+owner.name);
+		super("decoy_"+owner.name,level, duration);
 		this.display_name = decoy.name
 		this.icon="👻";
-		this.duration = duration;
-		this.level = level;
-		this.owner = owner;
 		this.decoy = decoy;
 	}
 	effect(state, data={}){
@@ -506,12 +531,11 @@ class DecoyEffect extends StatusEffect{
 
 class Frozen extends StatusEffect{
 	constructor(level, duration, owner){
-		super("frozen");
+		super("frozen",level, duration);
 		this.icon="🧊";
-		this.duration=duration;
-		this.level = level;
 		this.owner=owner;
 		this.death_msg = 'froze to death'
+		this.dmgReductionB = 0.5
 	}
 	
 	afflict(player){
@@ -520,17 +544,12 @@ class Frozen extends StatusEffect{
 		this.player.incapacitated=true;
 	}
 	
-	//cannot be stacked
 	stack_effect(new_eff){
 		this.duration += Math.round(new_eff.duration/2)
 		this.level += Math.round(new_eff.level/2)
 		return true;
 	}
-	
-	calc_bonuses(){
-		this.player.dmgReductionB *= 0.5;
-	}
-	
+
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
@@ -553,9 +572,16 @@ class Frozen extends StatusEffect{
 					this.wear_off();
 				}
 				else{
+					//take damage
+					this.player.take_damage(roll_range(0, 2 * this.level), this, 'ice');
+					if(this.player.health<=0){
+						this.player.death = this.death_msg
+						if(this.owner)
+							this.owner.kills++;
+					}
 					this.player.statusMessage = "frozen in ice";
 					this.player.resetPlannedAction();
-					this.player.finishedAction = true;		
+					this.player.finishedAction = true;					
 				}				
 				break;
 			case "newStatus":
@@ -572,13 +598,6 @@ class Frozen extends StatusEffect{
 					let comf = this.player.get_status_effect('comfy')
 					this.duration -= Math.max(comf.level/2 - Math.round(this.level/4), 0)
 				}
-				this.player.take_damage(roll_range(0, 2 * this.level), this, 'ice');
-				if(this.player.health<=0){
-					this.player.death = this.death_msg
-					this.player.die();
-					if(this.owner)
-						this.owner.kills++;					
-				}
 				break;
 			default:
 				super.effect(state, data);
@@ -591,24 +610,22 @@ class Frozen extends StatusEffect{
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}	
+		html = html + super.effect_html();
 		return html;
 	}
 }
 
 class Skulled extends StatusEffect{
 	constructor(duration){
-		super("skulled");
-		this.icon='<img class="effect_img" src="./icons/skulled.png"></img>';;
-		this.duration=duration;
+		super("skulled",1,duration);
+		this.icon='<img class="effect_img" src="./icons/skulled.png"></img>';
+		this.visibilityB = 50;
+		this.aggroBonus = 30;
+		this.intimidationBonus = 50;
+		this.dmgReductionB = 1.1;
 	}
 	stack_effect(new_eff){
 		this.duration = new_eff.duration
-	}
-	calc_bonuses(){
-		this.player.intimidation += 30;
-		this.player.aggroB += 30;
-		this.player.visibilityB += 50;
-		this.player.dmgReductionB *= 1.1;
 	}
 	
 	effect(state, data={}){
@@ -626,102 +643,24 @@ class Skulled extends StatusEffect{
 					tP.unequip_item("wep");
 					oP.equip_item(temp_wep)
 				}
+				oP.health += 5;
+				oP.energy += 20;
+				break;
+			default:
+				super.effect(state, data)
 				break;
 		}
 	}
 }
 
-//generic buff class for modifying stats
-class Buff extends StatusEffect{
-	constructor(name, level, duration, data, buff=true, owner=""){
-		super(name);
-		this.level = level;
-		this.duration=duration;
-		this.owner=owner;
-		//base amount, level amount
-		this.data = data
-		this.buff=buff;	//false for debuff
-		
-		this.sightBonus = 0;
-		this.visibilityB = 0;
-		this.rangeBonus = 0;
-		this.peaceBonus = 0;
-		this.aggroBonus = 0;
-		this.intimidationBonus = 0;
-		
-		this.fightBonus = 1;
-		this.dmgReductionB = 1;
-		this.moveSpeedB = 1;
-		
-		this.update_data()
-	}
-	update_data(){
-		if("sightBonus" in this.data){this.sightBonus = this.data["sightBonus"][0]+ this.level * this.data["sightBonus"][1]}
-		if("visibilityB" in this.data){this.visibilityB = this.data["visibilityB"][0]+ this.level * this.data["visibilityB"][1]}
-		if("rangeBonus" in this.data){this.rangeBonus = this.data["rangeBonus"][0]+ this.level * this.data["rangeBonus"][1]}
-		if("peaceBonus" in this.data){this.peaceBonus = this.data["peaceBonus"][0]+ this.level * this.data["peaceBonus"][1]}
-		if("aggroBonus" in this.data){this.aggroBonus = this.data["aggroBonus"][0]+ this.level * this.data["aggroBonus"][1]}
-		if("intimidationBonus" in this.data){this.intimidationBonus = this.data["intimidationBonus"][0]+ this.level * this.data["intimidationBonus"][1]}
-		
-		if("fightBonus" in this.data){this.fightBonus = this.data["fightBonus"][0]+ this.level * this.data["fightBonus"][1]}
-		if("dmgReductionB" in this.data){this.dmgReductionB = this.data["dmgReductionB"][0]+ this.level * this.data["dmgReductionB"][1]}													   
-		if("moveSpeedB" in this.data){this.moveSpeedB = this.data["moveSpeedB"][0]+ this.level * this.data["moveSpeedB"][1]}		
-	}
-	
-	replace_eff(new_eff){
-		this.owner=new_eff.owner;
-		this.data=new_eff.data;
-		this.update_data()
-		super.replace_eff(new_eff)
-	}
-	
-	calc_bonuses(){
-		this.player.sightRangeB += this.sightBonus
-		this.player.visibilityB += this.visibilityB
-		this.player.fightRangeB += this.rangeBonus
-		this.player.peaceB += this.peaceBonus
-		this.player.aggroB += this.aggroBonus
-		this.player.intimidationBonus += this.intimidationBonus
-												   
-		this.player.fightDmgB *= this.fightBonus
-		this.player.dmgReductionB *= this.dmgReductionB
-		this.player.moveSpeedB *= this.moveSpeedB
-	}
-	
-	effect_html(){
-		let html=""
-		if(this.fightBonus != 1)
-			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
-		if(this.dmgReductionB != 1)
-			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
-		if(this.rangeBonus != 0)
-			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
-		if(this.sightBonus != 0)
-			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
-		if(this.visibilityB != 0)
-			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
-		if(this.peaceBonus != 0)
-			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
-		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
-		if(intimidationBonus)
-			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
-		if(this.moveSpeedB != 1)
-			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
-		return html;
-	}
-}
-
 //class for dot effects
 class DotEffect extends StatusEffect{
-	constructor(name, level, duration, owner, dmg_type, death_msg){
-		super(name);
-		this.level = level;
-		this.duration=duration;
+	constructor(name, level, duration, owner, dmg_type, death_msg, data){
+		super(name, level, duration, data);
 		this.owner=owner;
 		this.dmg_type = dmg_type
 		this.death_msg = death_msg
-		this.dmg_turn = "turnEnd"
+		this.dmg_turn = "turnStart"
 	}
 	calc_dmg(){
 		return 1;
@@ -734,10 +673,10 @@ class DotEffect extends StatusEffect{
 				this.player.take_damage(dmg, this, this.dmg_type);
 				if(this.player.health<=0){
 					this.player.death = this.death_msg
-					this.player.die();
 					if(this.owner)
 						this.owner.kills++;					
 				}
+				super.effect(state, data);
 				break;
 			default:
 				super.effect(state, data);
@@ -749,6 +688,7 @@ class DotEffect extends StatusEffect{
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}
+		html = html + super.effect_html()
 		return html;
 	}
 }
@@ -758,14 +698,13 @@ class Burn extends DotEffect{
 		super("burn", level, duration, owner, "fire", "burnt to a crisp");
 		this.icon="🔥";
 		this.dmg_range = [1,1.5] //base damage range at level 1
-		
+		this.visibilityB =10;
 	}
+	
 	calc_dmg(){
 		return roll_range(this.dmg_range[0], this.level*this.dmg_range[1]);
 	}
-	calc_bonuses(){
-		this.player.visibilityB +=10;
-	}
+
 	stack_effect(eff){
 		//replace weaker burn
 		if(eff.level >= this.level){
@@ -783,12 +722,8 @@ class Burn extends DotEffect{
 	effect(state, data={}){
 		switch(state){
 			case "turnEnd":
-				// deal damage
 				if(getTerrainType(this.player.x,this.player.y)=="water"){
 					this.wear_off();
-				}
-				else{
-					super.effect("turnEnd", data);
 				}
 				break;
 			case "newStatus":
@@ -814,39 +749,34 @@ class Burn extends DotEffect{
 //reduced stats and dot
 class Smoke extends DotEffect{
 	constructor(level, duration, owner){
-		super("smoke", level, duration, owner, "poison", "choked to death");
+		super("smoke", level, duration, owner, "poison", "choked to death",  {'sightBonus' : [-10,-20],'fightBonus' : [1,-0.1],'moveSpeedB' : [1,-0.1]});
 		this.icon="🚬";
 		this.dmg_range = [2,2] //base damage range at level 1
+
 	}
 	calc_dmg(){
 		return roll_range(this.dmg_range[0], (this.level/2)+this.dmg_range[1]);
 	}
-	calc_bonuses(){
-		this.player.sightRangeB -=  (10 + this.level*20)
-		this.player.fightDmgB *= 1 -(this.level*0.1)
-		this.player.moveSpeedB *= 1 -(this.level*0.1)
-	}
+		
 	stack_effect(eff){
-		//replace weaker burn
+		//replace weaker eff
 		if(eff.level >= this.level){
-			this.replace_eff(eff)
-			this.duration = eff.duration 
-			this.level = eff.level 
-			this.owner = eff.owner
+			this.replace_eff(eff);
+			this.duration = eff.duration; 
+			this.level = eff.level;
+			this.owner = eff.owner;
 		}
-		//increase burn
+		//increase dot
 		if(eff.level < this.level){
 			this.duration = this.duration + Math.round(eff.duration*(eff.level/this.level)) ;
 			this.level = this.level + Math.round(eff.level*0.2);
 		}
+		this.update_data();
 	}
 
 	effect_html(){
 		let html = 
-			"<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>"+
-			"<span><b>Sight Reduction:</b>-"+this.level*20+"</span><br>"+
-			"<span><b>Dmg Reduction:</b>x"+(1 -(this.level*0.1))+"</span><br>"+
-			"<span><b>Speed Reduction:</b>x"+(1 -(this.level*0.1))+"</span><br>"
+			"<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>"
 		html = html+super.effect_html()
 		return html;
 	}

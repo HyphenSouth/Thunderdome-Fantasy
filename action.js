@@ -6,8 +6,8 @@ function awareOfCheck(tP){
 	let tp_fight = tP.fightRange + tP.fightRangeB;
 	
 	players.forEach(function(oP,index){
-		if(oP.name != tP.name){
-			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
+		if(oP != tP){
+			let dist = playerDist(oP, tP);
 			//check if tP has special aggro effects
 			tP.apply_all_effects("awareCheck", {"opponent":oP});
 			//check if oP forces tP to aggro
@@ -37,8 +37,8 @@ function inRangeOfCheck(tP){
 	let tempArr = [];
 	tP.calc_bonuses();
 	players.forEach(function(oP,index){
-		if(oP.name != tP.name){
-			let dist = hypD(oP.x - tP.x,oP.y - tP.y);
+		if(oP != tP){
+			let dist = playerDist(oP, tP);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
 				// log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
 				tempArr.push(oP);
@@ -116,12 +116,19 @@ function rollDmg(tP, oP){
 	dmg = dmg * oP.dmgReductionB;
 	if(dmg > oP.health)
 		dmg = oP.health;
+	if(dmg<0)
+		dmg=0;
 	return dmg;
 }
 
-function attack(attacker, defender, counter){
+function attack(attacker, defender, counter, fightMsg){
 	let dmg = 0;
-	let dmg_type="melee"
+	let dmg_type="melee"	
+	
+	// if(!counter)
+		// fightMsg.events.push(attacker.name + " attacks " + defender.name);
+	// else
+		// fightMsg.events.push(attacker.name + " fights back against " + defender.name);
 	
 	if(attacker.weapon){
 		dmg_type = attacker.weapon.dmg_type;
@@ -133,14 +140,16 @@ function attack(attacker, defender, counter){
 	// attacker.apply_inv_effects_other("attack", {"damage":dmg, "counter":counter});
 	// defender.apply_inv_effects_other("defend", {"damage":dmg, "counter":counter});	
 	attacker.statusMessage = "fights " + defender.name;
-	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type});
-	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type});
+	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
+	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
 
 	dmg = rollDmg(attacker, defender);
-
-	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type});
+	
+	fightMsg.events.push(attacker.name + " deals "+ roundDec(dmg)+ " damage to " + defender.name);
+	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg });
 	// defender.health -= dmg;
-	defender.take_damage(dmg, attacker, dmg_type)
+	defender.take_damage(dmg, attacker, dmg_type, fightMsg)
+	
 	attacker.exp += dmg;
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
 }
@@ -152,8 +161,11 @@ function fight_target(tP,oP){
 	oP.div.addClass("fighting");
 	oP.tblDiv.addClass("fighting");
 	
+	let fightMsg = {'fight':true, 'attacker': tP, 'defender': oP, 'events':[]}
+	events.push(fightMsg);	
+	
 	//fight opponent
-	attack(tP,oP, false);
+	attack(tP,oP, false, fightMsg);
 	tP.finishedAction = true
 	tP.current_turn_fights++;
 	oP.lastAttacker = tP;
@@ -166,19 +178,22 @@ function fight_target(tP,oP){
 		if(tP.personality == oP.personality && tP.personality != 'Neutral'){
 			tP.statusMessage = "betrays " + oP.name;
 			oP.statusMessage = "killed in their sleep by " + tP.name;
-			pushMessage(tP, tP.name + " betrays " + oP.name);
+			// pushMessage(tP, tP.name + " betrays " + oP.name);
+			fightMsg.events.push(tP.name + " betrays " + oP.name);
 			oP.death = "betrayed by " + tP.name;
 		} 
 		else if(oP.lastAction == "sleeping"){
 			tP.statusMessage = "kills " + oP.name + " in their sleep";
 			oP.statusMessage = "killed in their sleep by " + tP.name;
-			pushMessage(tP, tP.name + " kills " + oP.name + " in their sleep");
+			// pushMessage(tP, tP.name + " kills " + oP.name + " in their sleep");
+			fightMsg.events.push(tP.name + " kills " + oP.name + " in their sleep");
 			oP.death = "killed in their sleep by " + tP.name;
 		} 
 		else{
 			tP.statusMessage = "kills " + oP.name;
 			oP.statusMessage = "killed by " +tP.name;
-			pushMessage(tP, tP.name + " kills " + oP.name);
+			// pushMessage(tP, tP.name + " kills " + oP.name);
+			fightMsg.events.push(tP.name + " kills " + oP.name);
 			oP.death = "killed by " + tP.name;
 		}
 		tP.apply_all_effects("win",{"opponent":oP});
@@ -187,52 +202,58 @@ function fight_target(tP,oP){
 	//opponent turn
 	else{
 		//push event message
-		pushMessage(tP, tP.name + " " + tP.statusMessage);
+		// pushMessage(tP, tP.name + " " + tP.statusMessage);
 		
 		//incapacitated
 		if(oP.incapacitated){
 			if(oP.lastAction == "sleeping"){
 				oP.statusMessage = "attacked in their sleep by "+ tP.name;
-				pushMessage(oP, "was attacked in their sleep by " + tP.name);
+				// pushMessage(oP, "was attacked in their sleep by " + tP.name);
+				fightMsg.events.push(oP.name + " was attacked in their sleep by " + tP.name);
 			}
 			else{
 				oP.statusMessage = "unable to fight back against " + tP.name;
-				pushMessage(oP, " is unable to fight back against " + tP.name);
+				// pushMessage(oP, " is unable to fight back against " + tP.name);
+				fightMsg.events.push(oP.name + " is unable to fight back against " + tP.name);
 			}
 		}
 		//unaware
 		else if(!(oP.awareOf.indexOf(tP)>=0)){
 			oP.statusMessage = "caught offguard";
-			pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
+			// pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
+			fightMsg.events.push( P.name + " is caught offguard by " + tP.name);
 		}
 		//out of range
 		else if(oP.fightRange + oP.fightRangeB<hypD(oP.x - tP.x,oP.y - tP.y)){
 			oP.statusMessage = "attacked out of range";
-			pushMessage(oP, oP.name + " is attacked out of range by " + tP.name);
+			// pushMessage(oP, oP.name + " is attacked out of range by " + tP.name);
+			fightMsg.events.push(oP.name + " is attacked out of range by " + tP.name);
 		}
 		//too busy to fight back
 		else if(oP.current_turn_fights >= turnFightLim){
-			pushMessage(oP, "is too busy to fight back against " + tP.name);
+			// pushMessage(oP, "is too busy to fight back against " + tP.name);
+			fightMsg.events.push(oP.name + "is too busy to fight back against " + tP.name);
 		}
 		//tP is somehow dead
 		else if(tP.health <=0){
-			pushMessage(oP, oP.name + " tries to fight back against " + tP.name + "'s corpse");
+			// pushMessage(oP, oP.name + " tries to fight back against " + tP.name + "'s corpse");
+			fightMsg.events.push(oP.name + " tries to fight back against " + tP.name + "'s corpse");
 			if(oP.statusMessage=="")
 				oP.statusMessage= "tries to fight back against " + tP.name + "'s corpse"
 		}
 		else{
 			//opponent counter attack
-			attack(oP,tP, true);
+			attack(oP,tP, true, fightMsg);
 			oP.current_turn_fights++;
 			oP.lastAction="fighting";
 			//oP kills tP
 			if(tP.health <= 0){
 				log_message(oP.name + " kills " + tP.name +" (counterattack)");
 				oP.kills++;
-				
 				oP.statusMessage = "kills " + tP.name;
 				tP.statusMessage = "killed by " +oP.name + "'s counterattack";
-				pushMessage(oP, oP.name + " fights back and kills " + tP.name);
+				// pushMessage(oP, oP.name + " fights back and kills " + tP.name);
+				fightMsg.events.push(oP.name + " kills " + tP.name);
 				tP.death = "killed by " + oP.name + "'s counterattack";	
 				
 				oP.apply_all_effects("win",{"opponent":tP});
@@ -241,7 +262,7 @@ function fight_target(tP,oP){
 			//tP survives
 			else{	
 				//push event message
-				pushMessage(oP, oP.name + " " + oP.statusMessage);
+				// pushMessage(oP, oP.name + " " + oP.statusMessage);
 			}
 		}
 	}
@@ -253,10 +274,10 @@ function fight_target(tP,oP){
 		//interrupt planned actions
 	}
 	oP.resetPlannedAction();
-	if(tP.health<=0){
-		tP.die()
-	}	
-	if(oP.health<=0){
-		oP.die()
-	}
+	// if(tP.health<=0){
+		// tP.die()
+	// }	
+	// if(oP.health<=0){
+		// oP.die()
+	// }
 }

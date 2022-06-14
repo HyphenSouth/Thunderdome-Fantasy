@@ -321,7 +321,6 @@ function startGame(){
 			attr_lst = [...new Set(attr_txt.split(","))];
 			let filtered_attr = []
 
-
 			let moral = ""
 			if(charlist[i][3]=="" || charlist[i][3]=="Random")
 				moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
@@ -347,8 +346,13 @@ function startGame(){
 		//add the player obj into the player list
 		players.push(tempChar);
 		playerStatic.push(tempChar);
+		playerDistTable.push([])
 	}
 	total_players = players.length;
+	//get all distances
+	playerStatic.forEach(function(tP){
+		updatePlayerDists(tP);
+	})
 	//something for drawing probably
 	setInterval(timer,interval);
 }
@@ -383,6 +387,7 @@ document.addEventListener('keydown', (e) => {
 
 //progress turn for each player
 function turn(){
+	hyp_count = 0
 	log_message('======= start of turn '+day+' '+hour+' =======');
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
@@ -418,6 +423,8 @@ function turn(){
 			chara.planAction();
 		});
 	}
+	log_message(hyp_count)
+	hyp_count = 0
 	action()
 }
 //some sort of action
@@ -458,6 +465,7 @@ function action(){
 	//update the info tables
 	updateTable();
 	log_message('======= end of turn '+day+' '+hour+'=======');
+	log_message(hyp_count)
 	log_message("   ")
 }
 
@@ -590,11 +598,9 @@ function hidePlayers(){
 	}
 }
 function pushMessage(chara, msg){
-	events.push({"chara": chara, "message":msg});
+	events.push({"chara": chara, "message":msg, "fight":false});
 }
 
-var dayColors = ["#282828","#474747"];
-var currentDayColor=0;
 
 function highlight_clicked(char_id) {
 	// log_message("container click")
@@ -664,6 +670,10 @@ function show_item_info(char_id, slot){
 function show_status_info(char_id, status_id){
 	show_extra_info(playerStatic[char_id].status_effects[status_id])
 }
+//show info for status effect
+function show_attr_info(char_id, attr_id){
+	show_extra_info(playerStatic[char_id].attributes[attr_id])
+}
 //show info for player
 function show_player_info(char_id){
 	show_extra_info(playerStatic[char_id])
@@ -696,6 +706,10 @@ function deselect_extra_info(){
 	extra_info_obj=""
 }
 
+
+
+var dayColors = ["#282828","#474747"];
+var currentDayColor=0;
 //update the info tables
 function updateTable(){
 	//list status
@@ -760,22 +774,45 @@ function updateTable(){
 		});
 
 		doodads.forEach(function(tD,index){
-			// $("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-			// $("#doodad_" + tD.id).html(tD.icon);
 			tD.draw()
 		});
 		
 		//turn existing messages transparent
 		$('#messages td').css('opacity','0.3');
 		
+		//add new event messages
 		events.forEach(function(msg,index){
-			let chara = msg.chara;
-			let message = msg.message;
-			$('#eventMsg tbody').prepend(
-				//time
-				"<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>\
-				<img src='" + chara.img + "'></img>" + message + "</td>>"
-			);
+			// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
+			//bg based on time
+			// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
+			let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
+			if(!msg.fight){
+				let chara = msg.chara;
+				let message = msg.message;
+				event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
+			}
+			else{
+				let attacker = msg.attacker;
+				let defender = msg.defender;
+				event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><div>"+
+					"<div style='float:left;max-width:120px;text-align:left;'>\
+						<img style='width:90px; height:90px;' src='" + attacker.img + "'></img>"+
+						// <span style='display:inline-block'>"+attacker.name+"</span>
+					"</div>"+
+				// "<span>attacks</span>"+
+					"<div style='float:right;max-width:120px;text-align:right;'>\
+						<img style='width:90px; height:90px;' style='float:right;' src='" + defender.img + "'></img>"+
+						// <span style='display:inline-block'>"+defender.name+"</span>
+					"</div>\
+				</div>"+
+				"<div style='font-size:16px;display:inline-block'>"
+				msg.events.forEach(function(event_msg){
+					event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
+				});
+				event_html = event_html+"</div></td>";
+			}
+			event_html = event_html + "</tr>";
+			$('#eventMsg tbody').prepend(event_html);
 		});
 		
 		if($('#eventMsg tbody').children().length>event_length){
@@ -805,22 +842,41 @@ function arrayRemove(arr, value) {
 }
 
 //a^2+b^2=c^2
+var hyp_count = 0
 function hypD(x,y,hyp=true){
+	hyp_count++;
 	if (hyp){
 		return Math.sqrt(Math.pow(x,2)+Math.pow(y,2));
 	} else {
 		return Math.sqrt(Math.pow(x,2)-Math.pow(y,2));
 	}
 }
+
+var playerDistTable = []
+function updatePlayerDists(p1){
+	playerStatic.forEach(function(p2){
+		let dist = 0;
+		if(p1!=p2){
+			let x1 = p1.x;
+			let y1 = p1.y;
+			let x2 = p2.x;
+			let y2 = p2.y;
+			dist = hypD(x2-x1, y2-y1);
+		}		
+		playerDistTable[p1.id][p2.id] = dist;
+		playerDistTable[p2.id][p1.id] = dist;
+	})
+}
 //calculate distance between 2 players
 function playerDist(p1, p2){
-	let dist = 0;
-	let x1 = p1.x;
-	let y1 = p1.y;
-	let x2 = p2.x;
-	let y2 = p2.y;
-	dist = hypD(x2-x1, y2-y1);	
-	return dist;
+	// let dist = 0;
+	// let x1 = p1.x;
+	// let y1 = p1.y;
+	// let x2 = p2.x;
+	// let y2 = p2.y;
+	// dist = hypD(x2-x1, y2-y1);	
+	// return dist;
+	return playerDistTable[p1.id][p2.id]
 }
 //gets all players within a distance of a point
 function nearbyPlayers(x, y, dist){

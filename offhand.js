@@ -81,6 +81,18 @@ var off_prob = 2;
 var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",20],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
+	tP.attributes.forEach(function(attr){
+		attr.item_odds(offhandOdds, 'off');
+	});
+	tP.status_effects.forEach(function(eff){
+		eff.item_odds(offhandOdds, 'off');
+	});		
+	if(tP.offhand){
+		tP.offhand.item_odds(offhandOdds, 'off');
+	}
+	if(tP.weapon){
+		tP.weapon.item_odds(offhandOdds, 'off');
+	}
 	return offhandOdds;
 }
 
@@ -273,18 +285,17 @@ class Recoil extends Offhand{
 					if(recoil_dmg>this.uses){
 						recoil_dmg=this.uses;
 					}
-					
 					oP.take_damage(recoil_dmg, this, "recoil")
+					data.fightMsg.events.push(oP.name + " takes "+roundDec(recoil_dmg)+ " recoil damage from " + this.wielder.name);
 					log_message(this.wielder.name + " recoil on " + oP.name + " "+ recoil_dmg);
-					if(oP.health<0){
+					if(oP.health<=0){
 						oP.death = "killed by recoil damage from " + this.wielder.name;
 						// pushMessage(oP, oP.name + " killed by recoil damage from " + this.wielder.name);
 						this.wielder.kills++;
 					}
 					this.uses = this.uses - recoil_dmg;
-					if(this.uses<=0){
+					if(this.uses<=0)
 						this.destroy();
-					}
 				}
 				break;
 			default:

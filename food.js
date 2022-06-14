@@ -68,7 +68,6 @@ class Food extends Offhand{
 					this.icon=data["icon"];
 				}
 			}
-			
 			if("uses" in data){this.uses = processDataNum(data["uses"])}			
 			if("heal" in data){this.heal = processDataNum(data["heal"])}			
 			if("energy_heal" in data){this.energy_heal = processDataNum(data["energy_heal"])}			
@@ -84,7 +83,7 @@ class Food extends Offhand{
 	
 	eat(){
 		this.wielder.heal_damage(this.heal, this, "food")
-		this.wielder.heal += this.energy_heal;
+		this.wielder.energy += this.energy_heal;
 		this.wielder.statusMessage =  "eats a " +this.name;
 		this.wielder.resetPlannedAction();
 		this.use();
@@ -145,7 +144,7 @@ class StrPotion extends Food{
 		return true;
 	}
 	eat(){
-		let str_eff = new Buff("strength", 2, 4, {"fightBonus":[1,0.1]})
+		let str_eff = new StatusEffect("strength", 2, 4, {"fightBonus":[1,0.1]})
 		str_eff.icon = "💪";
 		this.wielder.inflict_status_effect(str_eff)
 		this.wielder.statusMessage =  "drinks a strength potion";
@@ -179,7 +178,7 @@ class Ebiroll extends Food{
 	eat(){
 		if(Math.random()<0.5){
 			this.wielder.heal_damage(this.heal, this, "food")
-			this.wielder.heal += this.energy_heal;
+			this.wielder.energy += this.energy_heal;
 			this.wielder.statusMessage =  "eats the Ebiroll";
 		}
 		//eating a whole shrimp hurts you
