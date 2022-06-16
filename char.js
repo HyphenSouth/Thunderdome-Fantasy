@@ -902,6 +902,16 @@ class Char {
 					if(!this.offhand)
 						type_prob.push(["off", off_prob])
 					let loot_type=roll(type_prob);
+					let loot = get_random_item(this,loot_type)
+					if(loot){
+						this.equip_item(loot);
+						this.tblDiv.addClass("forage");
+						if(loot_type == 'wep')
+							this.lastAction = "forage weapon";
+						if(loot_type == 'off')
+							this.lastAction = "forage offhand";
+					}
+					/*
 					//roll weapon
 					if(loot_type=="wep"){
 						let weaponOdds = get_weapon_odds(this);
@@ -927,6 +937,7 @@ class Char {
 							this.tblDiv.addClass("forage");
 						}
 					}
+					*/
 					//restore health and energy
 					this.energy += roll_range(30,60)
 					this.health += roll_range(5,10);
@@ -1133,7 +1144,7 @@ class Char {
 	//check if player is supposed to die
 	limitCheck(){
 		if(this.weapon != ""){
-			if(this.weapon.wielder != this){
+			if(this.weapon.player != this){
 				this.weapon = "";
 			}
 			if(this.weapon.uses<=0){
@@ -1141,7 +1152,7 @@ class Char {
 			}
 		}
 		if(this.offhand != ""){
-			if(this.offhand.wielder != this){
+			if(this.offhand.player != this){
 				this.offhand = "";
 			}
 			if(this.offhand.uses<=0){
@@ -1212,7 +1223,7 @@ class Char {
 	}
 }
 
-class PlayerMod{
+class StatMod{
 	constructor(name){
 		this.name = name;
 		this.display_name = this.name[0].toUpperCase() + this.name.substring(1);
@@ -1229,20 +1240,48 @@ class PlayerMod{
 		this.intimidationBonus=0;
 		
 		this.moveSpeedB = 1;
+		
+		this.player = ''
 	}
 	calc_bonuses(){
-		this.wielder.sightRangeB += this.sightBonus;
-		this.wielder.visibilityB += this.visibilityB;
+		this.player.sightRangeB += this.sightBonus;
+		this.player.visibilityB += this.visibilityB;
 		
-		this.wielder.fightRangeB += this.rangeBonus;
-		this.wielder.fightDmgB *= this.fightBonus;
-		this.wielder.dmgReductionB *= this.dmgReductionB;
+		this.player.fightRangeB += this.rangeBonus;
+		this.player.fightDmgB *= this.fightBonus;
+		this.player.dmgReductionB *= this.dmgReductionB;
 		
-		this.wielder.peaceB += this.peaceBonus;
-		this.wielder.aggroB += this.aggroBonus;
-		this.wielder.intimidation += this.intimidationBonus;
+		this.player.peaceB += this.peaceBonus;
+		this.player.aggroB += this.aggroBonus;
+		this.player.intimidation += this.intimidationBonus;
 				
-		this.wielder.moveSpeedB *= this.moveSpeedB;
+		this.player.moveSpeedB *= this.moveSpeedB;
 	}
+	
+	effect(state, data={}){}
 	item_odds(prob,item_type){}
+	show_info(){}
+	
+	stat_html(){
+		let html=""
+		if(this.fightBonus != 1)
+			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
+		if(this.dmgReductionB != 1)
+			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
+		if(this.rangeBonus != 0)
+			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
+		if(this.sightBonus != 0)
+			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
+		if(this.visibilityB != 0)
+			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
+		if(this.peaceBonus != 0)
+			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
+		if(this.aggroBonus != 0)
+			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
+		if(this.intimidationBonus != 0)
+			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
+		if(this.moveSpeedB != 1)
+			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
+		return html;
+	}
 }

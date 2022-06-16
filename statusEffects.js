@@ -1,7 +1,11 @@
-class StatusEffect{
+function setEffIcon(icon){
+	// return '<img class="item_img" src="' + icon +'"></img>';
+	return '<img class="effect_img" src="'+icon+'"></img>';
+}
+
+class StatusEffect extends StatMod{
 	constructor(name, level, duration, data={}){
-		this.name=name;
-		this.display_name=this.name[0].toUpperCase() + this.name.substring(1);
+		super(name)
 		this.icon="❓";
 		this.player="";
 		this.level=level;
@@ -9,17 +13,6 @@ class StatusEffect{
 				
 		//base amount, level amount
 		this.data = data
-		
-		this.sightBonus = 0;
-		this.visibilityB = 0;
-		this.rangeBonus = 0;
-		this.peaceBonus = 0;
-		this.aggroBonus = 0;
-		this.intimidationBonus = 0;
-		
-		this.fightBonus = 1;
-		this.dmgReductionB = 1;
-		this.moveSpeedB = 1;
 		
 		this.update_data()
 	}
@@ -40,20 +33,6 @@ class StatusEffect{
 	afflict(player){
 		this.player=player;
 	}
-	
-	calc_bonuses(){
-		this.player.sightRangeB += this.sightBonus
-		this.player.visibilityB += this.visibilityB
-		this.player.fightRangeB += this.rangeBonus
-		this.player.peaceB += this.peaceBonus
-		this.player.aggroB += this.aggroBonus
-		this.player.intimidation += this.intimidationBonus
-												   
-		this.player.fightDmgB *= this.fightBonus
-		this.player.dmgReductionB *= this.dmgReductionB
-		this.player.moveSpeedB *= this.moveSpeedB
-	}
-	item_odds(prob,item_type){}
 	
 	stack_effect(eff){
 		if(eff.level >= this.level){
@@ -98,32 +77,10 @@ class StatusEffect{
 			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Duration:</b>"+this.duration+"</span><br>"+
 			"<span><b>Level:</b>"+this.level+"</span><br>"+
-			this.effect_html()+
+			this.stat_html()+
 		"</div>"
 		
 		$('#extra_info_container').html(status_info);
-	}
-	effect_html(){
-		let html=""
-		if(this.fightBonus != 1)
-			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
-		if(this.dmgReductionB != 1)
-			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
-		if(this.rangeBonus != 0)
-			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
-		if(this.sightBonus != 0)
-			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
-		if(this.visibilityB != 0)
-			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
-		if(this.peaceBonus != 0)
-			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
-		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
-		if(this.intimidationBonus != 0)
-			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
-		if(this.moveSpeedB != 1)
-			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
-		return html;
 	}
 }
 
@@ -221,13 +178,13 @@ class Trapped extends StatusEffect{
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
 			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Level:</b>"+this.level+"</span><br>"+
-			this.effect_html()+
+			this.stat_html()+
 		"</div>"
 		
 		$('#extra_info_container').html(status_info);
 	}
 	
-	effect_html(){
+	stat_html(){
 		let html = "<span><b>Turns Trapped:</b>"+this.turns_trapped+"</span><br>"
 		if(this.player.energy==0){
 			html = html+"<span><b>Dmg Range:</b>3"+"-"+(2 * this.level+3)+"</span><br>"
@@ -314,7 +271,7 @@ class Charm extends StatusEffect{
 				break;
 		}
 	}
-	effect_html(){
+	stat_html(){
 		let html = "<span><b>Target:</b>"+this.target.name+"</span><br>"
 		if(this.aggro){
 			html = html + "<span>Aggressive</span><br>"+
@@ -417,7 +374,7 @@ class Comfy extends Peace{
 		super(level, duration);
 		this.name="comfy"
 		this.display_name="Comfy"
-		this.icon='<img class="effect_img" src="./icons/campfire.png"></img>';
+		this.icon = setEffIcon('./icons/campfire.png');
 		this.heal_range = [Math.round(this.level/2), this.level*2]
 	}
 	
@@ -454,10 +411,10 @@ class Comfy extends Peace{
 				break;
 		}
 	}
-	effect_html(){
+	stat_html(){
 		let html = 
 			"<span><b>Heal Range:</b>"+this.heal_range[0]+"-"+this.heal_range[1]+"</span><br>"+
-			super.effect_html();
+			super.stat_html();
 		return html;
 	}	
 }
@@ -521,7 +478,7 @@ class DecoyEffect extends StatusEffect{
 				break;
 		}
 	}
-	effect_html(){
+	stat_html(){
 		let html = 
 			"<span><b>Decoy location:</b>("+ Math.round(this.decoy.x) + " , "+Math.round(this.decoy.y)+")</span><br>"+
 			"<span><b>Decoy duration:</b>"+ this.decoy.duration +"</span><br>"
@@ -605,12 +562,12 @@ class Frozen extends StatusEffect{
 		}
 	}
 	
-	effect_html(){
+	stat_html(){
 		let html = "<span><b>Dmg Range:</b>0"+"-"+(2 * this.level)+"</span><br>"
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}	
-		html = html + super.effect_html();
+		html = html + super.stat_html();
 		return html;
 	}
 }
@@ -618,7 +575,7 @@ class Frozen extends StatusEffect{
 class Skulled extends StatusEffect{
 	constructor(duration){
 		super("skulled",1,duration);
-		this.icon='<img class="effect_img" src="./icons/skulled.png"></img>';
+		this.icon = setEffIcon('./icons/skulled.png');
 		this.visibilityB = 50;
 		this.aggroBonus = 30;
 		this.intimidationBonus = 50;
@@ -683,12 +640,12 @@ class DotEffect extends StatusEffect{
 				break;
 		}
 	}
-	effect_html(){
+	stat_html(){
 		let html = "";		
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}
-		html = html + super.effect_html()
+		html = html + super.stat_html()
 		return html;
 	}
 }
@@ -739,9 +696,9 @@ class Burn extends DotEffect{
 				break;
 		}
 	}
-	effect_html(){
+	stat_html(){
 		let html = "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+(this.dmg_range[1]*this.level)+"</span><br>"
-		html = html+super.effect_html()
+		html = html+super.stat_html()
 		return html;
 	}
 }
@@ -774,15 +731,81 @@ class Smoke extends DotEffect{
 		this.update_data();
 	}
 
-	effect_html(){
+	stat_html(){
 		let html = 
 			"<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>"
-		html = html+super.effect_html()
+		html = html+super.stat_html()
 		return html;
 	}
 }
 
-
+//endless dot until successful save
+//gets stronger as bleed stacks
+class Bleed extends DotEffect{
+	constructor(level, owner){
+		super("bleed", level, 9999,owner, "none", "bleeds to death");
+		this.icon="🩸";
+		this.turns = 0;
+		this.dmg_range = [2,5]
+	}
+	
+	calc_dmg(){
+		return roll_range(this.dmg_range[0], this.dmg_range[1]);
+	}
+	
+	stack_effect(eff){
+		this.dmg_range[1] = this.dmg_range[1] + eff.level
+		this.level += eff.level;
+		if(eff.level >= this.level){
+			this.owner = eff.owner;
+		}
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case 'turnStart':
+				// deal damage
+				if(roll_range(0,100) < this.level * 1.5 + 70){
+					let dmg = this.calc_dmg();
+					this.player.take_damage(dmg, this, this.dmg_type);
+					this.turns++;
+					if(this.player.health<=0){
+						this.player.death = this.death_msg
+						if(this.owner)
+							this.owner.kills++;					
+					}
+					this.dmg_range[1]*=1.5;
+				}
+				else{
+					this.wear_off();
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	show_info(){
+		let status_info=
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
+			"<span><b>Level:</b>"+this.level+"</span><br>"+
+			this.stat_html()+
+		"</div>"
+		$('#extra_info_container').html(status_info);
+	}
+	
+	stat_html(){
+		let html = "<span><b>Dmg Range:</b>"+this.dmg_range[0] + "-" + this.dmg_range[1]+"</span><br>" + 
+		"<span>Bleeding for "+this.turns+" turns</span><br>"
+		if(this.owner instanceof Char){
+			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
+		}	
+		return html;
+	}	
+}
 class Poison extends DotEffect{
 	
 }

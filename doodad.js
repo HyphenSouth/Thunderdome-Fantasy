@@ -1,3 +1,8 @@
+function setDoodadIcon(icon){
+	// return '<img class="item_img" src="' + icon +'"></img>';
+	return '<img src="'+icon+'"></img>';
+}
+
 //any item that appears on the map
 class Doodad {
 	constructor(name, x,y,owner){
@@ -203,7 +208,7 @@ class FireEntity extends Doodad{
 class CampfireEntity extends Doodad{
 	constructor(x,y,owner){
 		super("campfire",x,y,owner);
-		this.icon = '<img src=./icons/campfire.png></img>';
+		this.icon = setDoodadIcon('./icons/campfire.png');
 		this.triggerRange = 24;
 		this.triggerChance=25;
 		this.ownerTriggerChance = 95;
@@ -234,7 +239,7 @@ class CampfireEntity extends Doodad{
 class MirrorEntity extends Doodad{
 	constructor(x,y,owner){
 		super("mirror",x,y,owner);
-		this.icon = '<img src=./icons/mirror_broken2.png></img>';
+		this.icon = setDoodadIcon('./icons/mirror_broken2.png');
 		this.triggerRange = 30;
 		this.triggerChance=40;
 	}
@@ -405,7 +410,7 @@ class FuckDuck extends MovableEntity{
 	constructor(x,y){
 		super("duck",x,y,"");
 		// this.icon = "🦆";
-		this.icon = '<img src=./icons/duck2.png></img>';
+		this.icon = setDoodadIcon('./icons/duck2.png');
 		this.explode_range = 100;
 		this.duration=99999;
 		

@@ -12,7 +12,7 @@ var lvlup_data = [100,300,1000,1200,500]
 class Hinamizawa extends StatusEffect{
 	constructor(level){
 		super("hinamizawa");
-		this.icon = '<img class="effect_img" src="./icons/lv1.png"></img>';
+		this.icon = setEffIcon('./icons/lv1.png');
 		this.duration=99999;
 		this.level = level;
 		this.rage = 0;		//points until the next level
@@ -82,7 +82,7 @@ class Hinamizawa extends StatusEffect{
 		this.rage = 0
 		if(this.level<5){
 			this.level = this.level+1
-			this.icon = '<img class="effect_img" src="./icons/lv'+this.level+'.png"></img>';
+			this.icon = setEffIcon('./icons/lv'+this.level+'.png');
 			this.next_lv = lvlup_data[this.level-1] + Math.round(players.length/10)*10;
 			this.display_name = "Hinamizawa Lv" + this.level
 		}
@@ -252,7 +252,7 @@ class Hinamizawa extends StatusEffect{
 			status_info = status_info + "<span><b>Damage Taken:x</b>"+this.dmgReductionB+"</span><br>"
 		}
 			
-		// status_info = status_info + this.effect_html()+"</div>"
+		// status_info = status_info + this.stat_html()+"</div>"
 		
 		$('#extra_info_container').html(status_info);
 	}	
@@ -291,7 +291,7 @@ class Hinamizawa extends StatusEffect{
 	get berserker status when rage maxes out
 	no longer get extra forage yields
 	*/	
-	effect_html(){
+	stat_html(){
 		// let html = "<span><b>Next level:</b>"+roundDec(this.rage)+"/"+(this.next_lv)+"</span><br>"
 		let html = 
 			"<span class='desc'>"

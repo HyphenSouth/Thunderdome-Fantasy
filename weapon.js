@@ -228,14 +228,14 @@ class Weapon extends Item{
 	}
 	
 	replace_wep(new_weapon){
-		this.wielder.weapon=new_weapon;
-		new_weapon.equip(this.wielder);
-		this.wielder=""
+		this.player.weapon=new_weapon;
+		new_weapon.equip(this.player);
+		this.player=""
 		return true;
 	}
 	
 	unequip(){
-		this.wielder="";
+		this.player="";
 		return true;
 	}
 
@@ -264,14 +264,14 @@ class Weapon extends Item{
 		let counter="";
 		switch(state){			
 			case "turnStart":
-				this.wielder.div.removeClass("sexSword");
+				this.player.div.removeClass("sexSword");
 				break;
 			case "death":
 				break;
 			//attacking before dealing damage to opponent
 			case "attack":
 				oP=data['opponent'];
-				this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
 				this.use();
 				break;
 			//after dealing damage
@@ -279,18 +279,18 @@ class Weapon extends Item{
 				break;
 			case "win":
 				oP=data['opponent'];
-				this.wielder.statusMessage = "kills " + oP.name;
+				this.player.statusMessage = "kills " + oP.name;
 				break;
 		}
 	}
     destroy(){
-		log_message(this.wielder.name +"'s " + this.name+" breaks");
-		this.wielder.weapon = "";   
+		log_message(this.player.name +"'s " + this.name+" breaks");
+		this.player.weapon = "";   
 		super.destroy();
 	}
 	
-	item_html(){
-		let html = super.item_html()+
+	stat_html(){
+		let html = super.stat_html()+
 		"<span><b>Dmg Type:</b>"+this.dmg_type+"</span><br>"
 		return html;
 	}
@@ -305,9 +305,9 @@ class Lance extends Weapon {
 			case "turnStart":
 				super.effect("turnStart", data);
 				if(roll([["die",1],["live",20000]]) == "die"){
-					this.wielder.health = 0;
-					this.wielder.death = "Died by their own spear";
-					log_message(this.wielder.name + ' killed by lance')
+					this.player.health = 0;
+					this.player.death = "Died by their own spear";
+					log_message(this.player.name + ' killed by lance')
 				}
 				break;
 			default:
@@ -316,8 +316,8 @@ class Lance extends Weapon {
 		}
 	}
 	
-	item_html(){
-		let html = super.item_html()+
+	stat_html(){
+		let html = super.stat_html()+
 		"<span><b>Luck:</b>F</span><br>"
 		return html;
 	}
@@ -342,21 +342,21 @@ class Katana extends Weapon {
 				oP=data['opponent'];
 				if((this.uses==1 && !this.crit)){
 					//guarenteed crit
-					this.wielder.fightDmgB *= this.super_crit_dmg;
+					this.player.fightDmgB *= this.super_crit_dmg;
 					this.crit=true;
-					this.wielder.statusMessage = "lands a SUPER critical hit on " + oP.name;
+					this.player.statusMessage = "lands a SUPER critical hit on " + oP.name;
 					log_message("SUPER CRIT")
 				}
 				else if(Math.random()<0.1){
 					//crit
-					this.wielder.fightDmgB *= this.crit_dmg;
+					this.player.fightDmgB *= this.crit_dmg;
 					this.crit=true;
-					this.wielder.statusMessage = "lands a critical hit on " + oP.name;
+					this.player.statusMessage = "lands a critical hit on " + oP.name;
 					log_message("CRIT")
 				}
 				else{
-					this.wielder.fightDmgB *= this.base_dmg;
-					this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+					this.player.fightDmgB *= this.base_dmg;
+					this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
 				}
 				this.use();
 				break;
@@ -366,7 +366,7 @@ class Katana extends Weapon {
 		}
 	}
 	
-	item_html(){
+	stat_html(){
 		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
 		"<span><b>Crit Dmg Bonus:</b>x"+this.crit_dmg+"</span><br>"+
 		
@@ -398,24 +398,24 @@ class Sniper extends Weapon {
 				oP=data['opponent'];
 				if(Math.random()<0.1){
 					//crit
-					this.wielder.fightDmgB *= this.crit_dmg;
-					this.wielder.statusMessage = "lands a headshot hit on " + oP.name;
+					this.player.fightDmgB *= this.crit_dmg;
+					this.player.statusMessage = "lands a headshot hit on " + oP.name;
 					log_message("CRIT")
 					this.crit = true;
 				}
 				else{
-					this.wielder.fightDmgB *= this.base_dmg;
-					this.wielder.statusMessage = "attacks " + oP.name + " with a sniper rifle";
+					this.player.fightDmgB *= this.base_dmg;
+					this.player.statusMessage = "attacks " + oP.name + " with a sniper rifle";
 				}
 				this.use();
 				break;
 			case "win":
 				oP=data['opponent'];
 				if(this.crit){
-					this.wielder.statusMessage = "turns " + oP.name + "'s brain into mush";
+					this.player.statusMessage = "turns " + oP.name + "'s brain into mush";
 				}
 				else{
-					this.wielder.statusMessage = "kills " + oP.name;
+					this.player.statusMessage = "kills " + oP.name;
 				}
 				break;
 			default:
@@ -424,7 +424,7 @@ class Sniper extends Weapon {
 		}
 	}
 	
-	item_html(){
+	stat_html(){
 		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
 		"<span><b>Headshot Dmg Bonus:</b>x"+this.crit_dmg+"</span><br>"+
 		"<span class='desc'>"+
@@ -453,14 +453,14 @@ class Shotgun extends Weapon {
 	calc_bonuses(){
 		super.calc_bonuses();
 		if(this.loaded_shells==0){
-			this.wielder.fightRangeB -= this.rangeBonus;
+			this.player.fightRangeB -= this.rangeBonus;
 		}
 	}
 	reload(){
 		if(this.uses>0){
-			log_message(this.wielder.name + " reloads");
-			this.wielder.statusMessage = "reloads their shotgun";
-			this.wielder.lastAction = "reload"
+			log_message(this.player.name + " reloads");
+			this.player.statusMessage = "reloads their shotgun";
+			this.player.lastAction = "reload"
 			this.loaded_shells=this.max_shells;
 			this.uses--;
 		}
@@ -482,12 +482,12 @@ class Shotgun extends Weapon {
 				break;
 			case "planAction":
 				if(this.loaded_shells==0 && Math.random()<0.5){
-					this.wielder.setPlannedAction("reloadShotgun", 2);
+					this.player.setPlannedAction("reloadShotgun", 2);
 				}
 				break;
 			case "reloadShotgun":
 				this.reload();
-				this.wielder.resetPlannedAction();
+				this.player.resetPlannedAction();
 				break;
 			case "attack":
 				oP=data['opponent'];
@@ -495,18 +495,18 @@ class Shotgun extends Weapon {
 				//loaded shotgun attack
 				if(this.loaded_shells>0){
 					log_message("SHOTGUN ATTACK")
-					this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+					this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
 					//calculate damage based on distance
 					// currently linear scaling
-					let target_dist = playerDist(this.wielder, oP);
+					let target_dist = playerDist(this.player, oP);
 					let dmg_bonus = ((this.dmg_range[0] - this.dmg_range[1])/this.max_range) * target_dist + this.dmg_range[1]
 					if(target_dist<=this.max_range*0.1){
 						dmg_bonus += 0.5;
-						this.wielder.statusMessage = "hits " + oP.name +" at point blank with a shotgun";
+						this.player.statusMessage = "hits " + oP.name +" at point blank with a shotgun";
 					}
 					if(target_dist>=this.max_range*0.9){
 						dmg_bonus=this.dmg_range[0]
-						this.wielder.statusMessage = "barely hits " + oP.name +" with a shotgun";
+						this.player.statusMessage = "barely hits " + oP.name +" with a shotgun";
 					}
 					//collateral 
 					if(target_dist>this.max_range*0.6){
@@ -515,7 +515,7 @@ class Shotgun extends Weapon {
 						let temp_wep = this;
 						nearby_lst.forEach(function(unfortunate_victim,index){
 							//cannot hit wielder
-							if(unfortunate_victim != temp_wep.wielder && unfortunate_victim.health>0 && Math.random()<0.5){
+							if(unfortunate_victim != temp_wep.player && unfortunate_victim.health>0 && Math.random()<0.5){
 								log_message("stray hit " + unfortunate_victim.name);
 								//calculate damage based on distance
 								let dmg = (1.1 - target_dist/temp_wep.max_range) * 3;
@@ -526,13 +526,13 @@ class Shotgun extends Weapon {
 								unfortunate_victim.take_damage(dmg, temp_wep.player, temp_wep.dmg_type);
 								//on hit
 								if(unfortunate_victim.health <=0){
-									unfortunate_victim.death="killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun";
-									pushMessage(unfortunate_victim, "killed by a stray pellet from "+temp_wep.wielder.name+"'s shotgun");
-									temp_wep.wielder.kills++;
+									unfortunate_victim.death="killed by a stray pellet from "+temp_wep.player.name+"'s shotgun";
+									pushMessage(unfortunate_victim, "killed by a stray pellet from "+temp_wep.player.name+"'s shotgun");
+									temp_wep.player.kills++;
 								}
 								else{
-									unfortunate_victim.statusMessage="hit by a stray pellet from "+temp_wep.wielder.name+"'s shotgun";
-									pushMessage(unfortunate_victim, "hit by a stray pellet from "+temp_wep.wielder.name+"'s shotgun");
+									unfortunate_victim.statusMessage="hit by a stray pellet from "+temp_wep.player.name+"'s shotgun";
+									pushMessage(unfortunate_victim, "hit by a stray pellet from "+temp_wep.player.name+"'s shotgun");
 								}
 								
 								unfortunate_victim.finishedAction = true;
@@ -541,18 +541,18 @@ class Shotgun extends Weapon {
 						});		
 					}
 					log_message(dmg_bonus)
-					this.wielder.fightDmgB *= dmg_bonus;
+					this.player.fightDmgB *= dmg_bonus;
 					this.loaded_shells--;				
 				}
 				else if(counter && Math.random()<0.2){
 					//20% chance of reload instead of fighting back
 					this.reload();
-					this.wielder.fightDmgB *= 0;
-					this.wielder.statusMessage = "reloads their shotgun instead of fighting back";
+					this.player.fightDmgB *= 0;
+					this.player.statusMessage = "reloads their shotgun instead of fighting back";
 				}
 				else{
 					//no reload
-					this.wielder.statusMessage = "attacks " + oP.name + " with an empty shotgun";
+					this.player.statusMessage = "attacks " + oP.name + " with an empty shotgun";
 				}
 				break;
 			default:
@@ -561,7 +561,7 @@ class Shotgun extends Weapon {
 		}
 	}
 	
-	item_html(){
+	stat_html(){
 		let html = 	"<span><b>Shells Loaded:</b>"+this.loaded_shells+"</span><br>"+
 		"<span><b>Dmg Range:</b>x"+(this.dmg_range[0])+"-x"+(this.dmg_range[1])+"</span><br>"+
 		"<span><b>Max Range:</b>"+this.max_range+"</span><br>"+
@@ -586,16 +586,16 @@ class Nanasatsu extends Weapon {
 	equip(wielder){
 		super.equip(wielder);
 		sexSword = false;
-		this.wielder.statusMessage = "<span style='color:red'>found SEX SWORD</span>";
+		this.player.statusMessage = "<span style='color:red'>found SEX SWORD</span>";
 		if(this.prev_owners==0){
-			pushMessage(this.wielder,this.wielder.name +  "<span style='color:red'> found SEX SWORD</span>");
+			pushMessage(this.player,this.player.name +  "<span style='color:red'> found SEX SWORD</span>");
 		}
 		else{
 			if(this.kills<5){
-				pushMessage(this.wielder ,this.wielder.name+ "<span style='color:red'> takes SEX SWORD</span>");
+				pushMessage(this.player ,this.player.name+ "<span style='color:red'> takes SEX SWORD</span>");
 			}
 			else{
-				pushMessage(this.wielder , this.wielder.name + "<span style='color:red'> CONTINUES THE SLAUGHTER</span>");
+				pushMessage(this.player , this.player.name + "<span style='color:red'> CONTINUES THE SLAUGHTER</span>");
 			}				
 		}
 		return true;
@@ -609,32 +609,32 @@ class Nanasatsu extends Weapon {
 		switch(state){
 			//turn start
 			case "turnStart":
-				this.wielder.div.addClass("sexSword");
+				this.player.div.addClass("sexSword");
 				//lose health
-				this.wielder.health -= (this.fightBonus - 1.5 + this.kills);
-				//this.wielder.health -= (this.fightBonus +2000);
+				this.player.health -= (this.fightBonus - 1.5 + this.kills);
+				//this.player.health -= (this.fightBonus +2000);
 				//death message
-				if(this.wielder.health <= 0){
-					this.wielder.death = "Succumbed to SEX SWORD";
-					log_message(this.wielder.name + ' killed by sword')
+				if(this.player.health <= 0){
+					this.player.death = "Succumbed to SEX SWORD";
+					log_message(this.player.name + ' killed by sword')
 				}
 				break;
 			case "attack":
 				oP=data['opponent'];
-				this.wielder.statusMessage = "attacks " + oP.name + " with SEX SWORD";
+				this.player.statusMessage = "attacks " + oP.name + " with SEX SWORD";
 				break;
 			//dealing damage
 			case "dealDmg":
 				oP=data['opponent'];
 				dmg=data['damage'];			
 				//heal on hit
-				log_message(this.wielder.name + " SEX SWORD attack")
-				// log_message(this.wielder.health + " before");
+				log_message(this.player.name + " SEX SWORD attack")
+				// log_message(this.player.health + " before");
 				log_message(this.fightBonus + " before");
 				log_message(dmg);
-				this.wielder.health += Math.pow(dmg,0.66);
+				this.player.health += Math.pow(dmg,0.66);
 				this.fightBonus += dmg/1000;
-				// log_message(this.wielder.health + " after");
+				// log_message(this.player.health + " after");
 				log_message(this.fightBonus + " after");
 				break;
 			//killing an opponent
@@ -642,7 +642,7 @@ class Nanasatsu extends Weapon {
 				this.kills++;  
 				this.fightBonus += 0.25;
 				oP=data['opponent'];
-				this.wielder.statusMessage = "kills " + oP.name+" and gets stronger";
+				this.player.statusMessage = "kills " + oP.name+" and gets stronger";
 				break;
 			//killed by opponent
 			case "lose":
@@ -650,8 +650,8 @@ class Nanasatsu extends Weapon {
 				//transfer ownership to killer if killer is charmed
 				if(Math.random() > 0.1){
 					if(oP.get_status_effect("charm")){
-						if(oP.get_status_effect("charm").target==this.wielder){
-							this.wielder.unequip_item("wep");
+						if(oP.get_status_effect("charm").target==this.player){
+							this.player.unequip_item("wep");
 							this.prev_owners++;
 							if(oP.equip_item(this)){
 								log_message("sex sword is passed onto " + oP.name);
@@ -664,7 +664,7 @@ class Nanasatsu extends Weapon {
 			case "opAware":
 				oP=data['opponent'];
 				if (Math.random() > 0.3){
-					let temp_charm = new Charm(this.wielder,10);
+					let temp_charm = new Charm(this.player,10);
 					temp_charm.aggro=true;
 					temp_charm.follow_message = "following SEX SWORD"
 					oP.inflict_status_effect(temp_charm);
@@ -687,7 +687,7 @@ class Nanasatsu extends Weapon {
 		let item_info = 
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"	+
 			"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"+
 			"<span><b>Self damage:</b>"+roundDec(this.fightBonus - 1.5 + this.kills)+"hp</span><br>"+
 			"<span><b>Kills:</b>"+this.kills+"</span><br>"+
@@ -709,7 +709,7 @@ class Spicy extends Weapon {
 	equip(wielder){
 		super.equip(wielder);
 		spicy = false;
-		this.wielder.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
+		this.player.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
 		return true;
 	}	
 	replace_wep(new_weapon){
@@ -725,7 +725,7 @@ class Spicy extends Weapon {
 				if(Math.random()>0.95){
 					let f = new Burn(1,2,"")
 					f.death_msg = "couldn't handle the ol' spicy shinkai makai"
-					this.wielder.inflict_status_effect(f)
+					this.player.inflict_status_effect(f)
 				}
 				break;
 			case "attack":
@@ -733,19 +733,19 @@ class Spicy extends Weapon {
 				//set self on fire
 				let tP_fire = new Burn(2,1,"")
 				tP_fire.death_msg = "couldn't handle the ol' spicy shinkai makai"
-				this.wielder.inflict_status_effect(tP_fire)
+				this.player.inflict_status_effect(tP_fire)
 				//set opponent on fire
-				let oP_fire = new Burn(5,3,this.wielder)
+				let oP_fire = new Burn(5,3,this.player)
 				oP.inflict_status_effect(oP_fire)
 				
-				this.wielder.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
+				this.player.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
 				break;
 			case "newStatus":
 				//charm immunity
 				let eff = data["eff"]
 				if(eff.name == "charm"){
-					this.wielder.remove_status_effect(eff);
-					log_message(this.wielder.name +" cannot be charmed")
+					this.player.remove_status_effect(eff);
+					log_message(this.player.name +" cannot be charmed")
 				}
 				break;
 			default:
@@ -758,7 +758,7 @@ class Spicy extends Weapon {
 		let item_info = 
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"	+
 			"<span><b>Dmg Bonus:</b>x"+this.fightBonus+"</span><br>"+
 			"<span class='desc'>"+
 				"<span>Inflicts burn on user and opponent</span><br>"+	
@@ -777,16 +777,16 @@ class Clang extends Weapon {
 	}
 	
 	equip(wielder){
-		this.wielder = wielder;
+		this.player = wielder;
 		this.calc_bonuses();
-		this.wielder.statusMessage =  "goes berserk";
+		this.player.statusMessage =  "goes berserk";
 		let never = new Berserk(2,10);
-		this.wielder.inflict_status_effect(never);
+		this.player.inflict_status_effect(never);
 		return true;
 	}	
 	
 	calc_bonuses(){
-		this.fightBonus = this.fightBonusBase* (1+this.wielder.aggroB/1000)
+		this.fightBonus = this.fightBonusBase* (1+this.player.aggroB/1000)
 		super.calc_bonuses()
 	}
 	
@@ -794,34 +794,34 @@ class Clang extends Weapon {
 		let oP = "";
 		switch(state){
 			case "turnStart":
-				if(this.wielder.get_status_effect("berserk")=="" && Math.random()>0.6){
+				if(this.player.get_status_effect("berserk")=="" && Math.random()>0.6){
 					let never = new Berserk(2,5);
-					this.wielder.inflict_status_effect(never);	
+					this.player.inflict_status_effect(never);	
 				}
 				break;
 			case "attack":
 				// super.effect("attack", data);
 				oP=data['opponent'];
-				if(this.wielder.get_status_effect("berserk")!=""){
-					this.wielder.statusMessage = "goes BERSERK on " + oP.name;
+				if(this.player.get_status_effect("berserk")!=""){
+					this.player.statusMessage = "goes BERSERK on " + oP.name;
 				}
 				else{
-					this.wielder.statusMessage = "CLANGS " + oP.name;
+					this.player.statusMessage = "CLANGS " + oP.name;
 				}
 				this.use();
 				break;
 			case "win":
 				oP=data['opponent'];
-				this.wielder.statusMessage = "CLANGS " + oP.name+" to death";
-				oP.death = "CLANGED to death by " + this.wielder.name;
+				this.player.statusMessage = "CLANGS " + oP.name+" to death";
+				oP.death = "CLANGED to death by " + this.player.name;
 				break;
 			default:
 				super.effect(state, data);
 				break;
 		}
 	}
-	item_html(){
-		let html = 	super.item_html()+
+	stat_html(){
+		let html = 	super.stat_html()+
 		
 		"<span class='desc'>"+
 			"<span>Causes user to go berserk</span><br>"+	
@@ -843,27 +843,27 @@ class Flamethrower extends Weapon{
 			case "attack":
 				// super.effect("attack", data);
 				oP = data['opponent']
-				this.wielder.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
 				//set opponent on fire
-				let oP_fire = new Burn(3,5,this.wielder)
+				let oP_fire = new Burn(3,5,this.player)
 				oP.inflict_status_effect(oP_fire)
 				
 				//aoe fire
-				let aoe_radius = Math.min(playerDist(this.wielder, oP), this.rangeBonus);
+				let aoe_radius = Math.min(playerDist(this.player, oP), this.rangeBonus);
 				//get nearby opponents
 				let nearby_lst = oP.nearbyPlayers(aoe_radius);
 				let temp_wep = this;
 				nearby_lst.forEach(function(unfortunate_victim,index){
 					//cannot hit wielder
-					if(unfortunate_victim != temp_wep.wielder && Math.random()<0.8){
+					if(unfortunate_victim != temp_wep.player && Math.random()<0.8){
 						log_message("stray fire " + unfortunate_victim.name);
-						let aoe_fire = new Burn(1,2,temp_wep.wielder)
+						let aoe_fire = new Burn(1,2,temp_wep.player)
 						unfortunate_victim.inflict_status_effect(aoe_fire)
 					}
 				});	
 				//set ground on fire
 				if(getTerrainType(oP.x, oP.y) !="water" && Math.random()<0.5){
-					let ground_fire = new FireEntity(oP.x, oP.y,this.wielder);
+					let ground_fire = new FireEntity(oP.x, oP.y,this.player);
 					ground_fire.draw();
 					doodads.push(ground_fire)
 				}
@@ -874,8 +874,8 @@ class Flamethrower extends Weapon{
 				break;
 		}
 	}
-	item_html(){
-		let html = 	super.item_html()+
+	stat_html(){
+		let html = 	super.stat_html()+
 		"<span class='desc'>"+
 			"<span>Sets opponents on fire</span><br>"+	
 			"<span>Sets nearby players on fire</span><br>"+
@@ -915,7 +915,7 @@ class Ancient extends Weapon{
 	
 	equip(wielder){
 		super.equip(wielder);
-		this.wielder.statusMessage = "found an ancient staff";
+		this.player.statusMessage = "found an ancient staff";
 		return true;
 	}	
 	effect(state, data={}){
@@ -923,7 +923,7 @@ class Ancient extends Weapon{
 		switch(state){
 			case "attack":
 				if(data['counter']==false){
-					this.wielder.inflict_status_effect(new Skulled(3));
+					this.player.inflict_status_effect(new Skulled(3));
 				}
 				
 				this.last_spell = ['','']
@@ -933,18 +933,18 @@ class Ancient extends Weapon{
 				let cost = 0; 
 				//insufficient runes
 				if(this.uses < this.cost_data['smoke']){
-					this.wielder.fightDmgB=0;
-					this.wielder.statusMessage = "does not have enough runes to attack " +oP.name;
+					this.player.fightDmgB=0;
+					this.player.statusMessage = "does not have enough runes to attack " +oP.name;
 					return
 				}
 				
 				//choose spell type
 				let spell_lst = [['smoke',1]]
 				if(this.uses >= this.cost_data['ice']){
-					spell_lst = [['smoke',8], ['shadow',5],['blood',5+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))],['ice',15]]
+					spell_lst = [['smoke',8], ['shadow',5],['blood',5+ Math.round(40*(1-(this.player.health/this.player.maxHealth)))],['ice',15]]
 				}
 				else if(this.uses >= this.cost_data['blood']){
-					spell_lst = [['smoke',10], ['shadow',10],['blood',10+ Math.round(40*(1-(this.wielder.health/this.wielder.maxHealth)))]]
+					spell_lst = [['smoke',10], ['shadow',10],['blood',10+ Math.round(40*(1-(this.player.health/this.player.maxHealth)))]]
 				}
 				else if(this.uses >= this.cost_data['shadow']){
 					spell_lst = [['smoke',10], ['shadow',20]]
@@ -966,61 +966,61 @@ class Ancient extends Weapon{
 				log_message(spell)	
 				
 				//cast
-				this.wielder.fightDmgB *= this.dmg_data[spell[0]]
+				this.player.fightDmgB *= this.dmg_data[spell[0]]
 				this.last_spell = spell
 				//spell effects
 				switch(spell[0]){
 					case 'smoke':
-						oP.inflict_status_effect(new Smoke(4, 5, this.wielder))
+						oP.inflict_status_effect(new Smoke(4, 5, this.player))
 						break;
 					case 'shadow':
-						let temp_blind = new StatusEffect('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.wielder)
+						let temp_blind = new StatusEffect('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.player)
 						temp_blind.icon = "👁️"
 						oP.inflict_status_effect(temp_blind)
 						break;
 					case 'ice':
-						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.wielder))
+						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.player))
 						break;
 				}
 				//aoe attack
 				if(spell[1]=='barrage'){
-					this.wielder.fightDmgB *= this.aoe_dmg
+					this.player.fightDmgB *= this.aoe_dmg
 					let hits = 0;
 					for(let i=0; i<nearby_lst.length; i++){
 						let dmg = 0
 						let aoe_target = nearby_lst[i]
-						if(aoe_target!=this.wielder && aoe_target.health >0 && Math.random()<0.6){
+						if(aoe_target!=this.player && aoe_target.health >0 && Math.random()<0.6){
 							switch(spell[0]){
 								case 'smoke':
 									dmg = roll_range(1, 5)
-									oP.inflict_status_effect(new Smoke(2, 5, this.wielder))
+									oP.inflict_status_effect(new Smoke(2, 5, this.player))
 									break;
 								case 'shadow':
 									dmg = roll_range(1, 10)
-									let temp_blind = new StatusEffect('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.wielder)
+									let temp_blind = new StatusEffect('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.player)
 									temp_blind.icon = "👁️"
 									aoe_target.inflict_status_effect(temp_blind)
 									break;
 								case 'blood':
 									dmg = roll_range(1, 8)
-									log_message(this.wielder.name + " BLOOD aoe attack")
-									this.wielder.health += Math.pow(dmg,0.66);
+									log_message(this.player.name + " BLOOD aoe attack")
+									this.player.health += Math.pow(dmg,0.66);
 									break;
 								case 'ice':
 									dmg = roll_range(1, 15)		
-									aoe_target.inflict_status_effect(new Frozen(1,roll_range(1,2), this.wielder))
+									aoe_target.inflict_status_effect(new Frozen(1,roll_range(1,2), this.player))
 									break;
 							}
-							aoe_target.take_damage(dmg, this.wielder, 'magic')
+							aoe_target.take_damage(dmg, this.player, 'magic')
 							//on hit
 							if(aoe_target.health <=0){
-								aoe_target.death="killed by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1];
-								pushMessage(aoe_target, "killed by  "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]);
-								this.wielder.kills++;
+								aoe_target.death="killed by "+this.player.name+"'s "+ spell[0] + " " + spell[1];
+								pushMessage(aoe_target, "killed by  "+this.player.name+"'s "+ spell[0] + " " + spell[1]);
+								this.player.kills++;
 							}
 							else{
-								aoe_target.statusMessage = "hit by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]
-								pushMessage(aoe_target, "hit by "+this.wielder.name+"'s "+ spell[0] + " " + spell[1]);
+								aoe_target.statusMessage = "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]
+								pushMessage(aoe_target, "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]);
 							}
 							aoe_target.finishedAction = true;
 							aoe_target.resetPlannedAction();
@@ -1032,7 +1032,7 @@ class Ancient extends Weapon{
 					}
 				}
 				
-				this.wielder.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
+				this.player.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
 				this.uses = this.uses-cost
 				this.use();
 				break;
@@ -1041,11 +1041,11 @@ class Ancient extends Weapon{
 				let dmg=data['damage'];			
 				if(this.last_spell[0]=='blood'){
 					//heal on hit
-					log_message(this.wielder.name + " BLOOD attack")
-					// log_message(this.wielder.health + " before");
+					log_message(this.player.name + " BLOOD attack")
+					// log_message(this.player.health + " before");
 					log_message(dmg);
-					this.wielder.health += Math.pow(dmg,0.66);
-					// log_message(this.wielder.health + " after");
+					this.player.health += Math.pow(dmg,0.66);
+					// log_message(this.player.health + " after");
 				}
 				break;
 			default:
@@ -1058,17 +1058,17 @@ class Ancient extends Weapon{
 		let item_info = 
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Runes:</b>"+this.uses+"</span><br>"+
-			this.item_html()+
+			this.stat_html()+
 		"</div>"
 		
 				
 		$('#extra_info_container').html(item_info);
 	}
 
-	item_html(){
-		let html = super.item_html()+
+	stat_html(){
+		let html = super.stat_html()+
 		"<span class='desc'>"+
 			"<span>Casts one of four spells</span><br>"+	
 		"</span>"

@@ -131,13 +131,13 @@ class Offhand extends Item{
 	}
 	
 	replace_offhand(new_item){
-		this.wielder.offhand=new_item;
-		new_item.equip(this.wielder);
-		this.wielder=""
+		this.player.offhand=new_item;
+		new_item.equip(this.player);
+		this.player=""
 		return true;
 	}
 	unequip(){
-		this.wielder="";
+		this.player="";
 		return true;
 	}
 
@@ -163,7 +163,7 @@ class Offhand extends Item{
 	*/		
 	effect(state, data={}){
 		if(this.useStates.includes(state)){
-			log_message(this.wielder.name +" uses "+this.name)
+			log_message(this.player.name +" uses "+this.name)
 			this.use();
 		}
 		let oP="";
@@ -176,8 +176,8 @@ class Offhand extends Item{
 		}
 	}
     destroy(){
-		log_message(this.wielder.name +"'s " + this.name+" breaks");
-		this.wielder.offhand = "";   
+		log_message(this.player.name +"'s " + this.name+" breaks");
+		this.player.offhand = "";   
 		super.destroy();
 	}
 	
@@ -188,12 +188,12 @@ class Bomb extends Offhand {
 		super("bomb");
 	}	
 	use(){
-		let tempBomb = new BombEntity(this.wielder.x, this.wielder.y, this.wielder);
+		let tempBomb = new BombEntity(this.player.x, this.player.y, this.player);
 		tempBomb.draw();
 		doodads.push(tempBomb);
 		this.destroy()
-		// this.wielder.offhand="";
-		// this.wielder="";
+		// this.player.offhand="";
+		// this.player="";
 	}
 	
 	effect(state, data={}){
@@ -204,31 +204,31 @@ class Bomb extends Offhand {
 			case "defend":
 				if(Math.random()<0.1){
 					oP=data["opponent"];
-					pushMessage(this.wielder, this.wielder.name + "'s bomb is knocked out of their hands by "+oP.name);
-					tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
+					pushMessage(this.player, this.player.name + "'s bomb is knocked out of their hands by "+oP.name);
+					tempBomb = new BombEntity(this.player.x, this.player.y,this.player);
 					tempBomb.duration=1;
 					tempBomb.draw();
 					doodads.push(tempBomb);
-					this.wielder.offhand="";
-					this.wielder="";
+					this.player.offhand="";
+					this.player="";
 				}				
 				break;
 			case "endMove":
 				if(roll([['use',5],['notuse',100]]) == 'use'){
-					log_message(this.wielder.name + " plants a bomb");
-					pushMessage(this.wielder, this.wielder.name + " plants a bomb")
+					log_message(this.player.name + " plants a bomb");
+					pushMessage(this.player, this.player.name + " plants a bomb")
 					this.use();
 				}
 				break;
 			case "death":
 				//drop bomb on death
-				pushMessage(this.wielder, this.wielder.name + " drops their bomb as they die");
-				tempBomb = new BombEntity(this.wielder.x, this.wielder.y,this.wielder);
+				pushMessage(this.player, this.player.name + " drops their bomb as they die");
+				tempBomb = new BombEntity(this.player.x, this.player.y,this.player);
 				tempBomb.draw();
 				tempBomb.trigger("");
 				doodads.push(tempBomb);
-				this.wielder.offhand="";				
-				this.wielder="";			
+				this.player.offhand="";				
+				this.player="";			
 				break;
 			default:
 				super.effect(state, data)
@@ -242,11 +242,11 @@ class Trap extends Offhand {
 		super("trap");
 	}
 	use(){
-		let tempTrap = new TrapEntity(this.wielder.x, this.wielder.y,this.wielder);
+		let tempTrap = new TrapEntity(this.player.x, this.player.y,this.player);
 		tempTrap.draw();
 		doodads.push(tempTrap);
-		// this.wielder.offhand="";
-		// this.wielder="";
+		// this.player.offhand="";
+		// this.player="";
 		this.destroy();
 	}
 	effect(state, data={}){
@@ -254,8 +254,8 @@ class Trap extends Offhand {
 		switch(state){		
 			case "endMove":
 				if(roll([['use',10],['notuse',100]]) == 'use'){
-					log_message(this.wielder.name + " sets a trap");
-					pushMessage(this.wielder, this.wielder.name + " sets a trap")
+					log_message(this.player.name + " sets a trap");
+					pushMessage(this.player, this.player.name + " sets a trap")
 					this.use();
 				}
 				break;
@@ -286,12 +286,12 @@ class Recoil extends Offhand{
 						recoil_dmg=this.uses;
 					}
 					oP.take_damage(recoil_dmg, this, "recoil")
-					data.fightMsg.events.push(oP.name + " takes "+roundDec(recoil_dmg)+ " recoil damage from " + this.wielder.name);
-					log_message(this.wielder.name + " recoil on " + oP.name + " "+ recoil_dmg);
+					data.fightMsg.events.push(oP.name + " takes "+roundDec(recoil_dmg)+ " recoil damage from " + this.player.name);
+					log_message(this.player.name + " recoil on " + oP.name + " "+ recoil_dmg);
 					if(oP.health<=0){
-						oP.death = "killed by recoil damage from " + this.wielder.name;
-						// pushMessage(oP, oP.name + " killed by recoil damage from " + this.wielder.name);
-						this.wielder.kills++;
+						oP.death = "killed by recoil damage from " + this.player.name;
+						// pushMessage(oP, oP.name + " killed by recoil damage from " + this.player.name);
+						this.player.kills++;
 					}
 					this.uses = this.uses - recoil_dmg;
 					if(this.uses<=0)
@@ -308,7 +308,7 @@ class Recoil extends Offhand{
 		let item_info = 
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"	+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"	+
 			"<span><b>Uses:</b>"+roundDec(this.uses)+"hp</span><br>"+
 			"<span><b>Dmg Reduction:</b>x"+this.dmgReductionB+"</span><br>"+
 			
@@ -330,24 +330,24 @@ class Vape extends Offhand{
 		switch(state){
 			case "playerEscape":
 				if(decoy_count<max_decoys){
-					this.wielder.statusMessage="vapes and escapes"
-					let tempDecoy = new DecoyEntity(this.wielder.x, this.wielder.y, this.wielder)
-					tempDecoy.name = this.wielder.name+"'s vape illusion";
+					this.player.statusMessage="vapes and escapes"
+					let tempDecoy = new DecoyEntity(this.player.x, this.player.y, this.player)
+					tempDecoy.name = this.player.name+"'s vape illusion";
 					tempDecoy.attack_func = function(attacker, tD){
 						if(Math.random()<2){
 							attacker.statusMessage = "destroys "+ tD.name;
 							tD.icon = "☁️";
 							tD.active=false
-							// let choke_eff = new Buff("vaped", 2, 8, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
-							let choke_eff = new Smoke(2, 4, this.wielder)
+							// let choke_eff = new Buff("vaped", 2, 8, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.player)
+							let choke_eff = new Smoke(2, 4, this.player)
 							choke_eff.icon = "☁️";
 							choke_eff.display_name = "Vaped"
 							attacker.inflict_status_effect(choke_eff)
 							players.forEach(function(oP,index){
 								let dist = hypD(oP.x - tD.x,oP.y - tD.y);
 								if(dist <= 50 && oP.health>0 && oP!=attacker && oP!=tD.owner){
-									// let choke_eff = new Buff("vaped", 1, 5, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.wielder)
-									let choke_eff = new Smoke(1, 3, tD.wielder)
+									// let choke_eff = new Buff("vaped", 1, 5, {"fightBonus":[1,-0.1],"moveSpeedB":[1,-0.1]},false, tD.player)
+									let choke_eff = new Smoke(1, 3, tD.player)
 									choke_eff.icon = "☁️";
 									choke_eff.display_name = "Vaped"
 									oP.inflict_status_effect(choke_eff)
@@ -365,7 +365,7 @@ class Vape extends Offhand{
 				break;
 			case "turnEnd":
 				//apply peace effect to nearby players
-				let nearby_lst = this.wielder.nearbyPlayers(this.vape_radius);
+				let nearby_lst = this.player.nearbyPlayers(this.vape_radius);
 				nearby_lst.forEach(function(oP,index){
 					let tempEff = new Peace(2, 2);
 					oP.inflict_status_effect(tempEff);
@@ -383,7 +383,7 @@ class Campfire extends Offhand{
 		super("campfire");
 	}
 	use(){
-		let tempCamp = new CampfireEntity(this.wielder.x, this.wielder.y,this.wielder);
+		let tempCamp = new CampfireEntity(this.player.x, this.player.y,this.player);
 		tempCamp.duration = roll_range(8,12);
 		tempCamp.draw();
 		doodads.push(tempCamp);
@@ -393,9 +393,9 @@ class Campfire extends Offhand{
 		let oP="";
 		switch(state){
 			case "endMove":
-				if(getTerrain(this.wielder.x, this.wielder.y).danger==0&&(hour >= 20 || hour < 5)){
+				if(getTerrain(this.player.x, this.player.y).danger==0&&(hour >= 20 || hour < 5)){
 					if(roll([['use',1],['notuse',2]]) == 'use'){
-						pushMessage(this.wielder, this.wielder.name + " sets a campfire")
+						pushMessage(this.player, this.player.name + " sets a campfire")
 						this.use();
 					}	
 				}
@@ -441,7 +441,7 @@ class Mirror extends Offhand{
 				let target_id = roll_range(0,players.length-1)
 				let target_player = players[target_id]
 				//if self is selected
-				if(target_player==this.wielder && players.length>1){
+				if(target_player==this.player && players.length>1){
 					if(target_id==0){
 						target_player = players[target_id+1]
 					}
@@ -494,12 +494,12 @@ class Mirror extends Offhand{
 		
 		//check if user can choose target
 		
-		if(this.wielder.has_attr('magic')){
+		if(this.player.has_attr('magic')){
 			choose=true;
 		}
 		//sword force attack if user cannot choose
-		if(this.wielder.weapon){
-			if(this.wielder.weapon.name=="nanasatsu" && !choose){
+		if(this.player.weapon){
+			if(this.player.weapon.name=="nanasatsu" && !choose){
 				tele_goal="attack"
 				choose = true
 			}
@@ -511,28 +511,28 @@ class Mirror extends Offhand{
 		
 		//oob coords
 		if(!inBoundsCheck(tele_coords[0], tele_coords[1])){
-			this.wielder.health=0
-			this.wielder.death = "teleports into space and dies"
-			this.wielder.lastAction = "teleport"
+			this.player.health=0
+			this.player.death = "teleports into space and dies"
+			this.player.lastAction = "teleport"
 		}
 		else{
 			//teleport
-			this.wielder.statusMessage = "teleports using their scrying mirror"
+			this.player.statusMessage = "teleports using their scrying mirror"
 			if(tele_goal=="escape"){
-				log_message(this.wielder.name +" tele escape")
-				if(choose){this.wielder.statusMessage = "teleports to safer ground"}
-				else{this.wielder.statusMessage = "teleports away from danger"}
+				log_message(this.player.name +" tele escape")
+				if(choose){this.player.statusMessage = "teleports to safer ground"}
+				else{this.player.statusMessage = "teleports away from danger"}
 			}
 			else if(tele_goal=="attack"){
-				log_message(this.wielder.name +" tele attack")
-				if(choose){this.wielder.statusMessage = "teleports to " + this.target.name}
-				else{this.wielder.statusMessage = "teleports to hunt for prey"}
+				log_message(this.player.name +" tele attack")
+				if(choose){this.player.statusMessage = "teleports to " + this.target.name}
+				else{this.player.statusMessage = "teleports to hunt for prey"}
 			}
-			this.wielder.lastAction = "teleport"			
+			this.player.lastAction = "teleport"			
 		}
-		this.wielder.moveToCoords(tele_coords[0], tele_coords[1]);
-		this.wielder.resetPlannedAction()
-		this.wielder.finishedAction = true;
+		this.player.moveToCoords(tele_coords[0], tele_coords[1]);
+		this.player.resetPlannedAction()
+		this.player.finishedAction = true;
 		this.use();
 	}
 
@@ -541,33 +541,33 @@ class Mirror extends Offhand{
 			case "defend":
 				if(this.broken == false && Math.random()<0.8){
 					let oP=data["opponent"];
-					pushMessage(this.wielder, oP.name + " breaks "+this.wielder.name+"'s scrying mirror");
+					pushMessage(this.player, oP.name + " breaks "+this.player.name+"'s scrying mirror");
 					this.icon = setItemIcon("./icons/mirror_broken1.png");
-					let tempMirror = new MirrorEntity(this.wielder.x, this.wielder.y,this.wielder);
+					let tempMirror = new MirrorEntity(this.player.x, this.player.y,this.player);
 					tempMirror.draw();
 					doodads.push(tempMirror);
 				}				
 				break;
 			case "planAction":
 				//oob
-				if(!safeBoundsCheck(this.wielder.x, this.wielder.y)&&this.wielder.plannedAction=="move"){
-					this.wielder.plannedAction = "mirrorTeleportEscape"	
+				if(!safeBoundsCheck(this.player.x, this.player.y)&&this.player.plannedAction=="move"){
+					this.player.plannedAction = "mirrorTeleportEscape"	
 				}
 				//player/terrain escape
-				if(this.wielder.plannedAction=="playerEscape" || this.wielder.plannedAction=="terrainEscape"){
-					this.wielder.plannedAction = "mirrorTeleportEscape"
+				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
+					this.player.plannedAction = "mirrorTeleportEscape"
 				}
 				//low hp after fight
-				if(this.wielder.lastAction=="fighting" || this.wielder.health < roll_range(20,40)){
-					this.wielder.setPlannedAction("mirrorTeleportEscape", 6); 
+				if(this.player.lastAction=="fighting" || this.player.health < roll_range(20,40)){
+					this.player.setPlannedAction("mirrorTeleportEscape", 6); 
 				}
 				//look for fight				
-				if((this.wielder.aggroB - this.wielder.peaceB)+this.wielder.lastFight*2 > roll_range(100,400)){
-					this.wielder.setPlannedAction("mirrorTeleportAttack", 4); 
+				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
+					this.player.setPlannedAction("mirrorTeleportAttack", 4); 
 				}				
 				// random
 				if(Math.random()<0.1){
-					this.wielder.setPlannedAction("mirrorTeleport", 4); 
+					this.player.setPlannedAction("mirrorTeleport", 4); 
 				}
 				break;
 			case "mirrorTeleport":

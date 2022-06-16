@@ -76,30 +76,30 @@ class Food extends Offhand{
 	equip(wielder){
 		super.equip(wielder)
 		if(this.uses>1){
-			this.wielder.statusMessage =  "found " + this.uses+" "+this.name+"s";
+			this.player.statusMessage =  "found " + this.uses+" "+this.name+"s";
 		}
 		return true;
 	}
 	
 	eat(){
-		this.wielder.heal_damage(this.heal, this, "food")
-		this.wielder.energy += this.energy_heal;
-		this.wielder.statusMessage =  "eats a " +this.name;
-		this.wielder.resetPlannedAction();
+		this.player.heal_damage(this.heal, this, "food")
+		this.player.energy += this.energy_heal;
+		this.player.statusMessage =  "eats a " +this.name;
+		this.player.resetPlannedAction();
 		this.use();
 	}
 	
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
-				let health_percent = ((this.wielder.health+this.heal*0.4)/this.wielder.maxHealth) *100;
-				if(health_percent < roll_range(10,100) && getTerrain(this.wielder.x,this.wielder.y).danger==0 && this.wielder.lastAction != "foraging" && this.wielder.lastAction != "sleeping"){
+				let health_percent = ((this.player.health+this.heal*0.4)/this.player.maxHealth) *100;
+				if(health_percent < roll_range(10,100) && getTerrain(this.player.x,this.player.y).danger==0 && this.player.lastAction != "foraging" && this.player.lastAction != "sleeping"){
 					//set priority for foraging depending on energy
 					let eatLv=3;
 					if(health_percent<20){eatLv = 7;}
 					if(health_percent < 10){eatLv = 14;}
 					if(health_percent < 5){eatLv = 19;}
-					this.wielder.setPlannedAction("eat", eatLv);
+					this.player.setPlannedAction("eat", eatLv);
 				}
 				break;
 			case "eat":
@@ -115,13 +115,13 @@ class Food extends Offhand{
 		let item_info = 
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.wielder.name+"</span><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Quantity:</b>"+this.uses+"</span><br>"+
-			this.item_html()+
+			this.stat_html()+
 		"</div>"				
 		$('#extra_info_container').html(item_info);
 	}
-	item_html(){
+	stat_html(){
 		let html = 	""
 		if(this.heal>0){
 			html = html+"<span><b>Heals:</b>"+this.heal+"hp</span><br>"
@@ -140,22 +140,22 @@ class StrPotion extends Food{
 	}
 	equip(wielder){
 		super.equip(wielder)
-		this.wielder.statusMessage =  "found a strength potion";
+		this.player.statusMessage =  "found a strength potion";
 		return true;
 	}
 	eat(){
 		let str_eff = new StatusEffect("strength", 2, 4, {"fightBonus":[1,0.1]})
 		str_eff.icon = "💪";
-		this.wielder.inflict_status_effect(str_eff)
-		this.wielder.statusMessage =  "drinks a strength potion";
-		this.wielder.resetPlannedAction();
+		this.player.inflict_status_effect(str_eff)
+		this.player.statusMessage =  "drinks a strength potion";
+		this.player.resetPlannedAction();
 		this.use();
 	}
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
-				if(25 + this.wielder.inRangeOf.length*5  + this.wielder.aggroB/20 > roll_range(0,100)){
-					this.wielder.setPlannedAction("eat", 6);
+				if(25 + this.player.inRangeOf.length*5  + this.player.aggroB/20 > roll_range(0,100)){
+					this.player.setPlannedAction("eat", 6);
 				}
 				break;
 			default:
@@ -171,33 +171,33 @@ class Ebiroll extends Food{
 	}
 	equip(wielder){
 		super.equip(wielder)
-		this.wielder.statusMessage =  "found an 🌊Ebiroll🌊!";
+		this.player.statusMessage =  "found an 🌊Ebiroll🌊!";
 		return true;
 	}
 	
 	eat(){
 		if(Math.random()<0.5){
-			this.wielder.heal_damage(this.heal, this, "food")
-			this.wielder.energy += this.energy_heal;
-			this.wielder.statusMessage =  "eats the Ebiroll";
+			this.player.heal_damage(this.heal, this, "food")
+			this.player.energy += this.energy_heal;
+			this.player.statusMessage =  "eats the Ebiroll";
 		}
 		//eating a whole shrimp hurts you
 		else{
 			let dmg = roll_range(1,10)
-			this.wielder.take_damage(dmg, this, "food")
-			if(this.wielder.health<=0){
-				this.wielder.statusMessage =  "chokes to death on the Ebiroll";
-				this.wielder.death =  "choked on an Ebiroll";
+			this.player.take_damage(dmg, this, "food")
+			if(this.player.health<=0){
+				this.player.statusMessage =  "chokes to death on the Ebiroll";
+				this.player.death =  "choked on an Ebiroll";
 			}
 			else{
-				this.wielder.statusMessage =  "chokes on the Ebiroll";
+				this.player.statusMessage =  "chokes on the Ebiroll";
 			}
 		}
-		this.wielder.resetPlannedAction();
+		this.player.resetPlannedAction();
 		this.use();
 	}
-	item_html(){
-		let html = 	super.item_html()+
+	stat_html(){
+		let html = 	super.stat_html()+
 		"<span class='desc'>"+
 			"<span>EBIROLLLL</span><br>"+	
 			"<span>EBIROLLLLLL</span><br>"+	

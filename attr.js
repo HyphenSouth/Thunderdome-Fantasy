@@ -35,74 +35,23 @@ function create_attr(attr_name, player){
 			break;
 	}
 }
-class Attr{
+class Attr extends StatMod{
 	constructor(name, player){
-		this.name = name;
+		super(name)
 		this.player = player
-		this.display_name = this.name[0].toUpperCase() + this.name.substring(1);
 		this.display = true;
 		this.has_info = false;
-		
-		this.sightBonus = 0;
-		this.visibilityB = 0;
-		this.rangeBonus = 0;
-		this.peaceBonus = 0;
-		this.aggroBonus = 0;
-		this.intimidationBonus = 0;
-		
-		this.fightBonus = 1;
-		this.dmgReductionB = 1;
-		this.moveSpeedB = 1;
 	}
-	
-	effect(state, data={}){}
-	item_odds(prob,item_type){}
-	
-	calc_bonuses(){
-		this.player.sightRangeB += this.sightBonus
-		this.player.visibilityB += this.visibilityB
-		this.player.fightRangeB += this.rangeBonus
-		this.player.peaceB += this.peaceBonus
-		this.player.aggroB += this.aggroBonus
-		this.player.intimidation += this.intimidationBonus
-												   
-		this.player.fightDmgB *= this.fightBonus
-		this.player.dmgReductionB *= this.dmgReductionB
-		this.player.moveSpeedB *= this.moveSpeedB
-	}
-	
+			
 	show_info(){
 		let attr_info=
 		"<div class='info'>"+
 			"<b style='font-size:18px'>"+this.display_name+"</b><br>"+
 			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
-			this.attr_html()+
+			this.stat_html()+
 		"</div>"
 		
 		$('#extra_info_container').html(attr_info);
-	}
-	
-	attr_html(){
-		let html=""
-		if(this.fightBonus != 1)
-			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
-		if(this.dmgReductionB != 1)
-			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
-		if(this.rangeBonus != 0)
-			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
-		if(this.sightBonus != 0)
-			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
-		if(this.visibilityB != 0)
-			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
-		if(this.peaceBonus != 0)
-			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
-		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
-		if(this.intimidationBonus != 0)
-			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
-		if(this.moveSpeedB != 1)
-			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
-		return html;
 	}
 }
 
@@ -176,8 +125,8 @@ class Cunny extends Attr{
 				break;
 		}
 	}
-	attr_html(){
-		let html= super.attr_html()+
+	stat_html(){
+		let html= super.stat_html()+
 		"<span class='desc'>"+
 			"<span>Lures in prey with their irresistible cunny scent</span><br>"+	
 		"</span>"
@@ -229,7 +178,7 @@ class Melee extends Attr{
 			}
 		}
 	}
-	attr_html(){
+	stat_html(){
 		let html=
 			"<span><b>Unarmed Bonus:</b>x"+roundDec(this.unarmedBonus)+"</span><br>"+
 			"<span><b>Melee Weapon Bonus:</b>x"+roundDec(this.armedBonus)+"</span><br>"
@@ -256,8 +205,8 @@ class Ranger extends Attr{
 		super.calc_bonuses();
 	}
 	
-	attr_html(){
-		let html= super.attr_html()+
+	stat_html(){
+		let html= super.stat_html()+
 			"<span><b>Weapon Dmg Bonus:</b>x"+roundDec(this.armedFightBonus)+"</span><br>"+
 			"<span><b>Weapon Range Bonus:</b>"+roundDec(this.armedRangeBonus)+"</span><br>"
 		return html;
@@ -277,8 +226,8 @@ class Magic extends Attr{
 			this.player.fightRangeB += this.armedRangeBonus;
 		}
 	}
-	attr_html(){
-		let html= super.attr_html()+
+	stat_html(){
+		let html= super.stat_html()+
 			"<span><b>Weapon Dmg Bonus:</b>x"+roundDec(this.armedFightBonus)+"</span><br>"+
 			"<span><b>Weapon Range Bonus:</b>"+roundDec(this.armedRangeBonus)+"</span><br>"
 		return html;
@@ -303,13 +252,12 @@ class BigGuy extends Attr{
 		}
 		super.calc_bonuses();
 	}
-	attr_html(){
-		let html= super.attr_html()+
+	stat_html(){
+		let html= super.stat_html()+
 			"<span><b>Melee Dmg Bonus:</b>x"+roundDec(this.meleeBonus)+"</span><br>"
 		return html;
 	}
 }
-
 
 class Butai extends Attr{
 	constructor(player){
@@ -371,17 +319,69 @@ class PaperMaster extends Attr{
 	constructor(player){
 		super("paper", player);
 		this.has_info = true;
-		
 		this.paper = 30;
+		this.familiar = false
 	}
 		
 	effect(state, data={}){
 		switch(state){
+			case "planAction":
+				if(this.paper >= 200){
+					let item_prob = []
+					if(!this.player.weapon)
+						item_prob.push(['wep',5])
+					// if(!this.player.offhand){
+						// item_prob.push(['off',2])
+					// if(!this.player.familiar && paper_familiar_cnt<max_paper_familiar_cnt)
+						// item_prob.push(['fam',2])
+					
+					let item_type = roll(item_prob)
+					if(item_type == 'wep')
+						this.player.setPlannedAction("createWeapon", 5);
+					if(item_type == 'off')
+						this.player.setPlannedAction("createOffhand", 5);
+					if(item_type == 'fam')
+						this.player.setPlannedAction("createFamiliar", 5);
+				}
+				break;
+			case "createWeapon":
+				// this.player.equip_item();
+				let wep = roll([['bow',10],['sword',10]]);
+				log_message(this.player.name + ' '+wep)
+				switch(wep){
+					case 'bow':
+						this.player.equip_item(new PaperBow());
+						this.paper -=200;
+						break;
+					case 'sword':
+						this.player.equip_item(new PaperSword());
+						this.paper -=200;
+						break;
+				}
+				this.player.lastAction = 'create weapon'
+				this.player.resetPlannedAction()
+				break;
+			case "createOffhand":
+				// this.player.equip_item();
+				this.player.lastAction = 'create item'
+				this.player.resetPlannedAction()
+				break;
+			case "createFamiliar":
+				// this.player.equip_item();
+				this.player.lastAction = 'create familiar'
+				this.player.resetPlannedAction()
+				break;
 			case "turnEnd":
 				if(this.player.lastAction == "forage success"){
+					this.player.statusMessage = 'finds paper'
 					this.paper += roll_range(50,200)
 				}
-				
+				if(getTerrainType(this.player.x,this.player.y)=="water"){
+					this.paper -= 20;
+				}				
+				if(this.player.get_status_effect('burn')){
+					this.paper -= 10;
+				}
 				if(this.paper<0){
 					this.paper = 0
 				}
@@ -389,11 +389,103 @@ class PaperMaster extends Attr{
 		}
 	}
 	item_odds(prob,item_type){
-		prob.push(['Nothing', 1000])		
+		prob.push(['Nothing', 2000])		
 	}
-	attr_html(){
+	stat_html(){
 		let html= 
-			"<span><b>Paper:</b>"+this.paper+"</span><br>"
+			"<span><b>📜:</b>"+this.paper+"</span><br>"
 		return html;
+	}
+}
+
+class PaperBow extends Weapon{
+	constructor() {
+		super("paperBow");
+		this.display_name = ("Paper Bow");
+		this.icon = setItemIcon('./icons/paperBow.png')
+		this.dmg_type = 'ranged'
+		
+		this.rangeBonus = 30;
+		this.fightBonus = 1.2
+
+		this.uses = 10
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnEnd":
+				if(getTerrainType(this.player.x,this.player.y)=="water"){
+					this.destroy();
+				}
+				if(this.player.get_status_effect('burn')){
+					this.destroy();
+				}
+			break;
+			case "attack":
+				let oP=data['opponent'];
+				oP.inflict_status_effect(new Bleed(1,this.player));
+				super.effect(state,data);
+				break;	
+		}
+	}	
+	equip(player){
+		super.equip(player)
+		this.player.statusMessage =  "creates a paper bow";
+		return true;
+	}
+}
+class PaperSword extends Weapon{
+	constructor() {
+		super("paperSword");
+		this.display_name = ("Paper Sword");
+		this.icon = setItemIcon('./icons/paperSword.png')
+		this.dmg_type = "melee",
+		this.fightBonus = 1.3,
+		this.uses = roll_range(6,10)
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnEnd":
+				if(getTerrainType(this.player.x,this.player.y)=="water"){
+					this.destroy();
+					break;
+				}
+				if(this.player.get_status_effect('burn')){
+					this.destroy();
+					break;
+				}
+				break;
+			case "attack":
+				let oP=data['opponent'];
+				oP.inflict_status_effect(new Bleed(2,this.player));
+				super.effect(state,data);
+				break;
+		}
+	}	
+	equip(player){
+		super.equip(player)
+		this.player.statusMessage =  "creates a paper sword";
+		return true;
+	}
+}
+class PaperPlane extends Offhand{
+	constructor() {
+		super("paperPlane");
+		this.display_name = ("Paper Plane");
+	}	
+}
+
+var max_paper_familiar_cnt = 2;
+var paper_familiar_cnt = 0;
+class PaperDog extends MovableEntity{
+	constructor(name, x,y,owner){
+		super('paperDog', x,y,owner)
+		paper_dog_cnt++;
+		this.owner.familiar=true
+	}
+	
+	destroy(){
+		paper_dog_cnt--;
+		this.owner.familiar=false
+		super.destroy()
 	}
 }
