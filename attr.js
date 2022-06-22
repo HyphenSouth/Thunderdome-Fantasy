@@ -1,13 +1,26 @@
 function create_attr(attr_name, player){
 	switch(attr_name){
 		case "nenene":
-			return new Nenene(player);
-			break;	
+			let nenenames = ['Nenene']
+			let temp_nenename = "Nenene"
+			for(let i=0; i<8; i++){
+				temp_nenename = temp_nenename+"ne"
+				nenenames.push(temp_nenename)
+			}
+			return new NameSwap('nenene', player, nenenames, true);
+			break;
 		case "cunny":
 			return new Cunny(player);
 			break;		
 		case "joshiraku":
-			return new Joshiraku(player);
+			let joshiraku_imgs = [
+				'https://cdn.myanimelist.net/images/characters/7/173549.jpg',
+				'https://cdn.myanimelist.net/images/characters/13/145959.jpg',
+				'https://cdn.myanimelist.net/images/characters/13/149113.jpg',
+				'https://cdn.myanimelist.net/images/characters/5/177655.jpg',
+				'https://cdn.myanimelist.net/images/characters/6/177653.jpg'
+			]
+			return new ImgSwap('joshiraku', player, joshiraku_imgs, true);
 			break;		
 		case "bong":
 			return new Bong(player)
@@ -26,6 +39,9 @@ function create_attr(attr_name, player){
 			break;
 		case "butai":
 			return new Butai(player)
+			break;
+		case "meido":
+			return new Meido(player)
 			break;
 		case "paper":
 			return new PaperMaster(player)
@@ -55,48 +71,54 @@ class Attr extends StatMod{
 	}
 }
 
-class Nenene extends Attr{
-	constructor(player){
-		super("nenene", player);
+class ImgSwap extends Attr{
+	constructor(name, player, imgs, random_img){
+		super(name, player);
+		this.imgs = imgs
+		this.random_img = random_img
 		this.display=false;
+		this.img_index=0
 	}
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
-				let name = "Nenene"
-				for(let i=0; i<roll_range(0,8); i++){
-					name = name+"ne"
+				let new_img = ''
+				if(this.random_img){ 
+					new_img = this.imgs[roll_range(0,this.imgs.length-1)]
 				}
-				this.player.name = name;
-				this.player.div.find('.charText').text(name)
-				this.player.tblDiv.find('.info div:first-child b').text(name)
+				else{
+					new_img = this.imgs[this.img_index]
+					this.img_index = (this.img_index + 1)%this.imgs.length
+				}
+				this.player.change_img(new_img)
 				break;
 		}
-	}
+	}	
 }
 
-class Joshiraku extends Attr{
-	constructor(player){
-		super("joshiraku", player);
+class NameSwap extends Attr{
+	constructor(name, player, names, random_name){
+		super(name, player);
+		this.names = names
+		this.random_name = random_name
 		this.display=false;
-		this.imgs = [
-			'https://cdn.myanimelist.net/images/characters/7/173549.jpg',
-			'https://cdn.myanimelist.net/images/characters/13/145959.jpg',
-			'https://cdn.myanimelist.net/images/characters/13/149113.jpg',
-			'https://cdn.myanimelist.net/images/characters/5/177655.jpg',
-			'https://cdn.myanimelist.net/images/characters/6/177653.jpg',
-		]
-	}	
+		this.name_index=0
+	}
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
-				let img = this.imgs[roll_range(0,this.imgs.length-1)]
-				this.player.img = img;
-				this.player.div.css('background-image', 'url("'+img+'")');
-				playerStatic[0].tblDiv.find('img').attr("src", img)
+				let new_name = ''
+				if(this.random_name){ 
+					new_name = this.names[roll_range(0,this.names.length-1)]
+				}
+				else{
+					new_name = this.names[this.name_index]
+					this.name_index = (this.name_index + 1)%this.names.length
+				}
+				this.player.change_name(new_name)
 				break;
 		}
-	}
+	}	
 }
 
 class Cunny extends Attr{
@@ -112,11 +134,11 @@ class Cunny extends Attr{
 			case "opAware":
 				let oP=data['opponent'];
 				if (Math.random() < 0.05){
-					let temp_charm = new Charm(this.player, 2);
+					let temp_charm = new Charm(this.player, 4);
 					temp_charm.icon = "😭"
 					if(Math.random()<0.1){
 						temp_charm.aggro = true;
-						temp_charm.level=1;
+						temp_charm.level=2;
 						temp_charm.icon = "💢"
 						temp_charm.display_name = "Correction"
 					}
@@ -265,7 +287,9 @@ class Butai extends Attr{
 		this.remade=false;
 		this.has_info = true;
 		
+		this.fightBonus = 0.95;
 		this.dmgReductionB =1.1;
+		this.moveSpeedB = 0.9;
 	}
 		
 	effect(state, data={}){
@@ -291,9 +315,10 @@ class Butai extends Attr{
 		
 		//change name
 		let name = "✨" + this.player.name
-		this.player.name = name;
-		this.player.div.find('.charText').text(name);
-		this.player.tblDiv.find('.info div:first-child b').text(name);
+		this.player.change_name(name)
+		// this.player.name = name;
+		// this.player.div.find('.charText').text(name);
+		// this.player.tblDiv.find('.info div:first-child b').text(name);
 		
 		//set health
 		this.player.maxHealth = this.player.maxHealth*0.5;
@@ -315,177 +340,15 @@ class Butai extends Attr{
 	}
 }
 
-class PaperMaster extends Attr{
+class Meido extends Attr{
 	constructor(player){
-		super("paper", player);
-		this.has_info = true;
-		this.paper = 30;
-		this.familiar = false
+		super("meido", player);
 	}
-		
 	effect(state, data={}){
 		switch(state){
-			case "planAction":
-				if(this.paper >= 200){
-					let item_prob = []
-					if(!this.player.weapon)
-						item_prob.push(['wep',5])
-					// if(!this.player.offhand){
-						// item_prob.push(['off',2])
-					// if(!this.player.familiar && paper_familiar_cnt<max_paper_familiar_cnt)
-						// item_prob.push(['fam',2])
-					
-					let item_type = roll(item_prob)
-					if(item_type == 'wep')
-						this.player.setPlannedAction("createWeapon", 5);
-					if(item_type == 'off')
-						this.player.setPlannedAction("createOffhand", 5);
-					if(item_type == 'fam')
-						this.player.setPlannedAction("createFamiliar", 5);
-				}
-				break;
-			case "createWeapon":
-				// this.player.equip_item();
-				let wep = roll([['bow',10],['sword',10]]);
-				log_message(this.player.name + ' '+wep)
-				switch(wep){
-					case 'bow':
-						this.player.equip_item(new PaperBow());
-						this.paper -=200;
-						break;
-					case 'sword':
-						this.player.equip_item(new PaperSword());
-						this.paper -=200;
-						break;
-				}
-				this.player.lastAction = 'create weapon'
-				this.player.resetPlannedAction()
-				break;
-			case "createOffhand":
-				// this.player.equip_item();
-				this.player.lastAction = 'create item'
-				this.player.resetPlannedAction()
-				break;
-			case "createFamiliar":
-				// this.player.equip_item();
-				this.player.lastAction = 'create familiar'
-				this.player.resetPlannedAction()
-				break;
-			case "turnEnd":
-				if(this.player.lastAction == "forage success"){
-					this.player.statusMessage = 'finds paper'
-					this.paper += roll_range(50,200)
-				}
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
-					this.paper -= 20;
-				}				
-				if(this.player.get_status_effect('burn')){
-					this.paper -= 10;
-				}
-				if(this.paper<0){
-					this.paper = 0
-				}
+			case "death":
+				this.player.death += " (not canon)"
 			break;
 		}
-	}
-	item_odds(prob,item_type){
-		prob.push(['Nothing', 2000])		
-	}
-	stat_html(){
-		let html= 
-			"<span><b>📜:</b>"+this.paper+"</span><br>"
-		return html;
-	}
-}
-
-class PaperBow extends Weapon{
-	constructor() {
-		super("paperBow");
-		this.display_name = ("Paper Bow");
-		this.icon = setItemIcon('./icons/paperBow.png')
-		this.dmg_type = 'ranged'
-		
-		this.rangeBonus = 30;
-		this.fightBonus = 1.2
-
-		this.uses = 10
-	}
-	effect(state, data={}){
-		switch(state){
-			case "turnEnd":
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
-					this.destroy();
-				}
-				if(this.player.get_status_effect('burn')){
-					this.destroy();
-				}
-			break;
-			case "attack":
-				let oP=data['opponent'];
-				oP.inflict_status_effect(new Bleed(1,this.player));
-				super.effect(state,data);
-				break;	
-		}
-	}	
-	equip(player){
-		super.equip(player)
-		this.player.statusMessage =  "creates a paper bow";
-		return true;
-	}
-}
-class PaperSword extends Weapon{
-	constructor() {
-		super("paperSword");
-		this.display_name = ("Paper Sword");
-		this.icon = setItemIcon('./icons/paperSword.png')
-		this.dmg_type = "melee",
-		this.fightBonus = 1.3,
-		this.uses = roll_range(6,10)
-	}
-	effect(state, data={}){
-		switch(state){
-			case "turnEnd":
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
-					this.destroy();
-					break;
-				}
-				if(this.player.get_status_effect('burn')){
-					this.destroy();
-					break;
-				}
-				break;
-			case "attack":
-				let oP=data['opponent'];
-				oP.inflict_status_effect(new Bleed(2,this.player));
-				super.effect(state,data);
-				break;
-		}
-	}	
-	equip(player){
-		super.equip(player)
-		this.player.statusMessage =  "creates a paper sword";
-		return true;
-	}
-}
-class PaperPlane extends Offhand{
-	constructor() {
-		super("paperPlane");
-		this.display_name = ("Paper Plane");
-	}	
-}
-
-var max_paper_familiar_cnt = 2;
-var paper_familiar_cnt = 0;
-class PaperDog extends MovableEntity{
-	constructor(name, x,y,owner){
-		super('paperDog', x,y,owner)
-		paper_dog_cnt++;
-		this.owner.familiar=true
-	}
-	
-	destroy(){
-		paper_dog_cnt--;
-		this.owner.familiar=false
-		super.destroy()
 	}
 }

@@ -22,7 +22,7 @@ class Doodad {
 		this.ownerTriggerChance = 5;
 		//how long doodad can stay out
 		this.duration=30;
-	
+		this.max_triggers = 9999 //maximum triggers per turn
 	}
 	draw(){
 		let doodDiv = $('#doodad_' + this.id);
@@ -45,7 +45,9 @@ class Doodad {
 		}
 		else{
 			let tD = this;
-			players.forEach(function(tP,index){
+			let trigger_cnt = 0
+			for(let i=0; i<players.length;i++){
+				let tP = players[i]
 				let dist = hypD(tP.x - tD.x, tP.y - tD.y);
 				if(dist <= tD.triggerRange){
 					log_message(tD.name+" "+ tP.name+" in range")	
@@ -56,9 +58,34 @@ class Doodad {
 					if(trig>=roll_range(0,100)){
 						// log_message(tP.name +" triggered a "+tD.name);
 						tD.trigger(tP);
+						trigger_cnt++
+					}
+					if(trigger_cnt>=this.max_triggers){
+						break;
+					}
+				}
+			}
+			/*
+			players.forEach(function(tP,index){
+				let trigger_cnt = 0
+				let dist = hypD(tP.x - tD.x, tP.y - tD.y);
+				if(dist <= tD.triggerRange){
+					log_message(tD.name+" "+ tP.name+" in range")	
+					let trig = tD.triggerChance
+					if(tP==tD.owner){
+						trig=tD.ownerTriggerChance
+					}
+					if(trig>=roll_range(0,100)){
+						// log_message(tP.name +" triggered a "+tD.name);
+						tD.trigger(tP);
+						trigger_cnt++
+					}
+					if(trigger_cnt>=max_triggers){
+						return
 					}
 				}
 			});
+			*/
 		}
 		this.duration--;
 	}
@@ -162,7 +189,7 @@ class TrapEntity extends Doodad{
 		this.icon = "🕳";
 		this.triggerRange = 24;
 		this.duration=50;
-
+		this.max_triggers=2;
 	}
 	
 	trigger(trigger_player){
@@ -231,8 +258,6 @@ class CampfireEntity extends Doodad{
 		else{
 			trigger_player.inflict_status_effect(new Comfy(2, 2));
 		}
-		
-		
 	}
 }
 
@@ -242,6 +267,7 @@ class MirrorEntity extends Doodad{
 		this.icon = setDoodadIcon('./icons/mirror_broken2.png');
 		this.triggerRange = 30;
 		this.triggerChance=40;
+		this.max_triggers = 1;
 	}
 	
 	trigger(trigger_player){
@@ -280,6 +306,7 @@ class MovableEntity extends Doodad{
 		super(name,x,y,owner);
 		this.moveSpeed = 40	
 	}
+	//move to random location
 	moveRandom(){
 		//move
 		//get new cords to move to

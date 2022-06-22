@@ -1,3 +1,14 @@
+/*
+classyfren
+dearmychinpo
+frens
+smiff
+tsukari
+kalekale
+minori
+
+*/
+
 var charlist_test = [
 	{
 		"name": "Liru",

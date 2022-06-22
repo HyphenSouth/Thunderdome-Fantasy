@@ -88,12 +88,17 @@ var weapon_data = {
 		"rangeBonus" : 24,
 		"uses" : 60		
 	},
+	"rake" : {
+		"icon" : "🧹",
+		"dmg_type" : "melee",
+		"uses" : 3	
+	}
 }
 var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 var defaultWeaponOdds = [
-	["knife",30],["gun",20],["lance",25],["bow",20],
+	["knife",30],["gun",20],["lance",25],["bow",20],["rake",2],
 	["katana", 25], ["shotgun", 25], ["sniper",20],
 	["clang",10], ["flamethrower",20], ["ancient", 25],
 	["Nothing",400]];
@@ -177,6 +182,9 @@ function create_weapon(weapon_name){
 			break;	
 		case "ancient":
 			return new Ancient();
+			break;
+		case "rake":
+			return new Rake();
 			break;
 		default:
 			if(weapon_name in weapon_data){
@@ -279,7 +287,7 @@ class Weapon extends Item{
 				break;
 			case "win":
 				oP=data['opponent'];
-				this.player.statusMessage = "kills " + oP.name;
+				this.player.statusMessage = "kills " + oP.name + " with a " + this.name;
 				break;
 		}
 	}
@@ -1076,7 +1084,52 @@ class Ancient extends Weapon{
 	}
 }
 
-
+class Rake extends Weapon {
+	constructor() {
+		super("rake");
+		this.base_dmg = 0.5
+		this.rake_dmg = 5
+	}
+	effect(state, data={}){
+		let oP=''
+		switch(state){			
+			case "attack":
+				oP = data['opponent']
+				if(oP.has_attr('leaf')){
+					//guarenteed crit
+					this.player.fightDmgB *= this.rake_dmg;
+					this.player.statusMessage = "RAKES " + oP.name;
+				}
+				else{
+					this.player.fightDmgB *= this.base_dmg;
+					this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				}
+				this.use();
+				break;
+			case "win":
+				oP = data['opponent']
+				if(oP.has_attr('leaf')){
+					this.player.statusMessage = "RAKES "+oP.name+" to death"
+					oP.death = "RAKED to death by "+this.player.name
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	stat_html(){
+		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
+		"<span><b>Rake Dmg Bonus:</b>x"+this.rake_dmg+"</span><br>"+
+		"<span class='desc'>"+
+			"<span>RAKE</span><br>"+
+			"<span>RAKE</span><br>"+
+			"<span>RAKE</span><br>"+
+		"</span>"
+		
+		return html;
+	}
+}
 
 
 

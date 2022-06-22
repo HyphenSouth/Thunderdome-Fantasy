@@ -18,10 +18,13 @@ class Hinamizawa extends StatusEffect{
 		this.rage = 0;		//points until the next level
 		this.next_lv = lvlup_data[this.level-1] + Math.round(players.length/10)*20;	//points needed for next level
 		this.display_name = "Hinamizawa Lv1"
-		this.aggroB=0
-		this.peaceB=0
-		this.fightDmgB=1
+		
+		this.aggroBonus=0
+		this.peaceBonus=0
+		this.fightBonus=1
 		this.dmgReductionB=1
+		
+		this.update_data();
 	}
 
 	stack_effect(eff){
@@ -33,7 +36,7 @@ class Hinamizawa extends StatusEffect{
 		if(this.level>1){
 			pushMessage(this.player,this.player.name +  " LEVEL "+this.level);
 		}	}
-
+	/*
 	calc_bonuses(){
 		switch(this.level){
 			case 1:
@@ -45,25 +48,53 @@ class Hinamizawa extends StatusEffect{
 			case 3:
 				this.aggroB =50;
 				this.peaceB =-10;
-				this.fightDmgB= 1.05;				
+				this.fightBonus= 1.05;				
 				break;
 			case 4:
 				this.aggroB = +100;
 				this.peaceB = -40;
-				this.fightDmgB = 1.1;
+				this.fightBonus = 1.1;
 				this.dmgReductionB = 1.1;				
 				break;
 			case 5:
 				this.aggroB = 150;
 				this.peaceB = -80;
-				this.fightDmgB = 1.2;
+				this.fightBonus = 1.2;
 				this.dmgReductionB = 1.2;	
 				break;
 		}
 		this.player.aggroB += this.aggroB
 		this.player.peaceB += this.peaceB
-		this.player.fightDmgB *= this.fightDmgB
+		this.player.fightBonus *= this.fightBonus
 		this.player.dmgReductionB *= this.dmgReductionB
+	}*/
+	
+	update_data(){
+		switch(this.level){
+			case 1:
+				this.aggroBonus =20;
+				break;
+			case 2:
+				this.aggroBonus =40;
+				break;
+			case 3:
+				this.aggroBonus =50;
+				this.peaceBonus =-10;
+				this.fightBonus= 1.05;				
+				break;
+			case 4:
+				this.aggroBonus = +100;
+				this.peaceBonus = -40;
+				this.fightBonus = 1.1;
+				this.dmgReductionB = 1.1;				
+				break;
+			case 5:
+				this.aggroBonus = 150;
+				this.peaceBonus = -80;
+				this.fightBonus = 1.2;
+				this.dmgReductionB = 1.2;	
+				break;
+		}		
 	}
 	
 	itch(){
@@ -85,6 +116,7 @@ class Hinamizawa extends StatusEffect{
 			this.icon = setEffIcon('./icons/lv'+this.level+'.png');
 			this.next_lv = lvlup_data[this.level-1] + Math.round(players.length/10)*10;
 			this.display_name = "Hinamizawa Lv" + this.level
+			this.update_data();
 		}
 		else{
 			//apply berserk status
@@ -149,10 +181,6 @@ class Hinamizawa extends StatusEffect{
 				}
 				else if(this.level >=3){			
 					this.rage = this.rage + 20
-					if(this.level >=4){
-						this.fightDmgB *= 1.03;
-						this.dmgReductionB *= 1.03;	
-					}
 				}
 				break;	
 			case "dealDmg":
@@ -211,8 +239,8 @@ class Hinamizawa extends StatusEffect{
 				}
 				if(this.level<=2){
 					//peace reduction
-					if(this.player.peaceB>50)
-						this.rage = this.rage - Math.round((this.player.peaceB-50)/20)
+					if(this.player.peaceBonus>50)
+						this.rage = this.rage - Math.round((this.player.peaceBonus-50)/20)
 					//reduce from not fighting
 					if(this.player.lastFight>5)
 						this.rage = this.rage - 0.5
@@ -238,21 +266,22 @@ class Hinamizawa extends StatusEffect{
 			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
 			"<span><b>Level:</b>"+this.level+"</span><br>"+
 			"<span><b>Next level:</b>"+roundDec((this.rage/this.next_lv)*100)+"%</span><br>"
-			
-		if(this.aggroB!=0){
-			status_info = status_info + "<span><b>Aggro Bonus:</b>"+this.aggroB+"</span><br>"
+		
+		/*
+		if(this.aggroBonus!=0){
+			status_info = status_info + "<span><b>Aggro Bonus:</b>"+this.aggroBonus+"</span><br>"
 		}
-		if(this.peaceB!=0){
-			status_info = status_info + "<span><b>Peace Bonus:</b>"+this.peaceB+"</span><br>"
+		if(this.peaceBonus!=0){
+			status_info = status_info + "<span><b>Peace Bonus:</b>"+this.peaceBonus+"</span><br>"
 		}
-		if(this.fightDmgB!=1){
-			status_info = status_info + "<span><b>Damage Bonus:x</b>"+this.fightDmgB+"</span><br>"
+		if(this.fightBonus!=1){
+			status_info = status_info + "<span><b>Damage Bonus:x</b>"+this.fightBonus+"</span><br>"
 		}
 		if(this.dmgReductionB!=1){
 			status_info = status_info + "<span><b>Damage Taken:x</b>"+this.dmgReductionB+"</span><br>"
 		}
-			
-		// status_info = status_info + this.stat_html()+"</div>"
+		*/
+		status_info = status_info + this.stat_html()+"</div>"
 		
 		$('#extra_info_container').html(status_info);
 	}	
@@ -293,7 +322,7 @@ class Hinamizawa extends StatusEffect{
 	*/	
 	stat_html(){
 		// let html = "<span><b>Next level:</b>"+roundDec(this.rage)+"/"+(this.next_lv)+"</span><br>"
-		let html = 
+		let html = super.stat_html()+
 			"<span class='desc'>"
 		switch(this.level){
 			case 1:

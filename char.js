@@ -157,6 +157,18 @@ class Char {
 		});
 	}
 	
+	change_img(new_img){
+		this.img = new_img;
+		this.div.css('background-image', 'url("'+new_img+'")');
+		this.tblDiv.find('img').attr("src", new_img)
+	}
+	
+	change_name(new_name){
+		this.name = new_name;
+		this.div.find('.charText').text(new_name)
+		this.tblDiv.find('.info div:first-child b').text(new_name)
+	}
+	
 	show_main_info(){
 		//prepare clickable icons
 		let terrain_icon = ""
@@ -205,12 +217,8 @@ class Char {
 		}		
 		let fightChance = baseFightChance;
 		let peaceChance = basePeaceChance;
-		fightChance=fightChance+this.aggroB;
-		peaceChance=peaceChance+this.peaceB;
-		if(fightChance<1)
-			fightChance=1;
-		if(peaceChance<1)
-			peaceChance=1;
+		fightChance = Math.max(fightChance+this.aggroB, 1);
+		peaceChance = Math.max(peaceChance+this.peaceB, 1);
 		let char_info=
 		"<img id='char_info_img' src='"+ this.img+"'>"+
 		"<div class='info'>"+
@@ -816,8 +824,8 @@ class Char {
 		if(getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).turn_end_effects(this)
 		}
-
-		this.apply_all_effects("turnEnd");
+		if(this.health > 0)
+			this.apply_all_effects("turnEnd");
 	}
 	
 	action_rest(){

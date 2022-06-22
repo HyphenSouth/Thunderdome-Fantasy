@@ -297,10 +297,10 @@ class Berserk extends StatusEffect{
 	calc_bonuses(){
 		// this.player.aggroB +=(this.level*40);
 		// this.player.peaceB -=(this.level*40);
-		this.fightBonus = 1 + (this.level/50) + (this.player.lastFight/50) ;
-		this.dmgReductionB = 1+(this.level/50) + (this.player.lastFight/50);
-		super.calc_bonuses()		
-		// this.player.moveSpeedB *= this.speed_bonus;
+		// this.fightBonus = 1 + (this.level/50) + Math.min(this.player.lastFight/50, 0.5) ;
+		this.fightBonus = 1 + (this.level/50) + (1-this.player.health/this.player.maxHealth) ;
+		this.dmgReductionB = 1+(this.level/50);
+		super.calc_bonuses()
 	}
 
 	effect(state, data={}){
@@ -330,13 +330,13 @@ class Berserk extends StatusEffect{
 				
 				if(this.player.inRangeOf.length>0){
 					if(this.player.setPlannedAction("fight", 12)){
-						log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
+						// log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
 						this.player.plannedTarget = this.player.inRangeOf[0]
 					}
 				}
 				else if(this.player.awareOf.length>0){
 					if(this.player.setPlannedAction("follow", 12)){
-						log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
+						// log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
 						this.player.plannedTarget = this.player.awareOf[0]
 					}
 				}
@@ -363,7 +363,7 @@ class Peace extends StatusEffect{
 	calc_bonuses(){
 		// this.player.aggroB -=(this.level*40);
 		// this.player.peaceB +=(this.level*50);
-		this.dmgReductionB = 1-((this.player.lastFight/10+this.level)/50);
+		this.dmgReductionB = 1-(this.level/50) + Math.min(this.player.lastFight/50, 0.2);
 		super.calc_bonuses()
 	}
 }
@@ -427,6 +427,12 @@ class DecoyEffect extends StatusEffect{
 		this.icon="👻";
 		this.decoy = decoy;
 	}
+
+	//cannot be stacked
+	stack_effect(new_eff){
+		this.duration = new_eff.duration;
+	}
+	
 	effect(state, data={}){
 		let decoy_dist = playerDist(this.player, this.decoy);
 		switch(state){
@@ -746,15 +752,15 @@ class Bleed extends DotEffect{
 		super("bleed", level, 9999,owner, "none", "bleeds to death");
 		this.icon="🩸";
 		this.turns = 0;
-		this.dmg_range = [2,5]
+		this.max_dmg = 5
 	}
 	
 	calc_dmg(){
-		return roll_range(this.dmg_range[0], this.dmg_range[1]);
+		return roll_range(1, Math.round(this.max_dmg));
 	}
 	
 	stack_effect(eff){
-		this.dmg_range[1] = this.dmg_range[1] + eff.level
+		this.max_dmg = this.max_dmg + eff.level
 		this.level += eff.level;
 		if(eff.level >= this.level){
 			this.owner = eff.owner;
@@ -774,7 +780,7 @@ class Bleed extends DotEffect{
 						if(this.owner)
 							this.owner.kills++;					
 					}
-					this.dmg_range[1]*=1.5;
+					this.max_dmg*=1.2;
 				}
 				else{
 					this.wear_off();
@@ -798,7 +804,7 @@ class Bleed extends DotEffect{
 	}
 	
 	stat_html(){
-		let html = "<span><b>Dmg Range:</b>"+this.dmg_range[0] + "-" + this.dmg_range[1]+"</span><br>" + 
+		let html = "<span><b>Max Dmg:</b>"+ Math.round(this.max_dmg)+"</span><br>" + 
 		"<span>Bleeding for "+this.turns+" turns</span><br>"
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"

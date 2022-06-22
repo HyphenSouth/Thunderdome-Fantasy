@@ -29,9 +29,16 @@ var food_data = {
 		"icon":"🦐", 
 		"uses": 1,
 		"heal": 30
+	},
+	"purple" : {
+		"icon":"./icons/purpleSweet.png", 
+		"icon_type" : "img",
+		"uses": [5,10],
+		"heal": 1,
+		"energy_heal": 5
 	}
 }
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",10]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",0]]
 function create_food(food_name){
 	switch(food_name){
 		case "ebiroll":
@@ -39,6 +46,9 @@ function create_food(food_name){
 			break;
 		case "str_potion":
 			return new StrPotion();
+			break;
+		case "purple":
+			return new PurpleSweet();
 			break;
 		default:
 			if(food_name in food_data){
@@ -94,7 +104,6 @@ class Food extends Offhand{
 			case "planAction":
 				let health_percent = ((this.player.health+this.heal*0.4)/this.player.maxHealth) *100;
 				if(health_percent < roll_range(10,100) && getTerrain(this.player.x,this.player.y).danger==0 && this.player.lastAction != "foraging" && this.player.lastAction != "sleeping"){
-					//set priority for foraging depending on energy
 					let eatLv=3;
 					if(health_percent<20){eatLv = 7;}
 					if(health_percent < 10){eatLv = 14;}
@@ -204,5 +213,31 @@ class Ebiroll extends Food{
 			"<span>EBIGOAAAAAAAAL</span>"+
 		"</span>"
 		return html;
+	}
+}
+
+class PurpleSweet extends Food{
+	constructor() {
+		super("purple")		
+		this.display_name = 'Purple Sweet'
+	}
+	equip(wielder){
+		super.equip(wielder)
+		this.player.statusMessage =  "finds " + this.uses + " purple sweets";
+		return true;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "takeDmg":
+				if(data.fightMsg.events){
+					data.fightMsg.events.push(this.player.name + ' quickly eats a purple sweet')
+				}
+				this.eat()
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
 	}
 }
