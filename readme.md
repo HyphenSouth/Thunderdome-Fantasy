@@ -47,7 +47,7 @@ A turn consists of the following phases:
 	- Push messages
 	- Push deaths into death list
 
-### Combat
+## Combat
 
 ## Character
 
@@ -191,6 +191,14 @@ When its wielder is killed by someone under its charm, it has a high chance of b
 All accumulated power is retained when passed on.
 
 Does not lose durability and cannot be replaced.
+
+<details>
+  <summary>Dev notes</summary>
+  One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
+  Much of the very first update focused on putting all of those features into a single location. 
+  A lot of the current Thunderdome is still built around the framework created for this weapon.
+  In a way this single weapon has shaped the current Thunderdome.
+</details>
 
 ### ol'Spicy Shinkai Makai
 Extremely strong melee weapon. Has a chance of setting wielder on fire at the start of each turn.
