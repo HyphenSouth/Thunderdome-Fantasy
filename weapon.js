@@ -634,7 +634,7 @@ class Nanasatsu extends Weapon {
 			//dealing damage
 			case "dealDmg":
 				oP=data['opponent'];
-				dmg=data['damage'];			
+				dmg=data['damage'];
 				//heal on hit
 				log_message(this.player.name + " SEX SWORD attack")
 				// log_message(this.player.health + " before");

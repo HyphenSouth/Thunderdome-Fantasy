@@ -841,8 +841,8 @@ class Char {
 	action_fight(){
 		//add red fighting border
 		//this.div.addClass("fighting");
-		//fight planned target
 		
+		//no target planned
 		if(!this.plannedTarget){
 			this.lastAction = "fighting fail";
 			this.statusMessage = "fights their inner mind goblin";
