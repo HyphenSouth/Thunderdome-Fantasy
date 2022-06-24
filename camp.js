@@ -13,3 +13,4 @@ class Char {
 		this.currentAction = "";
 	}
 }
+//i have no clue what is the purpose of this file.

@@ -8,52 +8,28 @@ Terrain can be generated before game starts.
 
 ### Turn
 ---
-Thunderdome Fantasy takes place over a series of turns (also known as days). 
+Thunderdome Fantasy takes place over a series of turns. Each turn represents one hour.
+
+The player list is shuffled at the start of a turn. 
+Player actions will be processed in order of the player list.
 
 A turn consists of the following phases:
 
-**Character Plan Action**
+- Character Planning
+- Character Action
+- Doodad Update
+- Terrain Update	
+- Characters Limit Check
+- Status Tables Updates
 
-	All characters perform the following actions:
-	- Perform turn start actions
-	- Check surroundings
-	- Plan actions
-	
-**Character Do Action**
-
-	All characters perform the following actions:
-	- Perform actions
-	- Perform turn end actions
-	- Character terrain check
-	
-**Doodad Update**
-	
-	Update all active doodads
-	
-**Terrain Update**
-	
-	Update all active terrains
-	
-**Characters Limit Check**
-
-	Ensure character stats are within limits.
-	Characters with below 0 hp will die. 
-	This is the only time character death occurs.
-
-**Characters Tables Updates**
-	
-	- Move character icons
-	- Update character tables
-	- Push messages
-	- Push deaths into death list
-
-## Combat
 
 ## Character
 
 
 ### Stats
 ---
+	
+
 
 ### Actions
 ---
@@ -65,7 +41,7 @@ Each action has a priority level. Higher priority actions will override lower pr
 All characters must wait until all characters have planned their actions before they can be performed.
 
 Actions will be performed during the **Character Do Action** phase. 
-Other character's actions may prevent action from being performed.
+Actions from other players (typically combat related) may prevent a player from performing their planned action.
 Most actions end within the turn they are performed, though some may continue for several turns.
 
 #### Move
@@ -80,7 +56,7 @@ Chooses a point on the map and moves towards it. Character will continue to move
 Chooses a player in sight and moves towards them. Unlike move, only following only lasts for one turn. Following is more likely when there are less players.
  
 #### Escape Characters/Terrain
-Similar to move, but only activates when there is percieved danger. If out of bounds, character will always move towards teh center of the map.
+Similar to move, but only activates when there is perceived danger. If out of bounds, character will always move towards teh center of the map.
 
 #### Forage
 Looks for food to regain health and energy. 
@@ -89,9 +65,7 @@ Foraging can only happen if the character is not aware of any nearby characters.
 Items can be found after a successful forage.
 
 #### Fight
-Fights a chosen character. The target needs to be alive and in range when combat starts in order to proceed.
-
-See **Combat** for more information.
+See **Combat** 
 
 #### Sleep
 Sleeps for 5 to 8 hours and regain health and energy. Characters cannot fight back while asleep.
@@ -101,6 +75,42 @@ Sleeping can only start between hours of 22:00 and 4:00. Characters are more lik
 #### Rest
 Restores a significant amount of energy. 
 Only happens when the character does not have sufficient energy to do anything else. 
+
+
+## Combat
+Combat takes place during the character action phase. 
+When a character plans to fight, a target is chosen from their list of attackable players.
+
+Before initiating combat, a check is done to make sure the target is still in range and alive. 
+The attacker's turn is used up even if the target cannot be attacked.
+
+The player that initiates the fight will strike first.
+
+The target (also known as defender) can fight back if all the following conditions are met:
+- The defender survived the initial attack
+- The defender is aware of the attacker
+- The defender is not incapacitated
+- The attacker is in the defender's attack range
+- The defender's fight limit has not been reached
+- The attacker is still alive (attackers may be killed if the defender has a recoil effect)
+
+If all those conditions are met, the defender will launch a counterattack.
+If the defender has yet to perform their planned action, that action will be canceled (also known as interrupted), even if the defender cannot counterattack.
+
+Certain effects will only activate when initiating an attack or fighting back.
+
+Fight damage is calculated using this formula:
+`Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) * tP.fightDmgB * oP.dmgReductionB`
+Where `tP` is the player dealing the damage and `oP` is the player taking the damage. Damage dealt cannot exceed the opponent's current health.
+
+The player dealing the damage will gain experience equal to the damage dealt. 
+Experience will add to a player's `fightDmgB` using this formula: `Math.pow(1.1, exp/100)`
+
+Killing an opponent will add to the player's kill count. Each kill also increases their `intimidation`.
+
+Each player can fight a maximum of 3 times in a turn. Both attacking and defending will add to the count.
+Once the limit is reached the player cannot fight back. However they can still initiate their planned attack if they haven't already.
+This can be changed using the `turnFightLim` variable.
 
 
 ## Items
@@ -116,6 +126,9 @@ Weapons increases the damage dealt by modifying the player's damage bonus.
 As such weapons should have a fightDmgB stat that is greater than 1. Weapons that don't make up for it with other special effects.
 A typical weapon should have multiplier between x1.1 and x1.3. 
 Data for weapons are stored in `weapon_data`.
+
+<details>
+	<summary>**Weapon List**</summary>
 
 ### Generic weapons
 Generic weapons are weapons without any special abilities outside of modifying the wielder's stats. 
@@ -193,11 +206,11 @@ All accumulated power is retained when passed on.
 Does not lose durability and cannot be replaced.
 
 <details>
-  <summary>Dev notes</summary>
-  One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
-  Much of the very first update focused on putting all of those features into a single location. 
-  A lot of the current Thunderdome is still built around the framework created for this weapon.
-  In a way this single weapon has shaped the current Thunderdome.
+	<summary>Dev notes</summary>
+	One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
+	Much of the very first update focused on putting all of those features into a single location. 
+	A lot of the current Thunderdome is still built around the framework created for this weapon.
+	In a way this single weapon has shaped the current Thunderdome.
 </details>
 
 ### ol'Spicy Shinkai Makai
@@ -208,6 +221,8 @@ Sets both its wielder and target on fire in combat. Target's burn is significant
 Wielder is immune to charm.
 
 Does not lose durability and cannot be replaced.
+
+</details>
 
 ## Offhand Items
 ### Bomb
