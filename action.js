@@ -36,7 +36,7 @@ function awareOfCheck(tP){
 function inRangeOfCheck(tP){
 	let tempArr = [];
 	tP.calc_bonuses();
-	players.forEach(function(oP,index){
+	tP.awareOf.forEach(function(oP,index){
 		if(oP != tP){
 			let dist = playerDist(oP, tP);
 			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){

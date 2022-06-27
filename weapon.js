@@ -966,7 +966,7 @@ class Ancient extends Weapon{
 				let nearby_lst = []
 				if(this.uses>= Math.round(cost*this.aoe_cost) ){
 					nearby_lst = oP.nearbyPlayers(this.aoe_radius)
-					if(nearby_lst.length>0 && 40 + nearby_lst.length * 5 > roll_range(0,100)){
+					if(20 + nearby_lst.length * 5 > roll_range(0,100)){
 						spell[1] = 'barrage'
 						cost = Math.round(cost*this.aoe_cost) 
 					}					
@@ -975,6 +975,7 @@ class Ancient extends Weapon{
 				
 				//cast
 				this.player.fightDmgB *= this.dmg_data[spell[0]]
+
 				this.last_spell = spell
 				//spell effects
 				switch(spell[0]){
