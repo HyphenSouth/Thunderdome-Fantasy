@@ -62,14 +62,14 @@ Characters have a moral and personality.
 This can be preset during preparation, or randomly generated during creation.
 
 ### Morals 
-- Lawful (L): +75 [Peace Bonus](##Bonus-Stats)
+- Lawful (L): +75 [Peace Bonus](#Bonus-Stats)
 - Neutral (N): No effects
-- Chaotic (C): +100 [Aggro Bonus](##Bonus-Stats)
+- Chaotic (C): +100 [Aggro Bonus](#Bonus-Stats)
 
 ### Personality 
-- Good (G): -20 [Intimidation](##Bonus-Stats)
+- Good (G): -20 [Intimidation](#Bonus-Stats)
 - Neutral (N): No effects
-- Evil (E): +10 [Intimidation](##Bonus-Stats)
+- Evil (E): +10 [Intimidation](#Bonus-Stats)
 
 ## Base Stats
 Characters have a set of stats that affect their performance. 
@@ -85,11 +85,11 @@ Maximum energy a character can have.
 Default 100
 
 **Sight Range**:
-Distance a character can see. See [Checking Surroundings](##Checking-Surroundings).
+Distance a character can see. See [Checking Surroundings](#Checking-Surroundings).
 Default 200.
 
 **Visibility**:
-How likely it is for a player to be seen. See [Checking Surroundings](##Checking-Surroundings).
+How likely it is for a player to be seen. See [Checking Surroundings](#Checking-Surroundings).
 Default 100.
 
 **Fight Range**:
@@ -97,7 +97,7 @@ Distance a character can attack.
 Default 24.
 
 **Fight Damage**:
-Max damage dealt when armed. See [Combat Damage](###Checking-Surroundings).
+Max damage dealt when armed. See [Combat Damage](#Checking-Surroundings).
 Default 25.
 
 **Move Speed**:
@@ -132,13 +132,13 @@ Multiplies onto incoming damage to modify damage taken. Certain damage sources s
 Multiplies onto move speed to modify distance the player can move.
 
 **Aggro Bonus**:
-Adds to aggro chance when calculating aggro. See [Aggro](##Aggro).
+Adds to aggro chance when calculating aggro. See [Aggro](#Aggro).
 
 **Peace Bonus**:
-Adds to peace chance when calculating aggro. See [Aggro](##Aggro).
+Adds to peace chance when calculating aggro. See [Aggro](#Aggro).
 
 **Intimidation Bonus**:
-Modifies likelihood of being attacked. See [Aggro](##Aggro).
+Modifies likelihood of being attacked. See [Aggro](#Aggro).
 
 ## Checking Surroundings
 Players check their surroundings for other characters at the start of a turn. This determines who they can follow and attack.
@@ -255,7 +255,7 @@ Foraging can only happen if the character is not aware of any nearby characters.
 Items can be found after a successful forage.
 
 ### Fight
-See [Combat](##Combat)
+See [Combat](#Combat)
 
 ### Sleep
 Sleeps for 5 to 8 hours and regain health and energy. Characters cannot fight back while asleep.
