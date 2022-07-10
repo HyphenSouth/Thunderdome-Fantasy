@@ -27,9 +27,9 @@ A turn consists of the following phases:
 During the planning phase all characters will do the following:
 1. Activate all turn start effects
 2. Check surroundings
-	- Get players in sight (see [Checking Surroundings](##Checking-Surroundings))
-	- Get players in attack range (see [Checking Surroundings](##Checking-Surroundings))
-	- Get attackable players (see [Checking Surroundings](##Checking-Surroundings))
+	- Get players in sight (see [Checking Surroundings](#Checking-Surroundings))
+	- Get players in attack range (see [Checking Surroundings](#Checking-Surroundings))
+	- Get attackable players (see [Checking Surroundings](#Checking-Surroundings))
 3. Plan next action (Planning Actions)
 
 ### Action Phase
