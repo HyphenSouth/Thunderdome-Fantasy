@@ -494,7 +494,7 @@ class Mirror extends Offhand{
 		
 		//check if user can choose target
 		
-		if(this.player.has_attr('magic')){
+		if(this.player.has_attr('magic', 'demon')){
 			choose=true;
 		}
 		//sword force attack if user cannot choose

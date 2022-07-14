@@ -327,13 +327,14 @@ class Berserk extends StatusEffect{
 					});				
 				}
 				*/
-				
+				//forced attack
 				if(this.player.inRangeOf.length>0){
 					if(this.player.setPlannedAction("fight", 12)){
 						// log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
 						this.player.plannedTarget = this.player.inRangeOf[0]
 					}
 				}
+				//forced follow
 				else if(this.player.awareOf.length>0){
 					if(this.player.setPlannedAction("follow", 12)){
 						// log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
@@ -363,7 +364,7 @@ class Peace extends StatusEffect{
 	calc_bonuses(){
 		// this.player.aggroB -=(this.level*40);
 		// this.player.peaceB +=(this.level*50);
-		this.dmgReductionB = 1-(this.level/50) + Math.min(this.player.lastFight/50, 0.2);
+		this.dmgReductionB = 1- ((this.level/50) + Math.min(this.player.lastFight/50, 0.2));
 		super.calc_bonuses()
 	}
 }
@@ -672,9 +673,9 @@ class Burn extends DotEffect{
 		//replace weaker burn
 		if(eff.level >= this.level){
 			this.replace_eff(eff)
-			this.duration = eff.duration 
-			this.level = eff.level 
-			this.owner = eff.owner
+			// this.duration = eff.duration 
+			// this.level = eff.level 
+			// this.owner = eff.owner
 		}
 		//increase burn
 		if(eff.level < this.level){
@@ -712,7 +713,7 @@ class Burn extends DotEffect{
 //reduced stats and dot
 class Smoke extends DotEffect{
 	constructor(level, duration, owner){
-		super("smoke", level, duration, owner, "poison", "choked to death",  {'sightBonus' : [-10,-20],'fightBonus' : [1,-0.1],'moveSpeedB' : [1,-0.1]});
+		super("smoke", level, duration, owner, "poison", "choked to death",  {'sightBonus' : [-10,-20],'fightBonus' : [1,-0.05],'moveSpeedB' : [1,-0.05]});
 		this.icon="🚬";
 		this.dmg_range = [2,2] //base damage range at level 1
 

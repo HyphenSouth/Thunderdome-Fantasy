@@ -138,7 +138,7 @@ Adds to aggro chance when calculating aggro. See [Aggro](#Aggro).
 Adds to peace chance when calculating aggro. See [Aggro](#Aggro).
 
 **Intimidation Bonus**:
-Modifies likelihood of being attacked. See [Aggro](#Aggro).
+Modifies likelihood of being attacked. maybe. come back later im still figuring this part out. See [Aggro](#Aggro).
 
 ## Checking Surroundings
 Players check their surroundings for other characters at the start of a turn. This determines who they can follow and attack.
@@ -337,18 +337,24 @@ Generic weapons are weapons without any special abilities outside of modifying t
 	Uses: 4 to 9
 Similar to the generic weapons, but has a 1% chance of killing its user at the start of each turn.
 
-### Rake
+### Rake 🧹
 	Damage Bonus: x0.5
 	Uses: 3
 An extremely weak melee weapon, but does massive damage against leafs.
 
-### Katana 🧹
+### Katana 
 	Damage Bonus: x1.2
 	Uses: 4 to 9
 Moderately strong melee weapon.
 
 Has a 10% chance of landing a critical hit when attacking, which does x2 damage.
 If the weapon has not landed a single crit, its final hit before breaking will be a super crit, which does x2.5 damage.
+
+<details>
+	<summary>Dev notes</summary>
+	The first weapon I created for the new Thunderdome. 
+	Pretty simple and straight forward effect.
+</details>
 
 ### Sniper Rifle
 	Damage Bonus: x1.2
@@ -357,6 +363,15 @@ If the weapon has not landed a single crit, its final hit before breaking will b
 	Uses: 3
 Extremely long ranged weapon. Has a 10% chance of landing a headshot for x2.5 damage. 
 Unlike the katana, it does not have a guaranteed crit mechanic.
+
+<details>
+	<summary>Dev notes</summary>
+	I originally wanted this to be a generic weapon with a long attack range and a sight bonus stat and no special effects.
+	I then had the impulse to give it the katana's crit effect. 
+	Because of its increased range, I decided to do away with the guaranteed crit.
+	I feel there needs to be more generic weapons so I'm not too happy that I had to make this, but I think it is absolutely appropriate for this weapon to get this effect.
+	I am also really unhappy with how the sprite turned out. I try to make my sprites 25x25, which makes long weapons like this really hard to draw.
+</details>
 
 ### Shotgun
 	Damage Bonus: x1.05 to x2.5 (depends on range)
@@ -372,6 +387,17 @@ Reloading takes up one turn, and reloads 2 shells at once. Durability decreases 
 Reloading can be done in the middle of combat, at the cost of doing no damage that turn. Combat effects from other sources may still activate.
 Players may still attack and fight back with an empty shotgun, though it will have no stat bonuses and will act as an unarmed attack.
 
+<details>
+	<summary>Dev notes</summary>
+	The second weapon I made. Came from a suggestion in chat for a gun that needs to be reloaded.
+	The range based damage scaling and AoE was done on a whim to test the limits of the engine.
+	It was a lot of work but the lessons learned from it are still being put to use.
+	
+	I had an idea to occasionally let the shotgun shoot napalm rounds that light players and terrain on fire.
+	This has taken a backseat but I may still implement it one day.
+	
+	abe...
+</details>
 
 ### Flamethrower
 	Damage Bonus: x0.95
@@ -381,6 +407,18 @@ Weak ranged weapon with a damage bonus of only x0.95, making it weaker than atta
 Applies a burn effect to the target causing damage over time.
 Nearby players also have a chance of being set on fire.
 Has a chance of leaving a fire entity at the location of the main target, which may set other players and the terrain on fire.
+
+<details>
+	<summary>Dev notes</summary>
+	I didn't want the burn effect locked behind a single rare weapon, so a flamethrower is a nobrainer to include.
+	Lighting the ground on fire was a bit of an impulse feature as I wanted to reuse the fire entity from the campfire.
+	Despite being weaker than normal, it is one of the more noticeable weapons. A bit too much in fact.
+	I may remove some of its current effects and move them over to the Shinkai Makai instead.
+	
+	I went through about 5 different designs for the sprite. None of them ended up looking very good at a small scale. 
+	The current sprite has a bright pistol design, which doesn't scream flamethrower but is far more readable.
+	Still not very satisfied with it.
+</details>
 
 ### Ancient Staff
 	Damage Bonus: Depends on spell
@@ -417,13 +455,49 @@ Freezes the target in ice, immobilizing them and causing a slight damage over ti
 Initiating an attack against another character will Skull the attacker. 
 Defending against an attack does not cause a skull.
 
+<details>
+	<summary>Dev notes</summary>
+	The initial idea for this item came about when I wanted to have some sort of freezing attack.
+	The first thing that came to mind is to implement it as part of the Ice Barrage spell from Runescape. 
+	It didn't seem appropriate to have just Ice Barrage on its own, and with how easy it is to develop status effects, I decided to include the remaining ancient spells and their AoE variants.	
+	Being a notorious PKing spell, I figured it would be funny to have the caster be skulled.
+		
+	With almost 200 lines of code, this may be the most complex item in the game as of right now.
+	Despite this, development was surprisingly straight forward. I had the idea on the backburner for over a month before starting so I had plenty of time to think about it.
+	Smoke and Shadow spells inflicted basic stat modifying status effects, while the freeze effect is a modified trap effect and the Blood spell's life drain is taken straight from the Nanasatsu code.	
+	The AoE code is taken from the flamethrower.
+	I also love how the sprite for the weapon turned out.
+	
+	The main difficulty came from balancing.
+	With 8 different attacks, AoE abilities, a self inflicted status effect and a unique durability system, there are many variables that needs to be tuned.
+	The blind effect was something I was especially concerned about in the design phase. 
+	Due to the way vision works, blindness is either completely useless or absolutely broken.
+	In fact after doing some calculations on vision I decided that whole mechanic needs to be overhauled, but that is a different discussion.
+		
+	The Skull was another difficult effect. I wanted it to be part of the weapon but didn't know what to do with it. 
+	I ended up designing it to be a debuff to justify making the weapon stronger.
+	Passing the wielder's inventory to their killer was a bit of a last minute idea, and there are some niche situations that have not been fully tested.
+	
+	Overall the ancient staff didn't turn out to be as impactful as I hoped.
+	Status effects just aren't noticeable in a large crowd.
+	Sometimes I feel like I am developing features for a different game and this weapon is a perfect example of it.
+	If I ever make a single player Thunderdome, this may be one of the strongest weapons.
+</details>
+
 ### The Clanger
 	Damage Bonus: x1.35
 	Range Bonus: +5
 	Uses: 3 to 8
 Strong melee weapon with a slight range bonus.
-Applies a Berserk effect to the wielder upon equipping as well as at random times.
+Applies a [Berserk effect](#Berserk-😡) to the wielder upon equipping as well as at random times.
 Damage increases based on wielder's aggro stat.
+
+<details>
+	<summary>Dev notes</summary>
+	A weapon that I created on a whim when I saw I had an image of Gut's sword saved. 
+	I was just wrapping up the first iteration of Hinamizawa syndrome at the time so I decided to stick the berserk effect on it just for fun.
+	Turned out to be an extremely entertaining and destructive weapon with the speed burst and absurd damage.
+</details>
 
 ### Nanasatsu Tenryou
 	Damage Bonus: x2
@@ -432,7 +506,7 @@ Damage increases based on wielder's aggro stat.
 	Uses: Unlimited
 Extremely strong melee weapon. Causes wielder to become extremely aggressive.
 
-Heals its wielder based on damage dealt.Power increases after dealing damage and killing. 
+Heals its wielder based on damage dealt. Power increases after dealing damage and killing. 
 Damages the wielder at the start of each turn. Self damage increases as attack power increases.
 
 Applies an extremely strong aggressive charm effect to all players that see it. 
@@ -448,7 +522,16 @@ Does not lose durability and cannot be replaced.
 	One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
 	Much of the very first update focused on putting all of those features into a single location. 
 	A lot of the current Thunderdome is still built around the framework created for this weapon.
+	It is also the first item to incorporate a lot of newer features such as using an image for a sprite and inflicting status effects.
 	In a way this single weapon has shaped the current Thunderdome.
+	
+	Pulling the weapon is a death sentence for its wielder and turns them into a blender.
+	As the weapon is transfered on death, it will continue its slaughter until its self damage is too much for its wielder.
+	
+	I am very torn on this weapon. While it is a fun weapon, it is extremely chaotic and often results in at least a dozen casualties.
+	The weapon lasts around 10 turns during which a lot of characters will focus on it.
+	This is fine for larger games with over 80 characters but is disruptive for smaller games.
+	It also causes characters to clump up, which I am trying to avoid.
 </details>
 
 ### ol'Spicy Shinkai Makai
@@ -462,63 +545,306 @@ Wielder is immune to charm.
 
 Does not lose durability and cannot be replaced.
 
+<details>
+	<summary>Dev notes</summary>
+	This was one of the original weapons I wanted to implement when first taking over the project.
+	I had to first create the status effect framework before I can start development. 
+	Once that is done, implementation was surprisingly simple.
+	Balancing was a bit more tricky, as the burn effect was more powerful than expected.
+	
+	Unlike the Nanasatsu Tenryou, this weapon turned out to be very subtle. 
+	While extremely strong, perhaps more so than its demonic counterpart, it does not have nearly the same impact on the game.
+	I am considering moving some of the flamethrower's abilities onto this weapon instead.
+	
+	I originally planned to light the ground on fire when its wielder is killed, but that required updating the terrain system, which I didn't want to do at the time.
+	By the time that update was completed I have dropped this idea.
+	
+	The sprite doesn't resemble its appearance in the show very much, but it shows off its fiery power much better. 
+	I used some neat layer blending techniques to create the color gradient.
+</details>
+
 </details>
 
 ---
 
 ## Offhand Items
+Offhand items provide support to their wielder.
+They do this by boosting their stats, creating objects on the map, healing them and other effects.
+Data for offhand items are stored in `offhand_data`.
+
+
 <details>
 <summary>Offhand Item List</summary>
 
-### Bomb
-### Trap
-### Shield
+### Generic offhand
+Generic offhand items are items without any special abilities outside of modifying the wielder's stats.
+The turn they use their durability is also specified.
+Due to offhand items possessing more unique abilities, they are not as common.
+
+### Bomb 💣
+	Uses: 1
+Wielder has a chance to plant a bomb at the end of their turn. 
+When attacked, it has a chance of being knocked out of the wielder's hands and exploding immediately.
+When killed the bomb is dropped, whereby it also explodes.
+
+See [Bomb Entity](#bomb-entity) for more information.
+
+### Trap 🕳
+	Uses: 1
+Wielder has a chance to plant a trap at the end of their turn. See [Trap Entity](#trap-entity) for more information.
+
 ### Ring of Recoil
+	Damage Taken: x0.75,
+	Uses: 10hp
+When taking damage from another character, absorbs 25% of incoming damage and reflects it back.
+Damage reduction applies even when damage is not reflected, without reducing durability.
+
 ### Vape
+	Peace Bonus: +40,
+	Visibility Bonus:-20,
+	Uses: 1
+	Vape radius: 24
+Passively applies a [Peace](#peace) to everyone in vape range. When in danger from other characters, it creates a [Decoy](#decoy-entity), upon which the item breaks.
+When the decoy is destroyed, it inflicts a choke effect on all nearby characters.
+
 ### Campfire
+	Uses: 1
+Wielder has a chance to set up a campfire at the end of their turn. Can only be used between the hours of 20 and 5. See [Campfire Entity](#campfire-entity) for more information.
+
 ### Scrying Mirror
+	Uses: 1
+Teleports the wielder when activated.
+Characters will teleport when:
+- in dangerous terrain terrain (defensive)
+- too many hostile characters around (defensive)
+- low on health after a fight (defensive)
+- aggressive and haven't fought in a while (aggressive)
+- randomly chosen (neutral)
+
+The destination is usually randomly chosen and can be anywhere on the map. 
+The mirror will try to put the wielder in bounds, but is not guaranteed.
+If the destination is out of map bounds, the character is considered to have teleported into space and dies instantly.
+
+Certain characters can choose their destination. 
+These are characters with certain attributes, such as magic or demon, or characters with the Nanasatsu Tenryou.
+There are 3 types of teleport types depending on what caused them to want to teleport: aggressive, defensive and neutral.
+The chosen teleport type will align with the player's goals.
+Nanasatsu Tenryou will teleport aggressively.
+
+<details>
+	<summary>See below for details on how the destination is selected</summary>
+	### Random Teleport
+	Teleport to a random location. Used by characters that cannot choose their destination.
+	
+	Select a random set of coordinates.
+	If the coordinates is out of the safe bounds, a new set of coordinates is generated.
+	Up to 5 coordinates are generated, after which the player is teleported regardless of where it leads.
+	
+	### Aggressive Teleport
+	Teleports to a character. 
+	
+	Select a random living character. 
+	If the coordinates is out of the safe bounds, a new character is selected.
+	Cannot select oneself, unless they are the last character alive.
+	Up to 10 characters are selected, after which the player is teleported regardless of where it leads.
+	
+	### Defensive Teleport
+	Teleports to a safe area without nearby characters. 
+	
+	Select a random set of coordinates.
+	If the terrain at the destination is safe, and amount of characters in a 25 unit radius is less than an alloted amount, the destination is considered safe.
+	If the destination is not safe, a new set of coordinates is generated.
+	Up to 15 coordinates are generated. The alloted amount of characters increases with more tries.
+	If a safe destination is not found after 15 tries, the player is teleported to the center of the map.
+	
+	### Neutral Teleport
+	Teleports to a safe area. 
+	
+	Select a random set of coordinates. 
+	If the coordinates is out of the safe bounds or has unsafe terrain, a new set of coordinates is generated.
+	Up to 10 coordinates are generated, after which the player is teleported regardless of where it leads.
+	
+</details>
+
+There is a chance for the mirror to break when attacked, which drops [half the mirror](#mirror-entity) on the ground. 
+The remaining half in the character's hand works the exact same. Mirrors cannot be broken more than once.
 </details>
 
 ---
 
 ## Food 
 A special category of offhand item. Can be consumed to restore health and energy.
+Only one food can be consumed per turn.
 Some food items have special effects of their own.
+Data for food are stored in `food_data`.
 <details>
 <summary>Food List</summary>
 
+### Generic food
+Generic food items simply restore the player's health and energy by a specified amount.
+They do not have any other effects.
+
 ### Ebiroll
+	Heal: 30hp
+Has a 50% chance to deal 1 to 10 damage instead of healing. 
+
 ### Strength Potion
+Does not heal anything, but rather inflicts a strength status effect, increasing character's damage dealt.
+
 ### Purple Sweets
+	Uses: 5 to 10
+	Heal: 1hp
+	Energy Restored: 5ep
+Heals very little, but can be eaten upon taking damage. Due to the way deaths are handled, it allows the player to survive attacks that will otherwise kill them.
+Cannot save the player from overkill damage.
+
 </details>
 
 ---
 
 # Status Effects
+Status effects are temporary effects on a character. 
+These effects include stat changes, damage over time, immobilization and behavior modification.
+
+Status effects have a level that is used to determine the potency of the effect as well as how it stacks. 
+The level is of the effect is based on its source.
+
+Most status effects wear off after a set duration, though some wear off based on other variables.
+
+### Stacking
+If a character is inflicted with a status effect they already have, it attempts to stack.
+Stacking behaves differently based on effect. Generally there are 2 methods of stacking: 
+	- Increase the power or duration of the effect based on the power of the new effect
+	- Override the current effect if it has a higher level, otherwise do nothing. This is the default stacking behavior.
+Some status effects cannot be stacked at all.
 
 <details>
 <summary>Status Effect List</summary>
+Stat Bonuses below assumes effect level will be between 1 and 10.
 
-### Charm
-### Trapped
-### Berserk
-### Peace
+### Generic Status Effect
+Generic status effects simply provide state changes. 
+The higher the level the greater the stat changes. 
+They stack by increasing the level of the effect, which in turn increases their power.
+
+### Charm 💗
+	Damage Taken: x1.1
+Forces the player to follow the targeted character as long as they are insight. Chance to follow increases with level.
+There is a second variant that also forces the player to attack the target.
+Stacks by overriding lower level charm. The greater the difference in level the higher the chance of it being replaced.
+
+### Trapped 🕳
+While trapped, player takes constant damage and cannot move. 
+The only action they can perform is attempt to escape.
+Each escape attempt uses up energy. 
+If the player has no energy left, they take extra damage.
+This effect will only wear off when the player escapes and cannot be stacked.
+
+### Berserk 😡
+	Aggro Bonus: 20 to 200
+	Damage Bonus: x1.01 to x1.2 (see below)
+	Damage Taken: x1.01 to x1.2
+	Speed Bonus: x1.5
+Damage dealt is further increased based on % of health left.
+Gains a further x1.05 damage bonus when fighting their chosen target for the turn.
+
+Will always choose to fight if there are characters in range.
+If no one is in attack range, will follow a character in sight.
+
+### Peace ☮
+	Peace Bonus: 20 to 200
+	Damage Taken: x0.99 to x0.8 (see below)
+Damage taken is further reduced based on the amount of turns since the last fight. This caps at a further x0.2 reduction at 10 turns.
+	
 ### Comfy
+	Peace Bonus: 20 to 200
+	Damage Taken: x0.99 to x0.8 (see below)
+Applied by a [campfire](#campfire-entity). Has all of Peace's effects. In addition, player gets passive healing as long as they are not fighting. 
+Healing is increased while resting and greatly increased while sleeping.
+
 ### Decoy
-### Frozen
+Can only be applied from a [decoy entity](#decoy-entity). Forces the player to see the decoy instead of the real target. 
+Cannot be stacked. A single player can have multiple decoy effects for different players.
+
+going to be reworked
+
+### Frozen 🧊
+	Damage Taken: x0.5
+	Damage per Turn: 0 to `2 * level`
+Freezes the player in place and cause them to take damage.
+Stacks by increasing the level and duration based on the new freeze.
+
+Attempting to apply burn while frozen will instead decrease the duration of the freeze based on the level of the burn.
+
+
 ### Skulled
-When killed, the killer will receive all of the player's items and restore some health and energy. 
+	Visibility: +50
+	Aggro Bonus: +30
+	Intimidation Bonus: +50
+	Damage Taken:: x1.1
+When killed, the killer will receive all of the player's items and restore some health and energy. Stacking increases the duration with the one from the new effect.
+
 </details>
 
 ---
 ## DoT Effect
 Damage over time effects damages the player, usually at the start of each turn.
+Damage is dealt within a given range often based on the effect's level.
+Characters killed by a DoT counts as a kill for the player that inflicted it, if there is one.
+
 <details>
 <summary>DoT List</summary>
 
-### Burn
-### Smoke
-### Bleed
+### Burn 🔥
+	Damage per Turn: 1 to `1 * level`
+	Visibility: +10
+Extinguished upon entering water terrain. If a higher level burn is applied, it overrides the current burn, including the owner. 
+Burns with a lower level will increase the current burn's level and duration.
+
+Attempting to apply freeze while burning will instead decrease the duration of the burn based on the level of the freeze.
+
+### Smoke 🚬
+	Sight Bonus: -10 to - 210
+	Damage Bonus: x0.95 to x0.5  
+	Speed Bonus: x0.95 to x0.5 
+	Damage per Turn: 2 to `2 + level/2`
+A damage over time effect that also provides a few stat debuffs.
+	
+### Bleed 🩸
+	Damage per Turn: 1 to 5 (see below)
+The max damage increases by x1.2 at the start of each turn.  
+This effect has no set duration. 
+Instead there is a chance for it to wear off at the start of each turn.
+The chance to wear off depends on the level, starting at 30% at level 1 and decreasing by 1.5% per level.
+
+Stacking bleed increases its damage and makes it harder to wear off.
+The both max damage and level increases by the level of the new bleed.
+
+</details>
+
+---
+## Hinamizawa Syndrome 
+A special status effect meant to encourage aggression as the game continues. 
+Can only be manually applied by using the `HAUAU()` function. 
+Once inflicted it cannot be removed.
+
+Hinamizawa Syndrome consists of 5 levels, each providing more effects.
+It has a Rage counter which increases from various situations the player finds themselves in.
+When the counter reaches 100%, the status upgrades to the next stage and the counter resets back to 0.
+At Level 5, the player is inflicted with a [Berserk effect](#berserk) instead of leveling up.
+
+Stacking Hinamizawa Syndrome increases the counter by 25% for each level of the new effect.
+The `HAUAU()` function can be used to accelerate the effect on all characters.
+
+<details>
+	<summary>Level effects</summary>
+	### Universal Effects
+	### Level 1
+	### Level 2
+	### Level 3
+	### Level 4
+	### Level 5
+
 </details>
 
 ---
@@ -533,10 +859,26 @@ Damage over time effects damages the player, usually at the start of each turn.
 ---
 
 # Doodads
-Doodads (also known as entities) are non player objects that appear on the map. 
+Doodads (also known as entities) are non player objects that appear on the map.
+They have effects that can be triggered by characters within their activation range.
+Each doodad has its own activation range and trigger probability. A doodad's owner may have a different chance to trigger.
+Some doodads can be triggered by multiple characters per turn.
+
+Doodads updates take place after all players performed their actions, and before terrain updates
+
+Some doodads can move about the map.
+These doodads will move around randomly, or towards a planned target, and can interact with terrain.
+
 <details>
 <summary>Doodad List</summary>
+### Bomb
+### Trap
+### Fire
+### Campfire
+### Decoy
+this thing is probably getting taken out so im not writing anything for it
 
+### Duck
 
 </details>
 

@@ -196,6 +196,20 @@ function createPlayerLine(name='', img='', attr='', moral='Random', personality=
 	return player_line
 }
 
+//saves the results of the game
+function saveResults(filename = ''){
+	result_str = '';
+	//dead players
+	dedPlayers.forEach(function(dP){
+		result_str = dP.name + ',' + dP.kills + ',' + dP.death + '\n' + result_str;
+	});	
+	//living players
+	players.forEach(function(tP){
+		result_str = tP.name + ',' + tP.kills + '\n' + result_str;				
+	});
+	log_message(result_str)
+}
+
 //save players
 function savePlayers(){
 	if($('input[name="save_type"]:checked').val()=='csv'){
@@ -425,10 +439,10 @@ function turn(){
 	}
 	log_message(hyp_count)
 	hyp_count = 0
-	action()
+	actionPhase()
 }
 //some sort of action
-function action(){
+function actionPhase(){
 	log_message("======= performing actions =======");
 	//perform actions for each player
 	players.forEach(function(chara,index){

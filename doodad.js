@@ -111,6 +111,7 @@ class BombEntity extends Doodad{
 		this.explode_range = 50;
 		this.dmg = 50;
 		this.triggerRange = 24;
+		this.max_triggers=1;
 		this.active=true;
 	}
 	
