@@ -365,12 +365,12 @@ Extremely long ranged weapon. Has a 10% chance of landing a headshot for x2.5 da
 Unlike the katana, it does not have a guaranteed crit mechanic.
 
 <details>
-	<summary>Dev notes</summary>
-	I originally wanted this to be a generic weapon with a long attack range and a sight bonus stat and no special effects.
-	I then had the impulse to give it the katana's crit effect. 
-	Because of its increased range, I decided to do away with the guaranteed crit.
-	I feel there needs to be more generic weapons so I'm not too happy that I had to make this, but I think it is absolutely appropriate for this weapon to get this effect.
-	I am also really unhappy with how the sprite turned out. I try to make my sprites 25x25, which makes long weapons like this really hard to draw.
+<summary>Dev notes</summary>
+I originally wanted this to be a generic weapon with a long attack range and a sight bonus stat and no special effects.
+I then had the impulse to give it the katana's crit effect. 
+Because of its increased range, I decided to do away with the guaranteed crit.
+I feel there needs to be more generic weapons so I'm not too happy that I had to make this, but I think it is absolutely appropriate for this weapon to get this effect.
+I am also really unhappy with how the sprite turned out. I try to make my sprites 25x25, which makes long weapons like this really hard to draw.
 </details>
 
 ### Shotgun
@@ -388,15 +388,15 @@ Reloading can be done in the middle of combat, at the cost of doing no damage th
 Players may still attack and fight back with an empty shotgun, though it will have no stat bonuses and will act as an unarmed attack.
 
 <details>
-	<summary>Dev notes</summary>
-	The second weapon I made. Came from a suggestion in chat for a gun that needs to be reloaded.
-	The range based damage scaling and AoE was done on a whim to test the limits of the engine.
-	It was a lot of work but the lessons learned from it are still being put to use.
+<summary>Dev notes</summary>
+The second weapon I made. Came from a suggestion in chat for a gun that needs to be reloaded.
+The range based damage scaling and AoE was done on a whim to test the limits of the engine.
+It was a lot of work but the lessons learned from it are still being put to use.
 	
-	I had an idea to occasionally let the shotgun shoot napalm rounds that light players and terrain on fire.
-	This has taken a backseat but I may still implement it one day.
+I had an idea to occasionally let the shotgun shoot napalm rounds that light players and terrain on fire.
+This has taken a backseat but I may still implement it one day.
 	
-	abe...
+abe...
 </details>
 
 ### Flamethrower
@@ -409,15 +409,15 @@ Nearby players also have a chance of being set on fire.
 Has a chance of leaving a fire entity at the location of the main target, which may set other players and the terrain on fire.
 
 <details>
-	<summary>Dev notes</summary>
-	I didn't want the burn effect locked behind a single rare weapon, so a flamethrower is a nobrainer to include.
-	Lighting the ground on fire was a bit of an impulse feature as I wanted to reuse the fire entity from the campfire.
-	Despite being weaker than normal, it is one of the more noticeable weapons. A bit too much in fact.
-	I may remove some of its current effects and move them over to the Shinkai Makai instead.
+<summary>Dev notes</summary>
+I didn't want the burn effect locked behind a single rare weapon, so a flamethrower is a nobrainer to include.
+Lighting the ground on fire was a bit of an impulse feature as I wanted to reuse the fire entity from the campfire.
+Despite being weaker than normal, it is one of the more noticeable weapons. A bit too much in fact.
+I may remove some of its current effects and move them over to the Shinkai Makai instead.
 	
-	I went through about 5 different designs for the sprite. None of them ended up looking very good at a small scale. 
-	The current sprite has a bright pistol design, which doesn't scream flamethrower but is far more readable.
-	Still not very satisfied with it.
+I went through about 5 different designs for the sprite. None of them ended up looking very good at a small scale. 
+The current sprite has a bright pistol design, which doesn't scream flamethrower but is far more readable.
+Still not very satisfied with it.
 </details>
 
 ### Ancient Staff
@@ -456,32 +456,32 @@ Initiating an attack against another character will Skull the attacker.
 Defending against an attack does not cause a skull.
 
 <details>
-	<summary>Dev notes</summary>
-	The initial idea for this item came about when I wanted to have some sort of freezing attack.
-	The first thing that came to mind is to implement it as part of the Ice Barrage spell from Runescape. 
-	It didn't seem appropriate to have just Ice Barrage on its own, and with how easy it is to develop status effects, I decided to include the remaining ancient spells and their AoE variants.	
-	Being a notorious PKing spell, I figured it would be funny to have the caster be skulled.
+<summary>Dev notes</summary>
+The initial idea for this item came about when I wanted to have some sort of freezing attack.
+The first thing that came to mind is to implement it as part of the Ice Barrage spell from Runescape. 
+It didn't seem appropriate to have just Ice Barrage on its own, and with how easy it is to develop status effects, I decided to include the remaining ancient spells and their AoE variants.	
+Being a notorious PKing spell, I figured it would be funny to have the caster be skulled.
 		
-	With almost 200 lines of code, this may be the most complex item in the game as of right now.
-	Despite this, development was surprisingly straight forward. I had the idea on the backburner for over a month before starting so I had plenty of time to think about it.
-	Smoke and Shadow spells inflicted basic stat modifying status effects, while the freeze effect is a modified trap effect and the Blood spell's life drain is taken straight from the Nanasatsu code.	
-	The AoE code is taken from the flamethrower.
-	I also love how the sprite for the weapon turned out.
+With almost 200 lines of code, this may be the most complex item in the game as of right now.
+Despite this, development was surprisingly straight forward. I had the idea on the backburner for over a month before starting so I had plenty of time to think about it.
+Smoke and Shadow spells inflicted basic stat modifying status effects, while the freeze effect is a modified trap effect and the Blood spell's life drain is taken straight from the Nanasatsu code.	
+The AoE code is taken from the flamethrower.
+I also love how the sprite for the weapon turned out.
 	
-	The main difficulty came from balancing.
-	With 8 different attacks, AoE abilities, a self inflicted status effect and a unique durability system, there are many variables that needs to be tuned.
-	The blind effect was something I was especially concerned about in the design phase. 
-	Due to the way vision works, blindness is either completely useless or absolutely broken.
-	In fact after doing some calculations on vision I decided that whole mechanic needs to be overhauled, but that is a different discussion.
+The main difficulty came from balancing.
+With 8 different attacks, AoE abilities, a self inflicted status effect and a unique durability system, there are many variables that needs to be tuned.
+The blind effect was something I was especially concerned about in the design phase. 
+Due to the way vision works, blindness is either completely useless or absolutely broken.
+In fact after doing some calculations on vision I decided that whole mechanic needs to be overhauled, but that is a different discussion.
 		
-	The Skull was another difficult effect. I wanted it to be part of the weapon but didn't know what to do with it. 
-	I ended up designing it to be a debuff to justify making the weapon stronger.
-	Passing the wielder's inventory to their killer was a bit of a last minute idea, and there are some niche situations that have not been fully tested.
+The Skull was another difficult effect. I wanted it to be part of the weapon but didn't know what to do with it. 
+I ended up designing it to be a debuff to justify making the weapon stronger.
+Passing the wielder's inventory to their killer was a bit of a last minute idea, and there are some niche situations that have not been fully tested.
 	
-	Overall the ancient staff didn't turn out to be as impactful as I hoped.
-	Status effects just aren't noticeable in a large crowd.
-	Sometimes I feel like I am developing features for a different game and this weapon is a perfect example of it.
-	If I ever make a single player Thunderdome, this may be one of the strongest weapons.
+Overall the ancient staff didn't turn out to be as impactful as I hoped.
+Status effects just aren't noticeable in a large crowd.
+Sometimes I feel like I am developing features for a different game and this weapon is a perfect example of it.
+If I ever make a single player Thunderdome, this may be one of the strongest weapons.
 </details>
 
 ### The Clanger
@@ -493,10 +493,10 @@ Applies a [Berserk effect](#Berserk-😡) to the wielder upon equipping as well 
 Damage increases based on wielder's aggro stat.
 
 <details>
-	<summary>Dev notes</summary>
-	A weapon that I created on a whim when I saw I had an image of Gut's sword saved. 
-	I was just wrapping up the first iteration of Hinamizawa syndrome at the time so I decided to stick the berserk effect on it just for fun.
-	Turned out to be an extremely entertaining and destructive weapon with the speed burst and absurd damage.
+<summary>Dev notes</summary>
+A weapon that I created on a whim when I saw I had an image of Gut's sword saved. 
+I was just wrapping up the first iteration of Hinamizawa syndrome at the time so I decided to stick the berserk effect on it just for fun.
+Turned out to be an extremely entertaining and destructive weapon with the speed burst and absurd damage.
 </details>
 
 ### Nanasatsu Tenryou
@@ -518,20 +518,20 @@ All accumulated power is retained when passed on.
 Does not lose durability and cannot be replaced.
 
 <details>
-	<summary>Dev notes</summary>
-	One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
-	Much of the very first update focused on putting all of those features into a single location. 
-	A lot of the current Thunderdome is still built around the framework created for this weapon.
-	It is also the first item to incorporate a lot of newer features such as using an image for a sprite and inflicting status effects.
-	In a way this single weapon has shaped the current Thunderdome.
+<summary>Dev notes</summary>
+One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
+Much of the very first update focused on putting all of those features into a single location. 
+A lot of the current Thunderdome is still built around the framework created for this weapon.
+It is also the first item to incorporate a lot of newer features such as using an image for a sprite and inflicting status effects.
+In a way this single weapon has shaped the current Thunderdome.
 	
-	Pulling the weapon is a death sentence for its wielder and turns them into a blender.
-	As the weapon is transfered on death, it will continue its slaughter until its self damage is too much for its wielder.
+Pulling the weapon is a death sentence for its wielder and turns them into a blender.
+As the weapon is transfered on death, it will continue its slaughter until its self damage is too much for its wielder.
 	
-	I am very torn on this weapon. While it is a fun weapon, it is extremely chaotic and often results in at least a dozen casualties.
-	The weapon lasts around 10 turns during which a lot of characters will focus on it.
-	This is fine for larger games with over 80 characters but is disruptive for smaller games.
-	It also causes characters to clump up, which I am trying to avoid.
+I am very torn on this weapon. While it is a fun weapon, it is extremely chaotic and often results in at least a dozen casualties.
+The weapon lasts around 10 turns during which a lot of characters will focus on it.
+This is fine for larger games with over 80 characters but is disruptive for smaller games.
+It also causes characters to clump up, which I am trying to avoid.
 </details>
 
 ### ol'Spicy Shinkai Makai
@@ -546,21 +546,21 @@ Wielder is immune to charm.
 Does not lose durability and cannot be replaced.
 
 <details>
-	<summary>Dev notes</summary>
-	This was one of the original weapons I wanted to implement when first taking over the project.
-	I had to first create the status effect framework before I can start development. 
-	Once that is done, implementation was surprisingly simple.
-	Balancing was a bit more tricky, as the burn effect was more powerful than expected.
+<summary>Dev notes</summary>
+This was one of the original weapons I wanted to implement when first taking over the project.
+I had to first create the status effect framework before I can start development. 
+Once that is done, implementation was surprisingly simple.
+Balancing was a bit more tricky, as the burn effect was more powerful than expected.
 	
-	Unlike the Nanasatsu Tenryou, this weapon turned out to be very subtle. 
-	While extremely strong, perhaps more so than its demonic counterpart, it does not have nearly the same impact on the game.
-	I am considering moving some of the flamethrower's abilities onto this weapon instead.
+Unlike the Nanasatsu Tenryou, this weapon turned out to be very subtle. 
+While extremely strong, perhaps more so than its demonic counterpart, it does not have nearly the same impact on the game.
+I am considering moving some of the flamethrower's abilities onto this weapon instead.
 	
-	I originally planned to light the ground on fire when its wielder is killed, but that required updating the terrain system, which I didn't want to do at the time.
-	By the time that update was completed I have dropped this idea.
+I originally planned to light the ground on fire when its wielder is killed, but that required updating the terrain system, which I didn't want to do at the time.
+By the time that update was completed I have dropped this idea.
 	
-	The sprite doesn't resemble its appearance in the show very much, but it shows off its fiery power much better. 
-	I used some neat layer blending techniques to create the color gradient.
+The sprite doesn't resemble its appearance in the show very much, but it shows off its fiery power much better. 
+I used some neat layer blending techniques to create the color gradient.
 </details>
 
 </details>
