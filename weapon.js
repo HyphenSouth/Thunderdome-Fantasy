@@ -1,107 +1,12 @@
-var weapon_data = {
-	"lance" : {
-		"icon":"🔱",
-		"dmg_type":"melee",
-		"fightBonus":1.3,
-		"uses":[4,9]
-	},
-	"gun" : {
-		"icon":"🔫", 
-		"dmg_type" : "ranged",
-		"rangeBonus" : 20,
-		"fightBonus" : 1.3,
-		"uses" : 4		
-	},	
-	"bow" : {
-		"icon":"🏹", 
-		"dmg_type" : "ranged",
-		"rangeBonus" : 30,
-		"fightBonus" : 1.1,
-		"uses" : 10		
-	},
-	"knife" : {
-		"icon":"🔪", 
-		"dmg_type" : "melee",
-		"fightBonus" : 1.1,
-		"uses" : [5,10]	
-	},
-	"nanasatsu" : {
-		"icon" : "./icons/nanasatsu.png",
-		"icon_type" : "img",
-		"dmg_type" : "melee",
-		"fightBonus" : 2,
-		"peaceBonus" : -500,
-		"aggroBonus" : 500,
-		// "dmgReductionB" : 1.05,
-		"uses" : 99999
-	},
-    "katana" : {
-		"icon" : "./icons/katana.png",
-		"icon_type" : "img",
-		"dmg_type":"melee",
-		"uses":[4,9]
-	},
-    "shotgun" : {
-		"icon" : "./icons/shotgun.png",
-		"icon_type" : "img",
-		"rangeBonus" : 25,
-		"dmg_type":"ranged",
-		"uses":[3,6]
-	},
-	"spicy" : {
-		"icon" : "./icons/spicy.png",
-		"icon_type" : "img",
-		"dmg_type" : "melee",
-		"fightBonus" : 1.75,
-		"uses" : 99999
-	},
-	"clang" : {
-		"icon" : "./icons/clang.png",
-		"icon_type" : "img",
-		"dmg_type" : "melee",
-		"rangeBonus" : 5,
-		"fightBonus" : 1.35,
-		"intimidationBonus" : 20,
-		"uses" : [3,8]		
-	},
-	"flamethrower" : {
-		"icon" : "./icons/flamethrower.png",
-		// "icon" : "./icons/ancient_staff.png",
-		"icon_type" : "img",
-		"dmg_type" : "ranged",
-		"rangeBonus" : 10,
-		"fightBonus" : 0.95,
-		"uses" : 8		
-	},
-	"sniper" : {
-		"icon" : "./icons/sniper.png",
-		"icon_type" : "img", 
-		"dmg_type" : "ranged",
-		"rangeBonus" : 40,
-		"sightBonus" : 20,
-		"uses" : 3		
-	},
-	"ancient" : {
-		"icon" : "./icons/ancient_staff.png",
-		"icon_type" : "img",
-		"dmg_type" : "magic",
-		"rangeBonus" : 24,
-		"uses" : 60		
-	},
-	"rake" : {
-		"icon" : "🧹",
-		"dmg_type" : "melee",
-		"uses" : 3	
-	}
-}
 var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 var defaultWeaponOdds = [
-	["knife",30],["gun",20],["lance",25],["bow",20],["rake",2],
+	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],
 	["katana", 25], ["shotgun", 25], ["sniper",20],
 	["clang",10], ["flamethrower",20], ["ancient", 25],
-	["Nothing",400]];
+	["Nothing",400]
+];
 
 function get_weapon_odds(tP){
 	let weaponOdds = defaultWeaponOdds.slice();
@@ -151,51 +56,7 @@ function get_weapon_odds(tP){
 
 */
 
-function create_weapon(weapon_name){
-	switch(weapon_name){
-		case "Nothing":
-			return "";
-			break;
-		case "nanasatsu":
-			return new Nanasatsu();
-			break;		
-		case "lance":
-			return new Lance();
-			break;
-		case "katana":
-			return new Katana();
-			break;		
-		case "sniper":
-			return new Sniper();
-			break;
-		case "shotgun":
-			return new Shotgun();
-			break;
-		case "spicy":
-			return new Spicy();
-			break;		
-		case "clang":
-			return new Clang();
-			break;		
-		case "flamethrower":
-			return new Flamethrower();
-			break;	
-		case "ancient":
-			return new Ancient();
-			break;
-		case "rake":
-			return new Rake();
-			break;
-		default:
-			if(weapon_name in weapon_data){
-				return new Weapon(weapon_name);
-			}
-			else{
-				return "";
-			}
-			break;		
-	}
-}
+
 
 //class to hold data for items
 class Weapon extends Item{
@@ -1097,7 +958,6 @@ class Rake extends Weapon {
 			case "attack":
 				oP = data['opponent']
 				if(oP.has_attr('leaf')){
-					//guarenteed crit
 					this.player.fightDmgB *= this.rake_dmg;
 					this.player.statusMessage = "RAKES " + oP.name;
 				}
@@ -1126,6 +986,62 @@ class Rake extends Weapon {
 			"<span>RAKE</span><br>"+
 			"<span>RAKE</span><br>"+
 			"<span>RAKE</span><br>"+
+		"</span>"
+		
+		return html;
+	}
+}
+
+class Cross extends Weapon {
+	constructor() {
+		super("cross");
+		this.base_dmg = 1.1
+		this.trigger_dmg = 3
+		this.trigger_types = ['undead','homo','demon','vtubing']
+	}
+	effect(state, data={}){
+		let oP=''
+		let trigger = false;
+		switch(state){			
+			case "attack":
+				oP = data['opponent']
+				this.trigger_types.forEach(function(trig_type){
+					if(oP.has_attr(trig_type)){
+						trigger = true;
+					}					
+				})
+				if(trigger){
+					this.player.fightDmgB *= this.trigger_dmg;
+					this.player.statusMessage = "smites " + oP.name;
+				}
+				else{
+					this.player.fightDmgB *= this.base_dmg;
+					this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				}
+				this.use();
+				break;
+			case "win":
+				oP = data['opponent']
+				this.trigger_types.forEach(function(trig_type){
+					if(oP.has_attr(trig_type)){
+						trigger = true;
+					}					
+				})
+				if(trigger){
+					this.player.statusMessage = "smites "+oP.name+" to death"
+					oP.death = "Smited to death by "+this.player.name
+				}
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	stat_html(){
+		let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
+		"<span><b>Smite Dmg Bonus:</b>x"+this.trigger_dmg+"</span><br>"+
+		"<span class='desc'>"+
+			"<span>Smites unholy creatures</span><br>"+
 		"</span>"
 		
 		return html;

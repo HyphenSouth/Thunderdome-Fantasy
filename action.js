@@ -123,7 +123,7 @@ function rollDmg(tP, oP){
 
 function attack(attacker, defender, counter, fightMsg){
 	let dmg = 0;
-	let dmg_type="melee"	
+	let dmg_type="unarmed"	
 	
 	// if(!counter)
 		// fightMsg.events.push(attacker.name + " attacks " + defender.name);
@@ -221,7 +221,7 @@ function fight_target(tP,oP){
 		else if(!(oP.awareOf.indexOf(tP)>=0)){
 			oP.statusMessage = "caught offguard";
 			// pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
-			fightMsg.events.push( P.name + " is caught offguard by " + tP.name);
+			fightMsg.events.push( tP.name + " is caught offguard by " + tP.name);
 		}
 		//out of range
 		else if(oP.fightRange + oP.fightRangeB<hypD(oP.x - tP.x,oP.y - tP.y)){

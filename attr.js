@@ -1,56 +1,3 @@
-function create_attr(attr_name, player){
-	switch(attr_name){
-		case "nenene":
-			let nenenames = ['Nenene']
-			let temp_nenename = "Nenene"
-			for(let i=0; i<8; i++){
-				temp_nenename = temp_nenename+"ne"
-				nenenames.push(temp_nenename)
-			}
-			return new NameSwap('nenene', player, nenenames, true);
-			break;
-		case "cunny":
-			return new Cunny(player);
-			break;		
-		case "joshiraku":
-			let joshiraku_imgs = [
-				'https://cdn.myanimelist.net/images/characters/7/173549.jpg',
-				'https://cdn.myanimelist.net/images/characters/13/145959.jpg',
-				'https://cdn.myanimelist.net/images/characters/13/149113.jpg',
-				'https://cdn.myanimelist.net/images/characters/5/177655.jpg',
-				'https://cdn.myanimelist.net/images/characters/6/177653.jpg'
-			]
-			return new ImgSwap('joshiraku', player, joshiraku_imgs, true);
-			break;		
-		case "bong":
-			return new Bong(player)
-			break;
-		case "melee":
-			return new Melee(player)
-			break;
-		case "ranger":
-			return new Ranger(player)
-			break;
-		case "magic":
-			return new Magic(player)
-			break;
-		case "bigguy":
-			return new BigGuy(player)
-			break;
-		case "butai":
-			return new Butai(player)
-			break;
-		case "meido":
-			return new Meido(player)
-			break;
-		case "paper":
-			return new PaperMaster(player)
-			break;
-		default:
-			return new Attr(attr_name, player)
-			break;
-	}
-}
 class Attr extends StatMod{
 	constructor(name, player){
 		super(name)
@@ -69,6 +16,54 @@ class Attr extends StatMod{
 		
 		$('#extra_info_container').html(attr_info);
 	}
+}
+
+class ProfileSwap extends Attr{
+	constructor(name, player, imgs, names, sync_profile, random_img, random_name){
+		super(name, player);
+		this.imgs = imgs
+		this.names = names
+		this.sync_profile = sync_profile	//sync names with images	
+		this.random_img = random_img
+		this.random_name = random_name
+		
+		this.display=false;
+		this.img_index=0
+		this.name_index=0
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				let new_img = ''
+				let img_num = 0
+				if(this.random_img){ 
+					img_num = roll_range(0,this.imgs.length-1)
+					new_img = this.imgs[img_num]
+				}
+				else{
+					img_num = this.img_index
+					this.img_index = (this.img_index + 1)%this.imgs.length
+				}
+				this.player.change_img(this.imgs[img_num])
+				
+				let new_name = ''
+				if(this.sync_profile){
+					new_name = this.names[img_num]
+				}
+				else{
+					if(this.random_name){ 
+						new_name = this.names[roll_range(0,this.names.length-1)]
+					}
+					else{
+						new_name = this.names[this.name_index]
+						this.name_index = (this.name_index + 1)%this.names.length
+					}
+				}
+				this.player.change_name(new_name)
+				
+				break;
+		}
+	}		
 }
 
 class ImgSwap extends Attr{
@@ -265,20 +260,20 @@ class BigGuy extends Attr{
 		this.intimidationBonus = 15;
 		this.dmgReductionB = 0.9;
 		this.moveSpeedB = 0.75;		
-		this.meleeBonus = 1.1
+		// this.meleeBonus = 1.1
 	}
 	
-	calc_bonuses(){
-		if(!this.player.weapon || this.player.weapon.dmg_type=='melee'){
-			this.player.fightDmgB *= this.meleeBonus;
-		}
-		super.calc_bonuses();
-	}
-	stat_html(){
-		let html= super.stat_html()+
-			"<span><b>Melee Dmg Bonus:</b>x"+roundDec(this.meleeBonus)+"</span><br>"
-		return html;
-	}
+	// calc_bonuses(){
+		// if(!this.player.weapon || this.player.weapon.dmg_type=='melee'){
+			// this.player.fightDmgB *= this.meleeBonus;
+		// }
+		// super.calc_bonuses();
+	// }
+	// stat_html(){
+		// let html= super.stat_html()+
+			// "<span><b>Melee Dmg Bonus:</b>x"+roundDec(this.meleeBonus)+"</span><br>"
+		// return html;
+	// }
 }
 
 class Butai extends Attr{
@@ -352,3 +347,58 @@ class Meido extends Attr{
 		}
 	}
 }
+
+class Ninja extends Attr{
+	constructor(player){
+		super("ninja", player);		
+		this.has_info = true;
+		
+		this.visibilityB = -50;
+		this.dmgReductionB = 1.05;
+		this.moveSpeedB = 1.2;
+		this.sightBonus = 10
+		
+		this.surpriseBonus = 1.1
+		
+		this.escape_speed = 2
+		this.escape_vis = -80
+		this.escape_dmg = 0.8
+	}
+	
+	calc_bonuses(){
+		if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
+			this.player.moveSpeedB *= this.escape_speed;
+			this.player.visibilityB += this.escape_vis;
+			this.player.dmgReductionB *= this.escape_dmg;
+		}
+		else{
+			super.calc_bonuses();
+		}
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "attack":
+				let oP=data['opponent'];
+				if(!(oP.awareOf.indexOf(this.player)>=0)){
+					this.player.fightDmgB *= this.surpriseBonus
+					this.player.statusMessage = 'sneaks up on ' + oP.name;
+				}				
+				break;
+		}
+	}
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

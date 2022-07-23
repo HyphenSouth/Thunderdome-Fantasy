@@ -198,16 +198,42 @@ function createPlayerLine(name='', img='', attr='', moral='Random', personality=
 
 //saves the results of the game
 function saveResults(filename = ''){
-	result_str = '';
-	//dead players
-	dedPlayers.forEach(function(dP){
-		result_str = dP.name + ',' + dP.kills + ',' + dP.death + '\n' + result_str;
-	});	
+	result_str = 'alive\n';
 	//living players
 	players.forEach(function(tP){
-		result_str = tP.name + ',' + tP.kills + '\n' + result_str;				
+		result_str = result_str + 
+					 '0,' + 
+					 tP.name + ',' + 
+					 tP.kills + '\n';				
 	});
+	result_str = result_str + 'dead\n'
+	placement = playerStatic.length - dedPlayers.length;
+	//dead players
+	for(let i=dedPlayers.length-1; i>=0; i--){
+		dP = dedPlayers[i];
+		result_str = result_str +
+					 placement + ',' + 
+					 dP.name + ',' + 
+					 dP.kills + ',' + 
+					 dP.death + '\n';
+		placement++;
+	}
+	
 	log_message(result_str)
+	if(filename == ''){
+		let date = new Date();
+		filename = 	date.getDate() + '_' + 
+					(date.getMonth()+1) + '_' + 
+					date.getFullYear() + '_' +
+					date.getHours() + ':' + date.getMinutes()+
+					'_results'
+	}
+
+	let blob = new Blob([result_str],{type: "text/plain;charset=utf-8"});
+	let a = document.createElement('a');
+	a.download = filename+".csv";
+	a.href = window.URL.createObjectURL(blob);
+	a.click();	
 }
 
 //save players
