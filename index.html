@@ -6,20 +6,22 @@
 	<!-- <link rel="stylesheet" href="main.css"> -->
 	<script src="https://code.jquery.com/jquery-3.5.1.js" integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc=" crossorigin="anonymous"></script>
 	<script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
-	<script src="charlist.js"></script>
 	<script src="terrain.js"></script>
 	<script src="char.js"></script>
+	<script src="alliance.js"></script>
+	<script src="action.js"></script>
 	<script src="statusEffects.js"></script>
 	<script src="oyashiroSama.js"></script>
 	<script src="doodad.js"></script>
-	<script src="action.js"></script>
 	<script src="item.js"></script>
 	<script src="weapon.js"></script>
 	<script src="offhand.js"></script>
 	<script src="food.js"></script>
 	<script src="attr.js"></script>
 	<script src="paper.js"></script>
+	<script src="charCalculations.js"></script>
 	<script src="data.js"></script>	
+	<script src="charlist.js"></script>
 	<script src="main.js"></script>
 	<!-- <script src="aggroTest.js"></script> -->
 	<!-- <script src="rolltest.js"></script> -->
@@ -66,25 +68,38 @@
 			<!-- <button onClick="showTerrain()">Terrain</button> -->
 		</div>
 		
+		<!-- events page -->
 		<div id='char_lst' style='display:none; margin-top: 30px;'>
 			<div id='messages' style='display:none;'>
 				<table id='eventMsg'>
 					<thead>
-						<tr><th>Time</th><th></th></tr>
+						<tr><th>Time</th></tr>
 					</thead>
 					<tbody>
 					</tbody>
 				</table>
 				<table id='deathMsg'>
 					<thead>
-						<tr><th>Time</th><th></th></tr>
+						<tr><th>Time</th></tr>
 					</thead>
 					<tbody>
 					</tbody>
 				</table>
 			</div>
-			<div id='table' style='display:none; margin-bottom: 250px;'>
+			<div id='table' style='display:none; margin-bottom: 250px;'></div>
+			<div id='alliances' style='display:none; margin-bottom: 250px;'>
+				<h2>Alliances</h2>
+				<table id='active_alliances' style='margin-bottom:20px; width:95%'>
+					<tbody>
+					</tbody>
+				</table>
+				<h2>Disbanded Alliances</h2>
+				<table id='disbanded_alliances' style='margin-bottom:20px'>
+					<tbody>
+					</tbody>
+				</table>
 			</div>
+			<!-- info popups -->
 			<div id='char_info'>
 				<button onClick="deselect_show_info()"></button>
 				<div id = 'char_info_container' style='margin:5px'>
@@ -197,6 +212,11 @@ html,body{
 		background-color:#474747 !important;
 		box-shadow: inset 0 0 4px white;
 	}
+	/*alliance member*/
+	#table .container.alliance{
+		background-color:#474747 !important;
+		box-shadow: inset 0 0 2px #ab00ff;
+	}
 	/*char states*/
 	#table .container.fighting .status{
 		color:#FF4060;
@@ -207,11 +227,19 @@ html,body{
 		color: #EEEE55;
 		/*box-shadow: inset 0 0 3px #EEEE55;*/
 		/*background-color:#AAAA8020;*/
-	}	
+	}
 	#table .container.forage .status{
 		color: #99EE55;
 		/*box-shadow: inset 0 0 3px #B6E375;*/
 		/*background-color:#BBEE7720;*/
+	}
+	/*highlighted alliance*/
+	#alliances .container.alliance_highlight{
+		background-color:#575757 !important;
+		box-shadow: inset 0 0 4px #ab00ff;
+	}
+	#table .container.allyEvent .status{
+		color: #ab00ff;
 	}
 	
 /*character info window*/
@@ -283,12 +311,15 @@ html,body{
 		display:none;
 		bottom: 220px; 
 		right: 50px;
-		width:200px;
+		/*width:250px;*/
 		min-height:50px;
+		min-width:50px;
+		/*max-height: 400px;*/
 		z-index:5;
 		/*border-radius: 20px;*/
 		background-color:#474747;
-		box-shadow: inset 0 0 4px white;
+		box-shadow: inset 0 0 4px white;		
+		/*max-width: 300px;*/
 	}
 	/*close button*/
 	#extra_info button{
@@ -336,6 +367,65 @@ html,body{
 		width:75px;
 		height:75px;
 		object-fit:cover;
+	}
+
+/*alliances listing*/
+	/*positioning*/
+	#alliances table{
+		color:white;
+		font-size:20px;
+		display:inline-block;
+		width:100%;
+		vertical-align:top;
+	}
+	
+	#active_alliances div.container{
+		background-color:#474747;
+		padding:2px;
+	}
+	
+	.alliance_member{
+		display:inline-block;
+		vertical-align:top;
+		height:70px;
+		position:relative;
+		margin-bottom:5px;
+		margin-right:5px;
+		margin-top:5px;
+		/*width:200px;*/
+		/*background-color:#275757;*/
+	}
+	
+	.alliance_member img{
+		/*display:inline-block;
+		vertical-align:top;*/
+		width:55px;
+		height:70px;
+		object-fit:cover;
+		z-index:1;
+	}
+	.alliance_member div.healthBar,.alliance_member div.energyBar{
+		width:100%;
+		height:5px;
+		left:0;
+		opacity:0.8;
+		position:absolute;
+	}
+	.alliance_member div.info{
+		display:inline-block;
+		vertical-align:top;
+		margin-left:55px;
+		margin-top:-70px;
+		width:175px;
+	}
+	.disbanded{
+		opacity:0.25;
+	}
+	
+	/*icons in alliance page listing*/
+	.alliance_member .item_img, .alliance_member .effect_img{
+		width:12px;
+		height:12px;
 	}
 
 /*map*/
@@ -502,6 +592,32 @@ html,body{
 		color:brown;
 		font-style:italic;
 	}
+	/*alliance*/
+	.char.alliance{
+		border-color:#ab00ff;
+		color:#ab00ff;
+		font-weight:bold;
+		z-index:9;
+	}
+/*opinions*/
+.fought{
+	color:#FF4060;
+}
+.seen{
+	color:#00FFFF;
+}
+.inRange{
+	color:orange;
+}
+.rival{
+	font-weight:bold
+}
+tr.rival::before{
+	content:"🥊";
+}
+.ally{
+
+}
 
 /*generic tags*/
 .info{

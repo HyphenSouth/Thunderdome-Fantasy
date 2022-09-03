@@ -1,4 +1,4 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",50]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5]]
 
 class Food extends Offhand{
 	constructor(name) {

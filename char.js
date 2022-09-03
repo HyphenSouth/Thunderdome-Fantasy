@@ -34,12 +34,14 @@ class Char {
 		//combat stats. B stands for bonus
 		//how far they can see
 		this.sightRange = 200;
+		// this.sightRange = 2000;
 		this.sightRangeB = 0;
 		//how far they can attack
 		this.fightRange = 24;
 		this.fightRangeB = 0;
 		//damage dealt
 		this.fightDmg = 25;
+		// this.fightDmg = 0;
 		//damage multiplier
 		this.fightDmgB = 1.00;
 		//damage reduction
@@ -95,18 +97,32 @@ class Char {
 		//players within attack range
 		this.inRangeOf = [];
 		//players that can be attacked
+		//decrepit 
 		this.attackable = [];
+		//players that can be allied
+		//decrepit 
+		this.allyable = []
 		
-		this.attackers = [];
+		this.prevTarget = "";
+		this.plannedTarget = "";
+		
+		this.fight_target = "";
+		this.follow_target = "";
+		this.ally_target = "";
+		
+		this.opponents = [];
+		this.last_opponent = "";
 		this.followers = [];
+				
+		this.rival = "";
 		
 		//_______________inventory_______________
 		this.weapon = "";
 		this.offhand = "";
 
-		//unused
-		this.alliance = {};
-		this.opinions = [];
+		this.alliance = "";
+		this.opinions = [];	
+		//unused					
 		this.recentlySeen = [];
 		this.goal = "";
 
@@ -146,7 +162,7 @@ class Char {
 					"<div class='status'></div>"+		//status message
 					"<div class='effects'></div>"+		//effects message
 				"</div>"+
-				"<div style='position:absolute; width:185px; height:100%; top:0; left:0; margin-left:50px;' onclick='show_info("+this.id+")'></div>"+	//clickable div
+				"<div style='position:absolute; width:185px; height:100%; top:0; left:0; margin-left:50px;' onclick='toggle_show_info("+this.id+")'></div>"+	//clickable div
 			"</div>");
 			let tblDiv = $('#tbl_' + this.id);
 			this.tblDiv = tblDiv;
@@ -174,22 +190,21 @@ class Char {
 		let terrain_icon = ""
 		if(getTerrain(this.x, this.y)){
 			terrain_icon = getTerrain(this.x, this.y).icon
-		}
-		
+		}		
 		let weaponHtml="<span'>Weapon:None</span>";
 		if(this.weapon){
-			weaponHtml = "<span onClick='show_item_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
+			weaponHtml = "<span onClick='player_extra_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
 		}
 		let offhandHtml="<span>Offhand:None</span>";
 		if(this.offhand){
-			offhandHtml = "<span onClick='show_item_info("+this.id+",\"off\")'><u>Offhand</u>:"+this.offhand.icon+"</span>"
+			offhandHtml = "<span onClick='player_extra_info("+this.id+",\"off\")'><u>Offhand</u>:"+this.offhand.icon+"</span>"
 		}
 		let statusHtml="None";
 		let tP=this
 		if(this.status_effects.length>0){
 			statusHtml="";
 			this.status_effects.forEach(function(eff, eff_id){
-				statusHtml=statusHtml+"<span onClick='show_status_info("+tP.id+","+eff_id+")'>"+eff.icon+"</span>"
+				statusHtml=statusHtml+"<span onClick='player_extra_info("+tP.id+",\"eff\","+eff_id+")'>"+eff.icon+"</span>"
 			});
 		}
 		let attrHtml="";
@@ -198,7 +213,7 @@ class Char {
 				if(attr.display){
 					// attrHtml=attrHtml+attr.name+",";
 					if(attr.has_info){
-						attrHtml=attrHtml+"<span onClick='show_attr_info("+tP.id+","+attr_id+")'><u>"+attr.name+"</u>,</span>"
+						attrHtml=attrHtml+"<span onClick='player_extra_info("+tP.id+",\"attr\","+attr_id+")'><u>"+attr.name+"</u>,</span>"
 					}
 					else{
 						attrHtml=attrHtml+"<span>"+attr.name+",</span>"
@@ -219,6 +234,12 @@ class Char {
 		let peaceChance = basePeaceChance;
 		fightChance = Math.max(fightChance+this.aggroB, 1);
 		peaceChance = Math.max(peaceChance+this.peaceB, 1);
+		let opinion_txt = 'Opinions'
+		if(this.rival)
+			opinion_txt +='🥊'
+		let alliance_html = "<span style='color:gray;'><u>Alliance</u></span>"
+		if(this.alliance)
+			alliance_html = "<span onclick='player_extra_info("+this.id+",\"alliance\")'><u>Alliance</u></span>"
 		let char_info=
 		"<img id='char_info_img' src='"+ this.img+"'>"+
 		"<div class='info'>"+
@@ -246,8 +267,10 @@ class Char {
 						"<span>Dmg Bonus: x"+ roundDec(this.fightDmgB) +"</span><br>"+
 						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
 						"<span>Peace/Aggro: "+Math.round(this.peaceB)+"/"+Math.round(this.aggroB)+"</span><br>"+
-						"<span>Fight Chance: "+roundDec(fightChance/(peaceChance+fightChance)*100)+"%</span><br>"+
+						"<span>Fight Chance: "+roll_probs([['fight',fightChance],['peace',peaceChance]])[0][1]+"%</span><br>"+
 						"<span>Intimidation: "+(this.intimidation)+"</span><br>"+
+						"<span onclick='player_extra_info("+this.id+",\"more info\")'><u>More Info</u></span><br>"+
+						
 					"</div>"+
 					"<div style='float:right;  width: 115px; position:absolute; right:0px;'>"+
 						offhandHtml+"<br>"+
@@ -256,14 +279,16 @@ class Char {
 						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
 						"<span>Vision: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
 						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
-						"<span onclick='show_player_info("+this.id+")'><u>More Info</u></span><br>"+
+						"<span onclick='player_extra_info("+this.id+",\"opinions\")'><u>"+opinion_txt+"</u></span><br>"+
+						alliance_html+"<br>"+
+						
 				"</div>"+
 			"</div>"+
 		"</div>"
 		$('#char_info_container').html(char_info);
 	}
 	
-	show_info(){
+	show_more_info(){
 		let extra_info = 
 		"<div class='info' style='font-size:12px'>"+
 			"<b style='font-size:18px'>"+this.name+"</b><br>"+
@@ -275,13 +300,13 @@ class Char {
 			"<span>Last Slept: "+this.lastSlept+"</span><br>"+
 			"<span>Aware Of: "+this.awareOf.length+"</span><br>"+
 			"<span>Followers: "+this.followers.length+"</span><br>"+
-			"<span>Attackers: "+this.attackers.length+"</span><br>"+
-			"<span>In Range: "+this.inRangeOf.length+"</span><br>"+	
-			"<span>Attackable: "+this.attackable.length+"</span><br>"
+			"<span>Attackers: "+this.opponents.length+"</span><br>"+
+			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"+
+			"<span>In Range: "+this.inRangeOf.length+"</span><br>"
+			// "<span>Attackable: "+this.attackable.length+"</span><br>"
 
 		if(this.oobTurns>0)
 			extra_info = extra_info +"<span>Out of Bounds: "+this.oobTurns+"</span><br>"
-		
 		if(this.unaware){
 			extra_info= extra_info + "<span>Unaware</span><br>"
 		}
@@ -291,6 +316,82 @@ class Char {
 		
 		extra_info = extra_info + "</div>"
 		$('#extra_info_container').html(extra_info);
+	}
+	
+	show_opinions(){
+		let extra_info = 
+		"<div class='info' style='font-size:12px'>"+
+			"<b style='font-size:18px'>"+this.name+"</b><br>"
+			
+		if(this.rival)
+			extra_info += "<b style='font-size:14px'>Rival: "+this.rival.name+"</b><br>"
+		else
+			extra_info += "<span><b style='font-size:14px'>Rival:</b> None</span><br>"
+		
+		extra_info += "<div style='max-height:400px; overflow-y:auto;'>"+
+			"<table style='font-size:12px; color:white;border-spacing: 0 2px;'>"		
+		
+		let tP = this;
+		this.opinions.forEach(function(opinion, oPiD){		
+			let oP = playerStatic[oPiD];
+			if(oPiD != tP.id && !oP.dead){
+				extra_info += "<tr class='"
+				if(oP == tP.rival)
+					extra_info += " rival";
+				if(tP.opponents.indexOf(oP)>=0)
+					extra_info += " fought"
+				else if(tP.inRangeOfPlayer(oP))
+					extra_info += " inRange"
+				else if(tP.awareOfPlayer(oP))
+					extra_info += " seen"
+					
+				if(tP.inAlliance(oP))
+					extra_info += " ally"			
+				
+							
+				extra_info += "'>"+			
+				"<td style='margin-right:20px; width:100px; word-wrap:break-word; float:left;'>"+ playerStatic[oPiD].name + "</td>"+
+				"<td style='float:right;'>"+ opinion + "</td>"+
+				"</tr>"
+			}
+		});
+		
+		extra_info = extra_info + "</div></table></div>"
+		$('#extra_info_container').html(extra_info);
+	}
+	
+	//other players
+	inAlliance(oP){
+		if(this.alliance)
+			if(this.alliance.members.indexOf(oP)>=0)
+				return true
+		return false;		
+	}
+	awareOfPlayer(oP){
+		if(this.awareOf.indexOf(oP)>=0)
+			return true;
+		return false;
+	}
+	inRangeOfPlayer(oP){
+		if(this.inRangeOf.indexOf(oP)>=0)
+			return true;
+		return false;
+	}
+	//decrepit 
+	canAttackPlayer(oP){
+		if(this.attackable.indexOf(oP)>=0)
+			return true;
+		return false;
+	}	
+	//get all the players within a certain distance
+	nearbyPlayers(dist){
+		let temp_list = []
+		let tP = this
+		players.forEach(function(oP){
+			if(oP!=tP && playerDistTable[tP.id][oP.id]<=dist)
+				temp_list.push(oP);
+		});
+		return temp_list
 	}
 	
 	//calculate bonuses for combat
@@ -318,15 +419,17 @@ class Char {
 		if(this.personality == 'Evil'){
 			// this.fightDmgB = 1.25;
 			// this.dmgReductionB = 1.25;
-			this.intimidation += 10;
+			this.intimidation += 20;
 		}
 		this.intimidation += this.kills * 5
 
 		//chaotic = more likely to be aggro
 		//lawful = more likely to be peaceful
-		if(this.moral == 'Lawful')
+		// if(this.moral == 'Lawful')
+		if(this.personality == 'Good')
 			this.peaceB = 75;
-		if(this.moral == 'Chaotic'){
+		// if(this.moral == 'Chaotic'){
+		if(this.personality == 'Evil'){
 			this.aggroB = 100;
 		}
 		
@@ -364,32 +467,6 @@ class Char {
 			this.dmgReductionB = 0;
 		}
 		
-	}
-	awareOfPlayer(oP){
-		if(this.awareOf.indexOf(oP)>=0)
-			return true;
-		return false;
-	}
-	inRangeOfPlayer(oP){
-		if(this.inRangeOf.indexOf(oP)>=0)
-			return true;
-		return false;
-	}
-	canAttackPlayer(oP){
-		if(this.attackable.indexOf(oP)>=0)
-			return true;
-		return false;
-	}
-	
-	//get all the players within a certain distance
-	nearbyPlayers(dist){
-		let temp_list = []
-		let tP = this
-		players.forEach(function(oP){
-			if(oP!=tP && playerDistTable[tP.id][oP.id]<=dist)
-				temp_list.push(oP);
-		});
-		return temp_list
 	}
 	//apply effects to self
 	apply_inv_effects(state, wep_data={}, offhand_data={}){
@@ -469,16 +546,6 @@ class Char {
 		}
 	}
 	
-	take_damage(dmg, source, dmg_type, fightMsg={}){
-		this.apply_all_effects("takeDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
-		this.health -= dmg;
-	}
-	
-	heal_damage(dmg, source, dmg_type, fightMsg={}){
-		this.apply_all_effects("healDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
-		this.health += dmg;
-	}	
-	
 	//adding status effect
 	inflict_status_effect(status_eff){
 		if(this.get_status_effect(status_eff.name)){
@@ -508,7 +575,6 @@ class Char {
 	remove_status_effect(status_eff){
 		this.status_effects = arrayRemove(this.status_effects, status_eff);
 	}
-	
 	//gets attribute from player 
 	get_attr(attr_name){
 		let temp_attr=""
@@ -528,6 +594,20 @@ class Char {
 		}
 		return false;
 	}
+	
+	take_damage(dmg, source, dmg_type, fightMsg={}){
+		this.apply_all_effects("takeDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
+		this.health -= dmg;
+		if(source instanceof Char){
+			if(source != this)
+				this.opinions[source.id] -= Math.max(Math.round(dmg/2), 1);
+		}
+	}
+	
+	heal_damage(dmg, source, dmg_type, fightMsg={}){
+		this.apply_all_effects("healDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
+		this.health += dmg;
+	}	
 	
 	//action planning
 	setPlannedAction(action, actionPriority){
@@ -562,46 +642,254 @@ class Char {
 	
 	//check for aware and in range players
 	checkSurroundingPlayers(){
-		if(this.lastAction == 'sleeping'){this.unaware = true;}
-		if(!this.unaware){
-			//get opponents that are in sight 
-			this.awareOf = awareOfCheck(this);		
-		}
-		else{
-			this.awareOf = [];
+		this.calc_bonuses();
+				
+		if(this.lastAction == 'sleeping'){
+			this.unaware = true;
+			this.incapacitated = true;
 		}
 		
-		//apply effects from those in sight
 		let tP=this;
-		this.awareOf.forEach(function(oP,index){
-			oP.apply_all_effects("opAware", {"opponent":tP});
+		this.awareOf = [];
+		if(!this.unaware){
+			players.forEach(function(oP,index){
+				if(oP == tP)
+					return
+				let aware = awareOfCheck(tP,oP);
+				if(aware){
+					//apply effects from those in sight
+					oP.apply_all_effects("opAware", {"opponent":tP});
+					tP.awareOf.push(oP)
+				}
+			});	
+		}
+		this.inRangeOf = [];
+		if(!this.incapacitated)
+			this.inRangeOf = this.nearbyPlayers(tP.fightRange + tP.fightRangeB);
+		
+		this.opinionUpdate();
+		
+		this.follow_target = "";
+		this.fight_target = "";		
+		this.ally_target = "";
+		if(this.awareOf.length>0){
+			this.follow_target = this.choose_follow_target();
+			this.fight_target = this.choose_fight_target();		
+			this.ally_target = this.choose_alliance_target();	
+		}
+		
+		this.apply_all_effects("surroundingCheck");	
+	}
+	
+	opinionUpdate(){
+		//rival update
+		if(this.rival){
+			if(this.rival.dead){
+				this.rival=""
+			}
+			if(roll_range(-80, -20) < this.opinions[this.rival.id]){
+				this.rival=""
+			}
+		}
+		
+		let tP=this;
+		//update opinions
+		players.forEach(function(oP){
+			if(oP==tP){
+				tP.opinions[tP.id] = 0;
+				return
+			}						
+			opinion_calc(tP, oP)
+			
+			//find rival
+			if(!tP.rival){
+				if(roll_range(-50, -300) >  tP.opinions[oP.id]){
+					// log_message(tP.name + ' rival ' +oP.name + ' ' + tP.opinions[oP.id])
+					tP.rival = oP;
+					tP.opinions[oP.id] -= 50;
+				}				
+			}
+			else{
+				if(tP.opinions[tP.rival.id] - tP.opinions[oP.id]>roll_range(50,150)){
+					tP.rival = oP;
+					tP.opinions[oP.id] -= 50;
+				}
+			}
 		});
-
-		if(this.lastAction == 'sleeping'){this.incapacitated = true;}
-		if(!this.incapacitated){
-			//get opponents that are in sight 
-			this.inRangeOf = inRangeOfCheck(this);
+		
+		this.apply_all_effects("opinionUpdate");
+	}
+	//calculates some stats on the opinions
+	opinion_stats(){
+		let sum = 0
+		let avg = 0
+		let sd = 0
+		//sum 
+		this.opinions.forEach(function(opinion){
+			sum += opinion;
+		})
+		avg = sum/this.opinions.length
+		//sd 
+		let var_sum = 0
+		this.opinions.forEach(function(opinion){
+			let variance = Math.pow(opinion - avg, 2)
+			var_sum+=variance
+		})
+		sd = Math.sqrt(var_sum/this.opinions.length)
+		console.log(this.moral[0]+this.personality[0])
+		console.log('sum: '+sum)
+		console.log('avg: '+avg)
+		console.log('sd: '+sd)
+	}
+		
+	//offered to join alliance
+	alliance_offer(oP){
+		//already in alliance
+		if(this.alliance && oP.alliance){
+			return false
+		}		
+		let score = get_ally_score(this, oP);		
+		let tP = this;
+		if(this.rival==oP)
+			score -= 100;		
+		if(this.ally_target == oP)
+			score += 500;		
+		
+		if(this.alliance){
+			log_message('alliance invite offer')
+			// accept into alliance
+			if(this.alliance.members.length>=max_alliance_size)
+				return false
+			
+			//check alliance member opinions
+			this.alliance.members.forEach(function(member){
+				if(member==tP)
+					return				
+				score += get_ally_score(member,oP)/(tP.alliance.members.length*2);
+			});
+			score -= this.alliance.members.length * 30
+			log_message(score)
+			if(score>roll_range(150,300))
+				return true;			
+		}
+		else if(oP.alliance){
+			log_message('alliance join offer')
+			//join existing alliance
+			if(oP.alliance.members.length>=max_alliance_size)
+				return false
+			
+			//check alliance member opinions
+			oP.alliance.members.forEach(function(member){
+				if(member==oP)
+					return				
+				score += get_ally_score(member,oP)/(oP.alliance.members.length*3);
+			});
+			if(this.moral=='Chaotic')
+				score -= 10;
+			else if(this.moral=='Lawful')
+				score += oP.alliance.unity-100;
+			log_message(score)
+			if(score>roll_range(150,250))				
+				return true;	
 		}
 		else{
-			this.inRangeOf = [];
+			log_message('alliance start offer')
+			//starting new alliance
+			if(alliances.length>=max_alliance_count)
+				return false
+			
+			if(this.personality == oP.personality){
+				//same personality
+				score *= 1.5
+			} else if (this.personality != 'Neutral' && oP.personality != 'Neutral'){
+				//opposing personality
+				score *= 0.5
+			}
+			else{
+				score += 80
+			}
+			log_message(score)
+			if(score>roll_range(150,250))		
+				return true;					
 		}
-		// log_message(this.name + " in range "+this.inRangeOf.length, "surrounding", 0)
+		return false;
+	}
+	
+	//choose a player to follow
+	choose_follow_target(){
+		if(this.awareOf.length==0){
+			return
+		}
+		let follow_type = roll([['aggro',50+this.aggroB],['neu',100],['def',50+this.peaceB]])
+		let tP = this
+		let target = '';
+		let target_score = 0
+		this.awareOf.forEach(function(oP){
+			let score = get_follow_score(tP,oP,follow_type);
+			if(!target){
+				target = oP
+				target_score = score;
+			}
+			else{
+				if(score > target_score){
+					target = oP
+					target_score = score;
+				}
+			}	
+		});	
+		log_message(this.name + ' ' + follow_type + ' ' + target.name + ' ' + target_score)
+		return target;
+	}
+	
+	//choose a player to fight
+	choose_fight_target(){
+		if(this.inRangeOf.length==0){
+			return ""
+		}
+		let tP = this
+		let target_lst = []
+		let base_score = 100
 		
-		this.attackable = [];
-		tP=this;
 		this.inRangeOf.forEach(function(oP){
-			let rollResult = aggroCheck(tP,oP);
-			// log_message(rollResult+" with " + oP.name, "surrounding", 0)
-			if(rollResult == 'fight')
-				tP.attackable.push(oP);
+			if(tP==oP)
+				return
+			//calculate aggro score
+			let score = get_fight_score(tP,oP);
+			if(score>0)
+				target_lst.push([oP,score])
 		});
+		if(target_lst.length==0){
+			return
+		}
+		log_message(this.name + ' fight')
+		log_message(target_lst)
+		let target = roll(target_lst)
+		return target;
+	}
+	
+	//choose a player to ally with
+	choose_alliance_target(){
+		if(this.awareOf.length==0){
+			return ""
+		}
+		let tP = this
+		let target_lst = []
 		
-		//apply effects from those in sight
-		tP=this;
-		this.inRangeOf.forEach(function(oP,index){
-			oP.apply_all_effects("opInRange", {"opponent":tP});
+		this.awareOf.forEach(function(oP){
+			if(tP==oP)
+				return
+			//calculate aggro score
+			let score = get_ally_score(tP,oP)		
+			if(score>0)
+				target_lst.push([oP,score])
 		});
-		this.apply_all_effects("surroundingCheck");
+		if(target_lst.length==0){
+			return ''
+		}
+		log_message(this.name + ' alliance')
+		log_message(target_lst)
+		let target = roll(target_lst)
+		return target;
 	}
 	
 	//plan the next action
@@ -635,7 +923,8 @@ class Char {
 		else
 			this.lastFight=0;
 				
-		this.checkSurroundingPlayers();
+		this.checkSurroundingPlayers();				
+		this.opinionUpdate();
 		
 		//plan next action
 		/*
@@ -691,6 +980,39 @@ class Char {
 			log_message('player escape')
 		}
 		
+		//fight
+		if(this.fight_target){
+			let fightChance = baseFightChance+this.aggroB;
+			let peaceChance = basePeaceChance+this.peaceB;	
+			if(fightChance<1)
+				fightChance=1;
+			if(peaceChance<1)
+				peaceChance=1;	
+			if(roll([['fight',fightChance],['peace',peaceChance]]) == 'fight'){
+				if(this.setPlannedAction("fight",6)){  
+					this.plannedTarget = this.fight_target;
+				}
+			}
+			if(!fight_target)
+				log_message('no target found')
+		}
+		/*
+		//alliance
+		if(this.ally_target){
+			let fightChance = baseFightChance+this.aggroB;
+			let peaceChance = basePeaceChance+this.peaceB;	
+			if(fightChance<1)
+				fightChance=1;
+			if(peaceChance<1)
+				peaceChance=1;	
+			if(roll([['noally',peaceChance],['ally',fightChance]]) == 'ally'){
+				if(this.setPlannedAction("ally",5)){
+					this.plannedTarget = this.ally_target;
+				}
+			}
+		}
+		*/
+		
 		//continue with current action if there is one
 		if(this.currentAction.name){
 			log_message(this.name + " continues with " + this.currentAction.name+" "+this.actionPriority, 0);
@@ -700,11 +1022,13 @@ class Char {
 			let options = [];
 			//move 
 			options.push(["move",100]);
+			
 			//fight if players in range
-			if(this.attackable.length > 0)
-				options.push(["fight",80 + (this.aggroB - this.peaceB)]);
+			// if(this.attackable.length > 0)
+				// options.push(["fight",80 + (this.aggroB - this.peaceB)]);
+			
 			//follow
-			if(this.awareOf.length > 0){
+			if(this.follow_target){
 				let follow_chance = Math.floor((total_players - players.length)/total_players *80) + 20
 				options.push(["follow", follow_chance]);
 			}
@@ -712,17 +1036,35 @@ class Char {
 			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && getTerrain(this.x,this.y).danger==0)
 				options.push(["sleep",10+5*this.lastSlept]);
 			
+			//alliance
+			if(this.ally_target){
+				let ally_chance = 50 + this.peaceB/5 - this.aggroB/20
+				if(ally_chance>100)
+					ally_chance = 100
+				if(ally_chance<10)
+					ally_chance = 10
+				options.push(["ally", ally_chance])
+			}			
 			//choose new action
 			let action_option = roll(options);
+			/*
 			if(action_option == "fight"){
-				//set target to the first player in range
+				// set target to the first player in range
 				if(this.setPlannedAction("fight",6)){
-					this.plannedTarget = this.attackable[0];	   
+					// this.plannedTarget = this.attackable[0];   
+					this.plannedTarget = this.choose_fight_target()
+				}
+			}*/
+			if(action_option == "follow"){
+				if(this.setPlannedAction("follow",1)){
+					// this.plannedTarget = this.awareOf[0];
+					this.plannedTarget = this.follow_target;
 				}
 			}
-			else if(action_option == "follow"){
-				if(this.setPlannedAction("follow",1)){
-					this.plannedTarget = this.awareOf[0];
+			else if(action_option == "ally"){
+				if(this.setPlannedAction("ally",5)){
+					// this.plannedTarget = this.awareOf[0];
+					this.plannedTarget = this.ally_target;
 				}
 			}
 			else if(action_option == "sleep"){
@@ -742,42 +1084,42 @@ class Char {
 				this.setPlannedAction(action_option, 1)
 			}
 		}
-		/*
-		//if high aggro have a chance to fight
-		if(this.attackable.length >0 && (this.aggroB - this.peaceB)>roll_range(75, 375)){
-			//set target to the first player in range
-			log_message(this.name + " fight replacement")
-			if(this.setPlannedAction("fight",6)){
-				this.plannedTarget = this.inRangeOf[0];
-				log_message(this.name + " targets attack "+this.plannedTarget.name)				
-			}
-		}
-		*/
-		//apply effects
+		
+		//apply effects		
+		if(this.alliance)
+			this.alliance.alliance_plan_action(this)
 		this.apply_all_effects("planAction");
 				
 		log_message(this.name+" plans to "+ this.plannedAction, "planning", 5)
+		
+		//preparing to do action
+		this.opponents = [];
+		// this.last_opponent = "";
+		this.followers = [];
+		this.lastAction = "";
+		//removing red fighting border
+		this.div.removeClass("fighting");
+		this.tblDiv.removeClass("fighting");
+		this.tblDiv.removeClass("forage");
+		this.tblDiv.removeClass("allyEvent");
 	}
 	
 	//perform action
 	//called by action in main
 	doAction(){
-		this.attackers = [];
-		this.followers = [];
-		this.lastAction = "";
 		//perform planned action
 		if(this.health > 0 && !this.finishedAction){
 			this.apply_all_effects("doAction");
 		}
 		if(this.health > 0 && !this.finishedAction){
 			//console.log(this.name + " " + this.plannedAction);
-			//removing red fighting border
-			this.div.removeClass("fighting");
-			this.tblDiv.removeClass("fighting");
-			this.tblDiv.removeClass("forage");
+			
 			switch(this.plannedAction){
 				case "rest":
 					this.action_rest();
+					break;
+				case "ally":
+					this.action_alliance();
 					break;
 				case "forage":
 					this.action_forage();
@@ -819,8 +1161,7 @@ class Char {
 		}
 		//action completed
 		this.finishedAction = true;
-		
-		
+				
 		if(getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).turn_end_effects(this)
 		}
@@ -835,7 +1176,70 @@ class Char {
 		this.statusMessage = "rests";
 		this.resetPlannedAction();
 	}
+	
 
+	//offer to join alliance
+	action_alliance(){
+		this.tblDiv.addClass("allyEvent");
+		log_message(this.name+' alliance ' + this.plannedTarget.name)
+		
+		//no target planned
+		if(!this.plannedTarget){
+			this.lastAction = "alliance fail";
+			this.statusMessage = "has no friends";
+			this.resetPlannedAction();
+			return;
+		}
+		
+		//if target is already dead
+		if(this.plannedTarget.health<=0){
+			this.statusMessage = "tries to befriend " + this.plannedTarget.name + "'s corpse";
+			this.resetPlannedAction();
+			return;
+		}
+		let decision = this.plannedTarget.alliance_offer(this)
+		if(decision){
+			//accepted		
+			if(this.alliance){
+				//add into alliance
+				this.alliance.add_member(this.plannedTarget)
+				this.statusMessage = "invites " + this.plannedTarget.name+" into "+this.alliance.name;
+			}
+			else if(this.plannedTarget.alliance){
+				//join alliance
+				this.plannedTarget.alliance.add_member(this)
+				this.statusMessage = "accepted into " + this.alliance.name +" by "+ this.plannedTarget.name;
+			}
+			else{				
+				//create alliance
+				create_alliance(this, this.plannedTarget)
+				this.statusMessage = "starts "+this.alliance.name+" with " + this.plannedTarget.name;
+			}
+		}
+		else{
+			//rejected		
+			if(this.inAlliance(this.plannedTarget)){
+				this.statusMessage = "teams up with " + this.plannedTarget.name;
+			}
+			else if(this.alliance){
+				//add into alliance
+				this.statusMessage = "unable to get " + this.plannedTarget.name + " to join "+this.alliance.name;
+			}
+			else if(this.plannedTarget.alliance){
+				//join alliance
+				this.statusMessage = "denied entry into " +this.plannedTarget.alliance.name +" by "+ this.plannedTarget.name;
+				this.opinions[this.plannedTarget.id] -= 25
+			}
+			else{
+				//create alliance
+				this.statusMessage = "alliance offer to " + this.plannedTarget.name + " rejected";
+				this.opinions[this.plannedTarget.id] -= 20
+			}			
+		}
+		log_message(decision)
+		this.resetPlannedAction();	
+	}
+	
 	//action functions
 	//fight
 	action_fight(){
@@ -849,6 +1253,9 @@ class Char {
 			this.resetPlannedAction();
 			return;
 		}
+		if(this.inAlliance(this.plannedTarget))
+			this.alliance.unity -= 100;
+		
 		//if target is already dead
 		if(this.plannedTarget.health<=0){
 			this.statusMessage = "attacks the corpse of " + this.plannedTarget.name;
@@ -866,7 +1273,7 @@ class Char {
 		}
 				
 		//calculate damage for both fighters
-		this.plannedTarget.attackers.push(this);
+		// this.plannedTarget.opponents.push(this);
 		fight_target(this,this.plannedTarget);
 		this.lastAction = "fighting";
 		this.energy -= 20;
@@ -985,7 +1392,6 @@ class Char {
 		this.currentAction.targetX = newX;
 		this.currentAction.targetY = newY;
 		
-		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
 		this.apply_all_effects("follow", {"opponent":this.plannedTarget});
 		
 		this.moveToTarget();
@@ -1219,7 +1625,8 @@ class Char {
 		players = arrayRemove(players,this);
 		dedPlayers.push(this);
 		if(!this.death){
-			this.death = this.name + " died of unknown causes";
+			// this.death = this.name + " died of unknown causes";
+			this.death = this.name + " Cast in the name of God, Ye Guilty";
 		}
 		$("#tbl_" + this.id).addClass("dead");
 		$("#tbl_" + this.id).removeClass("alive");
@@ -1228,6 +1635,7 @@ class Char {
 		$('#table .container.alive').last().after($("#tbl_" + this.id));
 		moralNum[this.moral]--;
 		personalityNum[this.personality]--;
+		this.dead = true;
 	}
 }
 

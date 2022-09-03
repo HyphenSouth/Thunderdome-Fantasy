@@ -1,283 +1,292 @@
-//functions for actions that require more than one char, such as combat and range
-
-function awareOfCheck(tP){
-	let tempArr = [];
-	let tp_sight = tP.sightRange + tP.sightRangeB;
-	let tp_fight = tP.fightRange + tP.fightRangeB;
-	
-	players.forEach(function(oP,index){
-		if(oP != tP){
-			let dist = playerDist(oP, tP);
-			//check if tP has special aggro effects
-			tP.apply_all_effects("awareCheck", {"opponent":oP});
-			//check if oP forces tP to aggro
-			oP.apply_all_effects("awareCheckOthers", {"opponent":tP});
-			let op_vis = oP.visibility + oP.visibilityB;
-			if(op_vis<0){op_vis=0;}
-			if(dist <= tp_sight){
-				//Units have a % of chance of being seen, increasing exponential up to their fight range
-				if(Math.pow((Math.random()*(op_vis/100)),1/3) * (tp_sight - tp_fight) > dist - tp_fight){
-					let seen = false;
-					tP.opinions.forEach(function(oP2,index){
-						if(oP2[0] == oP)
-							seen = true;
-					});
-					if(!seen)
-						tP.opinions.push([oP,50]);
-					tempArr.push(oP)
-				}
-			}
-		}
-	});
-	return tempArr;
-}
-
-//get opponents for that tP can fight
-function inRangeOfCheck(tP){
-	let tempArr = [];
-	tP.calc_bonuses();
-	tP.awareOf.forEach(function(oP,index){
-		if(oP != tP){
-			let dist = playerDist(oP, tP);
-			if(dist <= (tP.fightRange + tP.fightRangeB) && tP.awareOf.indexOf(oP)>=0){
-				// log_message(oP.name + " distance " + dist + " fight range " + (tP.fightRange + tP.fightRangeB))
-				tempArr.push(oP);
-			}
-		}
-	});
-	return tempArr;
-}
-var baseFightChance = 50;
-var basePeaceChance = 50;
-function aggroCheck(tP, oP){
-	//check if tP wants to fight oP
-	let fightChance = baseFightChance;
-	let peaceChance = basePeaceChance;
-	
-	if(tP.personality == oP.personality){
-		//same personality
-		peaceChance += 40;
-		fightChance -= 20;
-	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
-		//opposing personality
-		fightChance += 40;
-		peaceChance -= 20;
-	}
-	if(tP.moral == 'Chaotic'){
-		peaceChance += oP.intimidation
-	}
-	if(tP.moral == 'Lawful'){
-		fightChance += oP.intimidation
-	}
-	if(tP.moral == 'Neutral'){
-		fightChance += Math.round(oP.intimidation/2)
-		peaceChance += Math.round(oP.intimidation/2)
-	}
-	
-	//check if tP has special aggro effects
-	tP.apply_all_effects("aggroCheck", {"opponent":oP});
-	//check if oP forces tP to aggro
-	oP.apply_all_effects("aggroCheckOthers", {"opponent":tP});
-	
-	fightChance=fightChance+tP.aggroB;
-	peaceChance=peaceChance+tP.peaceB;
+class Action{
+	constructor(name, player, turns=0, action_priority=1){
+		this.name = name;
+		this.player = player;	
 		
-	if(fightChance<1)
-		fightChance=1;
-	if(peaceChance<1)
-		peaceChance=1;				
-	let rollResult = roll([['fight',fightChance],['peace',peaceChance]]);
-	return rollResult;  
-}
-
-function doodadCheck(tP){
-	doodads.forEach(function(tD,index){
-		let dist = hypD(tP.x - tD.x, tP.y - tD.y);
-		if(dist <= tD.triggerRange){
-			let triggerChance = 5 + tD.triggerChance;
-			let triggerNoChance = 15;
-			if(tD.owner == tP)
-				triggerNoChance += 100;
-			if(roll([["yes",triggerChance],["no",triggerNoChance]]) == 'yes')
-				tD.trigger();
+		//if the action is completely finished
+		this.complete = false;		
+		//if the action can be interrupted by combat
+		this.combat_interruptable = true;	
+		
+		
+		//used for continuous actions
+		this.turns = turns;
+		this.action_priority = action_priority;		
+		//if the action is finished for the turn
+		this.turn_complete = false;		
+		//if the action will be over after combat
+		this.combat_cancellable = true;
+	}	
+	
+	//prior to action planning
+	turn_start(){
+		this.turns-=1;
+		this.action_priority = this.action_priority;
+		this.turn_complete=false;
+	}
+	
+	//performing action
+	perform(){
+		this.player.statusMessage = "performs a generic action";
+	}
+	
+	//after successfully performing action
+	action_successful(){
+		this.turn_complete=true;
+		this.player.lastAction = this;
+		this.player.finishedAction = true;
+	}
+	
+	//attacked
+	attacked(oP){
+		if(this.combat_interruptable){
+			if(!this.turn_complete){
+				this.interrupted=true;
+				this.turn_complete=true;
+				this.player.finishedAction
+			}
 		}
-	});
-}
-//calculate damage
-function rollDmg(tP, oP){
-	if(tP.fightDmgB<0){
-		tP.fightDmgB=0;
+		if(this.combat_cancellable){
+			this.complete = true;
+			this.player.resetPlannedAction();			
+		}
 	}
-	if(oP.dmgReductionB<0){
-		oP.dmgReductionB=0;
-	}
-	let dmg = Math.floor((Math.random() * tP.fightDmg / 2) + (Math.random() * tP.fightDmg / 2)) ;
-	dmg = dmg * tP.fightDmgB;
-	dmg = dmg * oP.dmgReductionB;
-	if(dmg > oP.health)
-		dmg = oP.health;
-	if(dmg<0)
-		dmg=0;
-	return dmg;
+	
+	//end of turn
+	turn_end(){
+		if(this.turns<=0){
+			this.complete = true;
+			this.player.resetPlannedAction();
+		}
+	}	
 }
 
-function attack(attacker, defender, counter, fightMsg){
-	let dmg = 0;
-	let dmg_type="unarmed"	
-	
-	// if(!counter)
-		// fightMsg.events.push(attacker.name + " attacks " + defender.name);
-	// else
-		// fightMsg.events.push(attacker.name + " fights back against " + defender.name);
-	
-	if(attacker.weapon){
-		dmg_type = attacker.weapon.dmg_type;
+class RestAction extends Action{
+	constructor(player){
+		super("rest", player)
 	}
-	attacker.calc_bonuses();
-	defender.calc_bonuses();
+	perform(){
+		this.player.energy += 40;
+		this.player.health += 5;
+		this.player.statusMessage = "rests";
+	}
 	
-	//apply pre damage functions
-	// attacker.apply_inv_effects_other("attack", {"damage":dmg, "counter":counter});
-	// defender.apply_inv_effects_other("defend", {"damage":dmg, "counter":counter});	
-	attacker.statusMessage = "fights " + defender.name;
-	attacker.apply_all_effects("attack", {"opponent":defender, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
-	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
-
-	dmg = rollDmg(attacker, defender);
-	
-	fightMsg.events.push(attacker.name + " deals "+ roundDec(dmg)+ " damage to " + defender.name);
-	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg });
-	// defender.health -= dmg;
-	defender.take_damage(dmg, attacker, dmg_type, fightMsg)
-	
-	attacker.exp += dmg;
-	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
 }
 
-function fight_target(tP,oP){
-	//tp has the initiative 
-	tP.div.addClass("fighting");
-	tP.tblDiv.addClass("fighting");
-	oP.div.addClass("fighting");
-	oP.tblDiv.addClass("fighting");
+class MoveAction extends Action{
+	constructor(player){		
+		super("moving", player, 9999, 1)
+		//get a coordinate to move to if not currently moving
+		
+		let newX = 0;
+		let newY = 0;
+		//get new cords to move to
+		let tries = 0;
+		do {
+			newX = Math.floor(Math.random()*mapSize);
+			newY = Math.floor(Math.random()*mapSize);
+			tries++;
+		} while(!safeTerrainCheck(newX,newY) && tries < 10);
+		//if safe location can't be found, move to center
+		if(tries>=10){
+			log_message(this.player.name + " cant find safe location", 0);
+			newX = mapSize/2
+			newY = mapSize/2
+		}
+		
+		//get a target location to move to
+		this.targetX = newX;
+		this.targetY = newY;
+		// log_message(this.player.name +" plans to move to "+ newX +" " +newY);
+		
+	}
+	turn_start(){
+		this.action_priority = this.action_priority;
+		this.turn_complete=false;
+	}
 	
-	let fightMsg = {'fight':true, 'attacker': tP, 'defender': oP, 'events':[]}
-	events.push(fightMsg);	
+	perform(){
+		this.player.statusMessage = "on the move";		
+		this.player.moveToTarget();
+		this.player.apply_all_effects("move");
+	}
 	
-	//fight opponent
-	attack(tP,oP, false, fightMsg);
-	tP.finishedAction = true
-	tP.current_turn_fights++;
-	oP.lastAttacker = tP;
-	tP.lastAction = "fighting"
-	tP.resetPlannedAction();
-	//tP kills oP
-	if(oP.health <= 0){
-		log_message(tP.name + " kills " + oP.name);
-		tP.kills++;
-		if(tP.personality == oP.personality && tP.personality != 'Neutral'){
-			tP.statusMessage = "betrays " + oP.name;
-			oP.statusMessage = "killed in their sleep by " + tP.name;
-			// pushMessage(tP, tP.name + " betrays " + oP.name);
-			fightMsg.events.push(tP.name + " betrays " + oP.name);
-			oP.death = "betrayed by " + tP.name;
-		} 
-		else if(oP.lastAction == "sleeping"){
-			tP.statusMessage = "kills " + oP.name + " in their sleep";
-			oP.statusMessage = "killed in their sleep by " + tP.name;
-			// pushMessage(tP, tP.name + " kills " + oP.name + " in their sleep");
-			fightMsg.events.push(tP.name + " kills " + oP.name + " in their sleep");
-			oP.death = "killed in their sleep by " + tP.name;
-		} 
+	turn_end(){
+		//if arrived on target location
+		if(this.targetX == this.player.x && this.targetY == this.player.y){
+			this.complete = true;
+			this.player.resetPlannedAction();
+			// log_message(this.name + " movement finished");
+		}
 		else{
-			tP.statusMessage = "kills " + oP.name;
-			oP.statusMessage = "killed by " +tP.name;
-			// pushMessage(tP, tP.name + " kills " + oP.name);
-			fightMsg.events.push(tP.name + " kills " + oP.name);
-			oP.death = "killed by " + tP.name;
-		}
-		tP.apply_all_effects("win",{"opponent":oP});
-		oP.apply_all_effects("lose", {"opponent":tP});
-	}
-	//opponent turn
-	else{
-		//push event message
-		// pushMessage(tP, tP.name + " " + tP.statusMessage);
-		
-		//incapacitated
-		if(oP.incapacitated){
-			if(oP.lastAction == "sleeping"){
-				oP.statusMessage = "attacked in their sleep by "+ tP.name;
-				// pushMessage(oP, "was attacked in their sleep by " + tP.name);
-				fightMsg.events.push(oP.name + " was attacked in their sleep by " + tP.name);
+			//randomly stop movement
+			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
+				this.complete = true;
+				this.player.resetPlannedAction();
+				// log_message(this.name + " movement finished early");
 			}
 			else{
-				oP.statusMessage = "unable to fight back against " + tP.name;
-				// pushMessage(oP, " is unable to fight back against " + tP.name);
-				fightMsg.events.push(oP.name + " is unable to fight back against " + tP.name);
+				// log_message(this.name + " movement not finished");
 			}
 		}
-		//unaware
-		else if(!(oP.awareOf.indexOf(tP)>=0)){
-			oP.statusMessage = "caught offguard";
-			// pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
-			fightMsg.events.push( tP.name + " is caught offguard by " + tP.name);
+	}	
+	/*
+	action_move(){
+		this.lastAction = "moving";
+		this.statusMessage = "on the move";
+		//get a coordinate to move to if not currently moving
+		if(this.currentAction.name != "move"){
+			//clear current actions
+			//this.resetPlannedAction();
+			let newX = 0;
+			let newY = 0;
+			//get new cords to move to
+			let tries = 0;
+			do {
+				newX = Math.floor(Math.random()*mapSize);
+				newY = Math.floor(Math.random()*mapSize);
+				tries++;
+			} while(!safeTerrainCheck(newX,newY) && tries < 10);
+			//if safe location can't be found, move to center
+			if(tries>=10){
+				log_message(this.name + " cant find safe location", 0);
+				newX = mapSize/2
+				newY = mapSize/2
+			}
+			this.currentAction.name = "move";
+			
+			//get a target location to move to
+			this.currentAction.targetX = newX;
+			this.currentAction.targetY = newY;
+			// log_message(this.name +" plans to move to "+ newX +" " +newY);
 		}
-		//out of range
-		else if(oP.fightRange + oP.fightRangeB<hypD(oP.x - tP.x,oP.y - tP.y)){
-			oP.statusMessage = "attacked out of range";
-			// pushMessage(oP, oP.name + " is attacked out of range by " + tP.name);
-			fightMsg.events.push(oP.name + " is attacked out of range by " + tP.name);
-		}
-		//too busy to fight back
-		else if(oP.current_turn_fights >= turnFightLim){
-			// pushMessage(oP, "is too busy to fight back against " + tP.name);
-			fightMsg.events.push(oP.name + "is too busy to fight back against " + tP.name);
-		}
-		//tP is somehow dead
-		else if(tP.health <=0){
-			// pushMessage(oP, oP.name + " tries to fight back against " + tP.name + "'s corpse");
-			fightMsg.events.push(oP.name + " tries to fight back against " + tP.name + "'s corpse");
-			if(oP.statusMessage=="")
-				oP.statusMessage= "tries to fight back against " + tP.name + "'s corpse"
+		this.moveToTarget();
+		this.apply_all_effects("move");
+		//if arrived on target location
+		if(this.currentAction.targetX == this.x && this.currentAction.targetY == this.y){
+			this.resetPlannedAction();
+			// log_message(this.name + " movement finished");
 		}
 		else{
-			//opponent counter attack
-			attack(oP,tP, true, fightMsg);
-			oP.current_turn_fights++;
-			oP.lastAction="fighting";
-			//oP kills tP
-			if(tP.health <= 0){
-				log_message(oP.name + " kills " + tP.name +" (counterattack)");
-				oP.kills++;
-				oP.statusMessage = "kills " + tP.name;
-				tP.statusMessage = "killed by " +oP.name + "'s counterattack";
-				// pushMessage(oP, oP.name + " fights back and kills " + tP.name);
-				fightMsg.events.push(oP.name + " kills " + tP.name);
-				tP.death = "killed by " + oP.name + "'s counterattack";	
-				
-				oP.apply_all_effects("win",{"opponent":tP});
-				tP.apply_all_effects("lose",{"opponent":oP});
+			//randomly stop movement
+			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
+				this.resetPlannedAction()
+				// log_message(this.name + " movement finished early");
 			}
-			//tP survives
-			else{	
-				//push event message
-				// pushMessage(oP, oP.name + " " + oP.statusMessage);
+			else{
+				// log_message(this.name + " movement not finished");
 			}
 		}
 	}
-	oP.lastAction = "attacked";
-	oP.currentAction = {};
-	if(oP.finishedAction == false){
-		oP.finishedAction = true;
-		oP.interrupted = true;
-		//interrupt planned actions
+	*/
+}
+
+class FollowAction extends Action{
+	constructor(player, target){		
+		super("following", player)
+		this.target = target
 	}
-	oP.resetPlannedAction();
-	// if(tP.health<=0){
-		// tP.die()
-	// }	
-	// if(oP.health<=0){
-		// oP.die()
-	// }
+	
+	perform(){
+		let newX = 0;
+		let newY = 0;
+		newX = this.target.x;
+		newY = this.target.y;
+
+		this.player.statusMessage = "following " + this.plannedTarget.name;
+		this.target.followers.push(this);
+		
+		this.targetX = newX;
+		this.targetY = newY;
+		
+		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
+		this.player.apply_all_effects("follow", {"opponent":this.target});
+		
+		this.player.moveToTarget();
+	}
+	/*
+	action_follow(){
+		let newX = 0;
+		let newY = 0;
+		newX = this.plannedTarget.x;
+		newY = this.plannedTarget.y;
+		this.lastAction = "following";
+		this.statusMessage = "following " + this.plannedTarget.name;
+		this.plannedTarget.followers.push(this);
+		
+		this.currentAction.name = "";
+		this.currentAction.targetX = newX;
+		this.currentAction.targetY = newY;
+		
+		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
+		this.apply_all_effects("follow", {"opponent":this.plannedTarget});
+		
+		this.moveToTarget();
+		log_message(this.name +" following "+this.plannedTarget.name,0);
+		log_message(this.plannedTarget.name +" at ("+this.plannedTarget.x+","+this.plannedTarget.y+")", 1);
+		this.resetPlannedAction();
+	}
+	*/
+}
+
+class SleepAction extends Action{
+	constructor(player){		
+		super("sleeping", player, roll_range(5,8), 15)
+		this.player.unaware=true;
+		this.incapacitated=true;
+		this.player.div.find('.charText').addClass('sleep');
+		this.player.tblDiv.addClass('sleep');
+	}
+	turn_start(){
+		super.turn_start()
+		this.player.unaware=true;
+		this.incapacitated=true;
+	}
+	
+	perform(){
+		this.player.unaware=true;
+		this.incapacitated=true;
+		this.player.health += Math.floor(Math.random() * 2);
+		this.player.energy += Math.floor(Math.random() * 10);
+		//wake up
+		if(this.turns>0){
+			// log_message(this.player.name + " continues sleeping");		
+			this.player.statusMessage = "sleeping";
+		} 
+		else {
+			log_message(this.player.name + " awakens");
+			this.player.statusMessage = "woke up";
+			this.player.div.find('.charText').removeClass('sleep');
+			this.player.tblDiv.removeClass('sleep');
+		}
+	}
+	/*
+	//sleep
+	action_sleep(){
+		//just started sleeping
+		if(this.currentAction.name != "sleep"){
+			this.currentAction.name = "sleep";
+			this.currentAction.turnsLeft = roll_range(5,8);
+			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
+			this.unaware=true;
+			this.incapacitated=true;
+			this.actionPriority=15;
+		}
+		//regain health and energy
+		this.currentAction.turnsLeft--;
+		this.health += Math.floor(Math.random() * 2);
+		this.energy += Math.floor(Math.random() * 10);
+		//wake up
+		if(this.currentAction.turnsLeft > 0){
+			log_message(this.name + " continues sleeping");
+			this.lastAction = "sleeping";			
+			this.statusMessage = "sleeping";			
+		} else {
+			log_message(this.name + " awakens");
+			this.resetPlannedAction();
+			this.lastAction = "awaken";
+			this.statusMessage = "woke up";
+		}
+	}
+	*/
 }

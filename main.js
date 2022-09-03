@@ -1,7 +1,5 @@
 var players = []; 			//list of players used for the game
 var playerStatic = []; 	//static list of players
-var show_info_id = -1; 		//id of the current player's info shown (-1 for none)
-var extra_info_obj = ""
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
 var doodads = [];			//list of items
@@ -36,6 +34,7 @@ var dangerSize = 0;		//size of the restricted zone
 var dangerActive=false
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var event_length = 130	//max amount of events displayed
+var page_num = 0;
 
 $( document ).ready(function(){
 	//load files
@@ -387,12 +386,32 @@ function startGame(){
 		players.push(tempChar);
 		playerStatic.push(tempChar);
 		playerDistTable.push([])
+		page_num=0;
 	}
 	total_players = players.length;
-	//get all distances
+	//set up distances and opinions
 	playerStatic.forEach(function(tP){
 		updatePlayerDists(tP);
-	})
+		//opinions
+		base_opinion = 0
+		playerStatic.forEach(function(oP){
+			if(tP==oP){
+				tP.opinions[oP.id] = 0
+			}
+			else{			
+				if(tP.personality == oP.personality){
+					//same personality
+					tP.opinions[oP.id] = base_opinion + 50
+				} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+					//opposing personality
+					tP.opinions[oP.id] = base_opinion - 50
+				}
+				else{
+					tP.opinions[oP.id] = base_opinion
+				}
+			}
+		});
+	});
 	//something for drawing probably
 	setInterval(timer,interval);
 }
@@ -474,6 +493,9 @@ function actionPhase(){
 	players.forEach(function(chara,index){
 		chara.doAction();
 	});
+		
+	//update alliances
+	allianceUpdate();
 	
 	//update doodads
 	doodadUpdate();
@@ -507,6 +529,12 @@ function actionPhase(){
 	log_message('======= end of turn '+day+' '+hour+'=======');
 	log_message(hyp_count)
 	log_message("   ")
+}
+
+function allianceUpdate(){
+	alliances.forEach(function(tA,index){
+		tA.update();		//check doodads
+	});
 }
 
 function doodadUpdate(){
@@ -606,19 +634,6 @@ function inBoundsCheck(x, y){
 	*/
 }
 
-//toggle the info being displayed
-function infoDisplay(){
-	//switch from ststus to events
-	if($('#table').css('display')=='block'){
-		$('#table').css('display','none');
-		$('#messages').css('display','block');
-	} 
-	//switch from events to status
-	else {
-		$('#table').css('display','block');
-		$('#messages').css('display','none');
-	}
-}
 //puts terrain above players
 function showTerrain(){
 	if($('.terrain').css('z-index')!=1){
@@ -641,7 +656,6 @@ function pushMessage(chara, msg){
 	events.push({"chara": chara, "message":msg, "fight":false});
 }
 
-
 function highlight_clicked(char_id) {
 	// log_message("container click")
 	//deselect
@@ -657,7 +671,8 @@ function highlight_clicked(char_id) {
 		$('#tbl_' + char_id).addClass('highlight')
 	}
 }
-function show_info(char_id){
+var show_info_id = -1; 		//id of the current player's info shown (-1 for none)
+function toggle_show_info(char_id){
 	// log_message("img click")
 	//no char selected
 	if(show_info_id==-1){
@@ -699,27 +714,28 @@ function deselect_show_info(){
 	// $('#table').css('margin-bottom','50px')
 }
 
-//show info for a player's item
-function show_item_info(char_id, slot){
-	if(slot=='wep')
-		show_extra_info(playerStatic[char_id].weapon)
-	if(slot=='off')
-		show_extra_info(playerStatic[char_id].offhand)
-}
-//show info for status effect
-function show_status_info(char_id, status_id){
-	show_extra_info(playerStatic[char_id].status_effects[status_id])
-}
-//show info for status effect
-function show_attr_info(char_id, attr_id){
-	show_extra_info(playerStatic[char_id].attributes[attr_id])
-}
+var extra_info_obj = ""		//object shown in the extra info screen
 //show info for player
-function show_player_info(char_id){
-	show_extra_info(playerStatic[char_id])
+function player_extra_info(char_id, info_type, extra_info=0){
+	info_obj = info_type
+	if(info_type == 'wep')
+		info_obj = playerStatic[char_id].weapon
+	else if(info_type == 'off')
+		info_obj = playerStatic[char_id].offhand
+	else if(info_type == 'eff')
+		info_obj = playerStatic[char_id].status_effects[extra_info]
+	else if(info_type == 'attr')
+		info_obj = playerStatic[char_id].attributes[extra_info]
+	else if(info_type == 'alliance')
+		info_obj = playerStatic[char_id].alliance
+
+	show_info_id = char_id;
+	toggle_extra_info(info_obj);
 }
 
-function show_extra_info(obj){
+function toggle_extra_info(obj){
+	if(obj=='')
+		return
 	//no item selected
 	if(extra_info_obj==""){
 		select_extra_info(obj)
@@ -734,148 +750,477 @@ function show_extra_info(obj){
 		deselect_extra_info()
 	}	
 }
+
 function select_extra_info(obj){
 	extra_info_obj = obj;
-	obj.show_info()
+	display_extra_info()
 	$('#extra_info').css('display','inline-block')
 }
-
 function deselect_extra_info(){
 	$('#extra_info').css('display','none')
 	$('#extra_info_container').html('');
+	if(extra_info_obj instanceof Alliance){
+		extra_info_obj.members.forEach(function(member){
+			//remove highlight
+			$('#char_' + member.id).removeClass('alliance')
+			$('#tbl_' + member.id).removeClass('alliance')
+		})
+	}
+		
 	extra_info_obj=""
+}
+function display_extra_info(){
+	if(extra_info_obj=="more info"){
+		if(show_info_id!=-1){
+			playerStatic[show_info_id].show_more_info()
+		}
+	}
+	else if(extra_info_obj=="opinions"){
+		if(show_info_id!=-1){
+			playerStatic[show_info_id].show_opinions()
+		}
+	}
+	else{
+		extra_info_obj.show_info()
+	}	
+}
+
+selected_alliance_id = -1
+function toggle_selected_alliance(alliance_id){
+	if(div_clicked==false){	
+		//no alliance selected
+		if(selected_alliance_id==-1){
+			select_alliance(alliance_id)
+		}
+		//different alliance selected
+		else if(selected_alliance_id != alliance_id){
+			deselect_alliance()
+			select_alliance(alliance_id)
+		}
+		//toggle off
+		else{
+			deselect_alliance()
+		}	
+	}
+	div_clicked=false
+}
+var div_clicked=false
+function alliance_div_click(alliance_id, char_id){	
+	if(show_info_id==-1){
+		select_show_info(char_id)
+		select_alliance(alliance_id)
+	}
+	//another character selected
+	else if(show_info_id!=char_id){		
+		deselect_show_info()
+		select_show_info(char_id)
+		deselect_alliance()		
+		select_alliance(alliance_id)
+	}
+	//deselect current char
+	else if(playerStatic[char_id].alliance == allianceStatic[alliance_id]){
+		if(show_info_id!=char_id){
+			select_alliance(alliance_id)
+		}
+		else{
+			deselect_show_info()
+			deselect_alliance();
+		}
+	}
+	else{
+		deselect_show_info();
+		deselect_alliance();
+	}
+	div_clicked=true;
+}
+
+function select_alliance(alliance_id){
+	$('#alliance_' + alliance_id).addClass('alliance_highlight')	
+	selected_alliance_id = alliance_id;
+	allianceStatic[selected_alliance_id].highlight_alliance_members();
+	
+	selected_alliance_id = alliance_id;
+}
+function deselect_alliance(){
+	$('#alliance_' + selected_alliance_id).removeClass('alliance_highlight')
+	if(selected_alliance_id>=0 && selected_alliance_id<allianceStatic.length)
+		allianceStatic[selected_alliance_id].deselect_alliance_members()
+	
+	selected_alliance_id = -1;
 }
 
 
+
+//toggle the info being displayed
+function infoDisplay(){
+	//switch from status to events
+	switch(page_num){
+		//switch to events
+		case 0:
+			$('#table').css('display','none');			
+			$('#messages').css('display','block');
+			$('#alliances').css('display','none');
+			page_num = 1
+			updateEvents()
+			break;
+		case 1:
+			$('#table').css('display','none');			
+			$('#messages').css('display','none');
+			$('#alliances').css('display','block');
+			page_num = 2
+			updateAlliances()
+			break;
+		case 2:
+			$('#table').css('display','block');
+			$('#messages').css('display','none');
+			$('#alliances').css('display','none');
+			page_num = 0
+			updateStatusTable()
+			break;
+	}
+	/*
+	// if($('#table').css('display')=='block'){
+	if(page_num==0){
+		$('#table').css('display','none');
+		$('#alliances').css('display','none');
+		$('#messages').css('display','block');
+		page_num = 1
+	} 
+	//switch from events to status
+	else {
+		$('#table').css('display','block');
+		$('#messages').css('display','none');
+		page_num = 0
+	}
+	*/
+}
 
 var dayColors = ["#282828","#474747"];
 var currentDayColor=0;
 //update the info tables
 function updateTable(){
 	//list status
-	// if($('#table').css('display')=='block'){
-		if(show_info_id!=-1){
-			playerStatic[show_info_id].show_main_info();
-		}		
-		if(extra_info_obj!=''){
-			extra_info_obj.show_info();
+	if(show_info_id!=-1){
+		playerStatic[show_info_id].show_main_info();
+	}		
+	if(extra_info_obj!=''){
+		display_extra_info()
+	}
+	
+	players.forEach(function(chara,index){
+		//prepare player data
+		//character icons
+		$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+		$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+		
+		//weapon
+		let inv_text=""
+		if(chara.weapon){
+			inv_text+=chara.weapon.icon;
 		}
-		players.forEach(function(chara,index){
-			//prepare player data
-			//character icons
-			$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-			$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-			
-			//weapon
-			let wep_text=""
-			if(chara.weapon){
-				wep_text+=chara.weapon.icon;
+		if(chara.offhand){
+			inv_text+=chara.offhand.icon;
+		}
+		$("#char_" + chara.id + " .charWeap").html(inv_text);
+		//status effect
+		let icon_status_text = "";		//char icon
+		let icon_count=0;
+		chara.status_effects.forEach(function(eff,index){		
+			if(icon_count<4){
+				if(eff.icon){
+					icon_status_text=icon_status_text+eff.icon;
+					icon_count++;
+				}	
 			}
-			if(chara.offhand){
-				wep_text+=chara.offhand.icon;
+		});
+		$("#char_" + chara.id + " .charEff").html(icon_status_text);
+		
+	});
+	/*
+	players.forEach(function(chara,index){
+		//prepare player data
+		//character icons
+		$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+		$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+		
+		//weapon
+		let wep_text=""
+		if(chara.weapon){
+			wep_text+=chara.weapon.icon;
+		}
+		if(chara.offhand){
+			wep_text+=chara.offhand.icon;
+		}
+		$("#char_" + chara.id + " .charWeap").html(wep_text);
+		//status effect
+		let status_text=""				//side bar
+		let icon_status_text = "";		//char icon
+		let icon_count=0;
+		chara.status_effects.forEach(function(eff,index){		
+			status_text+=eff.icon;
+			if(icon_count<4){
+				if(eff.icon){
+					icon_status_text=icon_status_text+eff.icon;
+					icon_count++;
+				}	
 			}
-			$("#char_" + chara.id + " .charWeap").html(wep_text);
-			//status effect
-			let status_text=""				//side bar
-			let icon_status_text = "";		//char icon
-			let icon_count=0;
-			chara.status_effects.forEach(function(eff,index){		
-				status_text+=eff.icon;
-				if(icon_count<4){
-					if(eff.icon){
-						icon_status_text=icon_status_text+eff.icon;
-						icon_count++;
-					}	
-				}
+		});
+		$("#char_" + chara.id + " .charEff").html(icon_status_text);
+		
+		//info bar
+		$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+		$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+		//action
+		$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
+		//kills
+		$("#tbl_" + chara.id + " .kills").text(chara.kills);
+		$("#tbl_" + chara.id + " .weapon").html(wep_text);			
+		$("#tbl_" + chara.id + " .effects").html(status_text);
+		// log_message(chara.name +" status txt " + status_text);
+	});
+	*/
+	/*
+	dedPlayers.forEach(function(chara,index){
+		$("#tbl_" + chara.id + " .kills").text(chara.kills);
+		let wep_text=""
+		if(chara.weapon){
+			wep_text+=chara.weapon.icon;
+		}
+		if(chara.offhand){
+			wep_text+=chara.offhand.icon;
+		}
+		$("#tbl_" + chara.id + " .weapon").html(wep_text);
+	});
+	*/
+	if(page_num == 0)
+		updateStatusTable()
+	// if(page_num == 1)
+		// updateEvents()	
+	if(page_num == 2)
+		updateAlliances()
+	updateEvents()
+	doodads.forEach(function(tD,index){
+		tD.draw()
+	});
+	/*
+	//turn existing messages transparent
+	$('#messages td').css('opacity','0.3');
+	
+	//add new event messages
+	events.forEach(function(msg,index){
+		// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
+		//bg based on time
+		// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
+		let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
+		if(!msg.fight){
+			let chara = msg.chara;
+			let message = msg.message;
+			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
+		}
+		else{
+			let attacker = msg.attacker;
+			let defender = msg.defender;
+			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><div>"+
+				"<div style='float:left;max-width:120px;text-align:left;'>\
+					<img style='width:90px; height:90px;' src='" + attacker.img + "'></img>"+
+					// <span style='display:inline-block'>"+attacker.name+"</span>
+				"</div>"+
+			// "<span>attacks</span>"+
+				"<div style='float:right;max-width:120px;text-align:right;'>\
+					<img style='width:90px; height:90px;' style='float:right;' src='" + defender.img + "'></img>"+
+					// <span style='display:inline-block'>"+defender.name+"</span>
+				"</div>\
+			</div>"+
+			"<div style='font-size:16px;display:inline-block'>"
+			msg.events.forEach(function(event_msg){
+				event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
 			});
-			$("#char_" + chara.id + " .charEff").html(icon_status_text);
-			
-			//info bar
-			$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-			$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-			//action
-			$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
-			//kills
-			$("#tbl_" + chara.id + " .kills").text(chara.kills);
-			$("#tbl_" + chara.id + " .weapon").html(wep_text);			
-			$("#tbl_" + chara.id + " .effects").html(status_text);
-			// log_message(chara.name +" status txt " + status_text);
-		});
-		dedPlayers.forEach(function(chara,index){
-			$("#tbl_" + chara.id + " .kills").text(chara.kills);
-			let wep_text=""
-			if(chara.weapon){
-				wep_text+=chara.weapon.icon;
-			}
-			if(chara.offhand){
-				wep_text+=chara.offhand.icon;
-			}
-			$("#tbl_" + chara.id + " .weapon").html(wep_text);
-		});
+			event_html = event_html+"</div></td>";
+		}
+		event_html = event_html + "</tr>";
+		$('#eventMsg tbody').prepend(event_html);
+	});
+	
+	// remove excess messages
+	if($('#eventMsg tbody').children().length>event_length){
+		let remove_amount = $('#eventMsg tbody').children().length-event_length
 
-		doodads.forEach(function(tD,index){
-			tD.draw()
+		for(let i=0; i<remove_amount; i++){
+			// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
+			$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
+			
+		}
+	}
+	if(events.length>0){
+		currentDayColor = (currentDayColor+1)%dayColors.length;
+	}
+	
+	//list deaths
+	dedPlayers.forEach(function(chara,index){
+		if(!chara.diedMessage){
+			$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
+			chara.diedMessage = "Done";
+		}
+	});
+	
+	events=[];
+	*/
+}
+
+function updateStatusTable(){
+	players.forEach(function(chara,index){
+		//prepare player data
+		//weapon
+		let inv_text=""
+		if(chara.weapon){
+			inv_text+=chara.weapon.icon;
+		}
+		if(chara.offhand){
+			inv_text+=chara.offhand.icon;
+		}
+		//status effect
+		let status_text=""				//side bar
+		chara.status_effects.forEach(function(eff,index){		
+			status_text+=eff.icon;
 		});
 		
-		//turn existing messages transparent
-		$('#messages td').css('opacity','0.3');
-		
-		//add new event messages
-		events.forEach(function(msg,index){
-			// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
-			//bg based on time
-			// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
-			let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
-			if(!msg.fight){
-				let chara = msg.chara;
-				let message = msg.message;
-				event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
+		//info bar
+		$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
+		$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
+		//action
+		$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
+		//kills
+		$("#tbl_" + chara.id + " .kills").text(chara.kills);
+		$("#tbl_" + chara.id + " .weapon").html(inv_text);			
+		$("#tbl_" + chara.id + " .effects").html(status_text);
+		// log_message(chara.name +" status txt " + status_text);
+	});
+	
+	dedPlayers.forEach(function(chara,index){
+		$("#tbl_" + chara.id + " .kills").text(chara.kills);
+		let inv_text=""
+		if(chara.weapon){
+			inv_text+=chara.weapon.icon;
+		}
+		if(chara.offhand){
+			inv_text+=chara.offhand.icon;
+		}
+		$("#tbl_" + chara.id + " .weapon").html(inv_text);
+	});	
+}
+
+function updateEvents(){
+	//turn existing messages transparent
+	$('#messages td').css('opacity','0.3');
+	
+	//add new event messages
+	events.forEach(function(msg,index){
+		// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
+		//bg based on time
+		// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
+		let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
+		if(!msg.fight){
+			let chara = msg.chara;
+			let message = msg.message;
+			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
+		}
+		else{
+			let attacker = msg.attacker;
+			let defender = msg.defender;
+			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><div>"+
+				"<div style='float:left;max-width:120px;text-align:left;'>\
+					<img style='width:90px; height:90px;' src='" + attacker.img + "'></img>"+
+					// <span style='display:inline-block'>"+attacker.name+"</span>
+				"</div>"+
+			// "<span>attacks</span>"+
+				"<div style='float:right;max-width:120px;text-align:right;'>\
+					<img style='width:90px; height:90px;' style='float:right;' src='" + defender.img + "'></img>"+
+					// <span style='display:inline-block'>"+defender.name+"</span>
+				"</div>\
+			</div>"+
+			"<div style='font-size:16px;display:inline-block'>"
+			msg.events.forEach(function(event_msg){
+				event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
+			});
+			event_html = event_html+"</div></td>";
+		}
+		event_html = event_html + "</tr>";
+		$('#eventMsg tbody').prepend(event_html);
+	});
+	
+	// remove excess messages
+	if($('#eventMsg tbody').children().length>event_length){
+		let remove_amount = $('#eventMsg tbody').children().length-event_length
+
+		for(let i=0; i<remove_amount; i++){
+			// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
+			$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
+			
+		}
+	}
+	if(events.length>0){
+		currentDayColor = (currentDayColor+1)%dayColors.length;
+	}
+	
+	//list deaths
+	dedPlayers.forEach(function(chara,index){
+		if(!chara.diedMessage){
+			$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
+			chara.diedMessage = "Done";
+		}
+	});
+	
+	events=[];
+}
+
+function updateAlliances(){
+	alliances.forEach(function(alli,index){
+		$("#alliance_" + alli.id + " .unity").html(alli.unity);
+		$("#alliance_" + alli.id + " .alliance_target").html(alli.attack_target);
+		alli.members.forEach(function(member){
+			//remove players not in alliance
+			if(alli.members.indexOf(member)<0){
+				$("#alliance_"+alli.id+"_char_" + member.id).remove()
+				return
+			}
+			
+			if($("#alliance_"+alli.id+"_char_" + member.id).length){
+				//prepare player data
+				//weapon
+				let inv_text=""
+				if(member.weapon){
+					inv_text+=member.weapon.icon;
+				}
+				if(member.offhand){
+					inv_text+=member.offhand.icon;
+				}
+				//status effect
+				let status_text=""				//side bar
+				member.status_effects.forEach(function(eff,index){		
+					status_text+=eff.icon;
+				});
+				
+				//info bar
+				$("#alliance_"+alli.id+"_char_" + member.id + " .healthBar").css("width",(member.health/member.maxHealth)*100 + "%");
+				$("#alliance_"+alli.id+"_char_" + member.id + " .energyBar").css("width",(member.energy/member.maxEnergy)*100 + "%");
+				//action
+				$("#alliance_"+alli.id+"_char_" + member.id + " .status").html(member.statusMessage);
+				//kills
+				$("#alliance_"+alli.id+"_char_" + member.id + " .kills").text(member.kills);
+				$("#alliance_"+alli.id+"_char_" + member.id + " .inv").html(inv_text);			
+				$("#alliance_"+alli.id+"_char_" + member.id + " .effects").html(status_text);
 			}
 			else{
-				let attacker = msg.attacker;
-				let defender = msg.defender;
-				event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><div>"+
-					"<div style='float:left;max-width:120px;text-align:left;'>\
-						<img style='width:90px; height:90px;' src='" + attacker.img + "'></img>"+
-						// <span style='display:inline-block'>"+attacker.name+"</span>
-					"</div>"+
-				// "<span>attacks</span>"+
-					"<div style='float:right;max-width:120px;text-align:right;'>\
-						<img style='width:90px; height:90px;' style='float:right;' src='" + defender.img + "'></img>"+
-						// <span style='display:inline-block'>"+defender.name+"</span>
-					"</div>\
-				</div>"+
-				"<div style='font-size:16px;display:inline-block'>"
-				msg.events.forEach(function(event_msg){
-					event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
-				});
-				event_html = event_html+"</div></td>";
+				let mem_html = alli.create_member_div(member)
+				// html+=mem_html
+				$("#alliance_" + alli.id+' .alliance_members').append(mem_html)
 			}
-			event_html = event_html + "</tr>";
-			$('#eventMsg tbody').prepend(event_html);
-		});
-		
-		if($('#eventMsg tbody').children().length>event_length){
-			let remove_amount = $('#eventMsg tbody').children().length-event_length
-
-			for(let i=0; i<remove_amount; i++){
-				// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
-				$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
-				
-			}
-		}
-		if(events.length>0){
-			currentDayColor = (currentDayColor+1)%dayColors.length;
-		}
-		events=[];
-		//list deaths
-		dedPlayers.forEach(function(chara,index){
-			if(!chara.diedMessage){
-				$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
-				chara.diedMessage = "Done";
-			}
-		});
+		});		
+	});
+	disbanded_alliances.forEach(function(alli,index){
+	});	
 }
+
 //remove value from an array
 function arrayRemove(arr, value) { 
 	return arr.filter(function(ele){ return ele != value; });
@@ -934,6 +1279,56 @@ function nearbyPlayers(x, y, dist){
 	return temp_list;
 }
 
+function getDangerLevel(x, y, player, dist=50){
+	danger_score = 0
+	nearby = nearbyPlayers(x,y, dist)
+	nearby.forEach(function(oP){
+		if(player==oP)
+			return
+				
+		if(!player.inAlliance(oP)){	
+			player_danger_score = 5		
+			player_danger_score += oP.intimidation - player.intimidation/2
+			player_danger_score -= player.opinions[oP.id]/20
+			
+			if(oP.weapon)
+				player_danger_score += 20
+			if(oP.offhand)
+				player_danger_score += 10
+			
+			if(player_danger_score > 0)
+				player_danger_score *= (1 + (oP.health/oP.maxHealth))
+			else
+				player_danger_score *= (2 - oP.health/oP.maxHealth)
+			 
+					
+		}
+		else{
+			//alliance members
+			player_danger_score = -5		
+			player_danger_score -= oP.intimidation/5
+			player_danger_score -= player.opinions[oP.id]/20
+			player_danger_score += player.alliance.unity/10
+			
+			if(oP.weapon)
+				player_danger_score -= 10
+			if(oP.offhand)
+				player_danger_score -= 5
+			
+			if(player_danger_score > 0)
+				player_danger_score *= (2 - oP.health/oP.maxHealth)
+			else
+				player_danger_score *= (1 + (oP.health/oP.maxHealth))				
+		}	
+		console.log(oP.name + ' ' +player_danger_score)
+		danger_score += player_danger_score
+	});
+	
+	danger_score *= (1 + getTerrain(x,y).danger/2)
+	
+	return danger_score;
+}
+
 //generates terrain 
 function generateTerrain(){
 	//clears all terrain
@@ -949,7 +1344,6 @@ function generateTerrain(){
 	
 	for(var i = 0;i<=mapSize;i+=25){
 		terrain[i] = [];
-		//timerClick("terrain row " + i);
 		//generate reandom terrain pieces
 		for(var j =0;j<=mapSize;j+=25){
 			//timerClick("terrain bound check row " + i + " col " + j);
@@ -958,20 +1352,11 @@ function generateTerrain(){
 				//timerClick("terrain row " + i + " col " + j);
 				let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
 				setTerrain(tempTerr);
-				
-				// let tempTerr = new Terrain("rand",i,j); //generate a random terrain	
-				//draw terrain and add it to the list
-				// tempTerr.draw();
-				// terrain[i][j] = tempTerr;					
-				//timerClick("terrain row " + i + " col " + j);
 			}
-			//timerClick("terrain bound check row " + i + " col " + j);
 		}
-		//timerClick("terrain row " + i);
 		log_message('finished '+i);
 	}
 	generated=true;
-	// timerClick("terrain spread");
 	//get the spread terrain value
 	log_message('terrain spread start')
 	if(Math.floor($('#txt_spreadTerrain').val()) > 0){
@@ -1029,15 +1414,9 @@ function generateRiver(river,recursive){
 		if(terrain[currX]){
 			if(terrain[currX][currY]){
 				let newTerrain =  new WaterTerrain(currX, currY, false);
-				// newTerrain.icon = "🔵";
 				newTerrain.spreadOnce = true;
 				newTerrain.river = true;
 				setTerrain(newTerrain);
-				// terrain[currX][currY].type = "water";
-				// terrain[currX][currY].icon = "💧";
-				// terrain[currX][currY].draw();
-
-				// setTerrain(newTerrain)
 				
 				//generate forks
 				if(i == split && recursive){
@@ -1119,6 +1498,27 @@ function roll(options){
 	// log_message('returning nothing')
 	return '';
 }
+function roll_probs(options){
+	let total_weight=0;
+	options.forEach(function(choice,index){
+		if(choice[1]>0){
+			total_weight = total_weight + Math.round(choice[1])
+		}
+	});
+	let probs = []
+	// log_message(roll_choice)
+	options.forEach(function(choice,index){
+		let prob = 0
+		if(choice[1]>0){
+			prob = (Math.round(choice[1])/total_weight)*100
+		}
+		probs.push([choice[0], roundDec(prob)])
+	});
+	
+	// log_message('returning nothing')
+	return probs;
+}
+
 
 function timerClick(val){
 	var d = new Date();

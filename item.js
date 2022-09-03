@@ -53,9 +53,11 @@ class Item extends StatMod{
 		super(name);
 		this.icon = "❓";
 		this.uses = 0;
-		this.player = "";	
+		this.player = "";
+		this.tradable = true
+		this.stealable = true
 	}
-		
+
 	equip(player){
 		this.player = player;
 		// this.player.lastAction = "found " + this.name;
@@ -63,14 +65,14 @@ class Item extends StatMod{
 		this.player.statusMessage =  "found " + this.name;
 		return true;
 	}
-	
+
 	use(){
 		this.uses--;
 		if(this.uses == 0){
 			this.destroy();
 		}
 	}
-	
+
 	show_info(){
 		let item_info = 
 		"<div class='info'>"+
@@ -82,7 +84,7 @@ class Item extends StatMod{
 				
 		$('#extra_info_container').html(item_info);
 	}
-		
+
 	destroy(){
 		if(extra_info_obj==this){
 			deselect_extra_info()
