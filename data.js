@@ -386,7 +386,7 @@ function create_food(food_name){
 			return new food_data[food_name]['class']()			
 		}
 		else{
-			return new Offhand(food_name);
+			return new Food(food_name);
 		}
 	}
 	/*

@@ -17,7 +17,7 @@ class Food extends Offhand{
 					this.icon=data["icon"];
 				}
 			}
-			if("uses" in data){this.uses = processDataNum(data["uses"])}			
+			if("uses" in data){this.uses = processDataNum(data["uses"])}		
 			if("heal" in data){this.heal = processDataNum(data["heal"])}			
 			if("energy_heal" in data){this.energy_heal = processDataNum(data["energy_heal"])}			
 		}

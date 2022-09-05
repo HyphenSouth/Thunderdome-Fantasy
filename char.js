@@ -66,12 +66,12 @@ class Char {
 		this.exp = 0;
 		
 		//_______________actions_______________
-		//the current actions
-		this.currentAction = {};
 		//the action performed in the previous turn
 		//used to plan current action
-		this.lastAction="";
 		this.plannedAction="";
+		this.plannedActionData = {};
+		this.currentAction = "";
+		this.lastAction="";
 
 		//the priority of current action
 		//0   : no action
@@ -103,7 +103,6 @@ class Char {
 		//decrepit 
 		this.allyable = []
 		
-		this.prevTarget = "";
 		this.plannedTarget = "";
 		
 		this.fight_target = "";
@@ -130,236 +129,7 @@ class Char {
 		this.incapacitated = false;		
 		this.dead = false;
 	}
-	draw() {
-		let charDiv = $('#char_' + this.id);
-		if(!charDiv.length){
-			//map icon 
-			$('#players').append(
-			"<div id='char_" + this.id + "' class='char'><div class='charName'>"+
-				"<span class='charText'>" + this.name + "</span><span class='charWeap'></span></div>"+
-			"<div class='charEff'	style='font-size:10px;'></div>"+
-			"<div class='healthBar' style='margin-bottom:-10px'></div>"+
-			"<div class='energyBar' style='margin-bottom:-10px'></div></div>");		
-			charDiv = $('#char_' + this.id);
-			charDiv.css('background-image',"url(" + this.img + ")");
-			this.div = charDiv;
-			
-			//side bar
-			$('#table').append(
-			"<div class='container alive' id='tbl_" + this.id + "'>"+
-				"<img src='" + this.img + "' onclick='highlight_clicked("+this.id+")'>"+ //img 
-				"<div style='position:absolute;width:50px;height:60px;z-index:2;top:0;left:0;pointer-events: none;'>"+ 
-					"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
-					"<div class='kills'></div>"+		//kill counter
-				"</div>"+
-			
-				//info section
-				"<div class='info'>"+
-					"<div>" + 
-						this.moral.substring(0,1) + this.personality.substring(0,1) + " <b>" + this.name +"</b>"+ //name
-						"<span class='weapon'></span>"+
-					"</div>"+
-					"<div class='status'></div>"+		//status message
-					"<div class='effects'></div>"+		//effects message
-				"</div>"+
-				"<div style='position:absolute; width:185px; height:100%; top:0; left:0; margin-left:50px;' onclick='toggle_show_info("+this.id+")'></div>"+	//clickable div
-			"</div>");
-			let tblDiv = $('#tbl_' + this.id);
-			this.tblDiv = tblDiv;
-		} 
-		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
-		//charDiv.css('top',this.y / 1000 * .95 * $('#map').height() - iconSize/2);
-		charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width() - iconSize/2) + "px," + (this.y / mapSize *  $('#map').height() - iconSize/2) + "px)"},function(){
-		});
-	}
-	
-	change_img(new_img){
-		this.img = new_img;
-		this.div.css('background-image', 'url("'+new_img+'")');
-		this.tblDiv.find('img').attr("src", new_img)
-	}
-	
-	change_name(new_name){
-		this.name = new_name;
-		this.div.find('.charText').text(new_name)
-		this.tblDiv.find('.info div:first-child b').text(new_name)
-	}
-	
-	show_main_info(){
-		//prepare clickable icons
-		let terrain_icon = ""
-		if(getTerrain(this.x, this.y)){
-			terrain_icon = getTerrain(this.x, this.y).icon
-		}		
-		let weaponHtml="<span'>Weapon:None</span>";
-		if(this.weapon){
-			weaponHtml = "<span onClick='player_extra_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
-		}
-		let offhandHtml="<span>Offhand:None</span>";
-		if(this.offhand){
-			offhandHtml = "<span onClick='player_extra_info("+this.id+",\"off\")'><u>Offhand</u>:"+this.offhand.icon+"</span>"
-		}
-		let statusHtml="None";
-		let tP=this
-		if(this.status_effects.length>0){
-			statusHtml="";
-			this.status_effects.forEach(function(eff, eff_id){
-				statusHtml=statusHtml+"<span onClick='player_extra_info("+tP.id+",\"eff\","+eff_id+")'>"+eff.icon+"</span>"
-			});
-		}
-		let attrHtml="";
-		if(this.attributes.length>0){
-			this.attributes.forEach(function(attr,attr_id){
-				if(attr.display){
-					// attrHtml=attrHtml+attr.name+",";
-					if(attr.has_info){
-						attrHtml=attrHtml+"<span onClick='player_extra_info("+tP.id+",\"attr\","+attr_id+")'><u>"+attr.name+"</u>,</span>"
-					}
-					else{
-						attrHtml=attrHtml+"<span>"+attr.name+",</span>"
-					}
-				}
-			});
-		}
-		if(attrHtml=="")
-			attrHtml="None"
-		if(attrHtml[attrHtml.length-8]==',')
-			attrHtml = attrHtml.substring(0, attrHtml.length-8)+"</span>"
-		//if dead
-		let statusMsgHTML = this.statusMessage;
-		if(this.health<=0){
-			statusMsgHTML = this.death;
-		}		
-		let fightChance = baseFightChance;
-		let peaceChance = basePeaceChance;
-		fightChance = Math.max(fightChance+this.aggroB, 1);
-		peaceChance = Math.max(peaceChance+this.peaceB, 1);
-		let opinion_txt = 'Opinions'
-		if(this.rival)
-			opinion_txt +='🥊'
-		let alliance_html = "<span style='color:gray;'><u>Alliance</u></span>"
-		if(this.alliance)
-			alliance_html = "<span onclick='player_extra_info("+this.id+",\"alliance\")'><u>Alliance</u></span>"
-		let char_info=
-		"<img id='char_info_img' src='"+ this.img+"'>"+
-		"<div class='info'>"+
-			"<b style='font-size:24px'>"+this.name+"</b><br>"+
-			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br>"+
-			"<span style='font-size:10px;'>ID: "+this.id+"</span><br>"+
-			"<span style='font-size:10px;'>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")"+terrain_icon+"</span><br><br>"+
-			"<span style='width:150px; display:block;'>"+statusMsgHTML+"</span>"+
-			"<div style='width: 170px; height: 25px; bottom:15px; position:absolute;'>"+	//health and energy div
-				"<span style='color:red; float: left;'>"+
-					"<b>Health:</b><br>"+roundDec(this.health)+"/"+this.maxHealth+
-				"</span>"+
-				"<span style='color:green; float: right;'>"+
-					"<b>Energy:</b><br>"+roundDec(this.energy)+"/"+this.maxEnergy+
-				"</span>"+
-			"</div>"+
-			//stats panel on the right
-			"<div id='char_stats'>"+
-				"<span>Attr:"+attrHtml+"</span><br>"+
-				"<span>Effects:"+statusHtml+"</span><br>"+
-				"<div>"+
-					"<div style='float: left;'>"+
-						weaponHtml+"<br>"+
-						"<span>Max Dmg:"+ roundDec(this.fightDmg*this.fightDmgB) +"</span><br>"+
-						"<span>Dmg Bonus: x"+ roundDec(this.fightDmgB) +"</span><br>"+
-						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
-						"<span>Peace/Aggro: "+Math.round(this.peaceB)+"/"+Math.round(this.aggroB)+"</span><br>"+
-						"<span>Fight Chance: "+roll_probs([['fight',fightChance],['peace',peaceChance]])[0][1]+"%</span><br>"+
-						"<span>Intimidation: "+(this.intimidation)+"</span><br>"+
-						"<span onclick='player_extra_info("+this.id+",\"more info\")'><u>More Info</u></span><br>"+
-						
-					"</div>"+
-					"<div style='float:right;  width: 115px; position:absolute; right:0px;'>"+
-						offhandHtml+"<br>"+
-						"<span>Speed: "+roundDec(this.moveSpeed* this.moveSpeedB)+"</span><br>"+
-						"<span>Move Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
-						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
-						"<span>Vision: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
-						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
-						"<span onclick='player_extra_info("+this.id+",\"opinions\")'><u>"+opinion_txt+"</u></span><br>"+
-						alliance_html+"<br>"+
-						
-				"</div>"+
-			"</div>"+
-		"</div>"
-		$('#char_info_container').html(char_info);
-	}
-	
-	show_more_info(){
-		let extra_info = 
-		"<div class='info' style='font-size:12px'>"+
-			"<b style='font-size:18px'>"+this.name+"</b><br>"+
-			"<span>Kills: "+this.kills+"</span><br>"+
-			"<span>Exp: "+roundDec(this.exp)+"</span><br>"+
-			"<span>Exp Dmg: x"+roundDec(Math.pow(this.killExp,this.exp/100))+"</span><br>"+
-			"<span>Last Action: "+this.lastAction+"</span><br>"+
-			"<span>Last Fight: "+this.lastFight+"</span><br>"+
-			"<span>Last Slept: "+this.lastSlept+"</span><br>"+
-			"<span>Aware Of: "+this.awareOf.length+"</span><br>"+
-			"<span>Followers: "+this.followers.length+"</span><br>"+
-			"<span>Attackers: "+this.opponents.length+"</span><br>"+
-			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"+
-			"<span>In Range: "+this.inRangeOf.length+"</span><br>"
-			// "<span>Attackable: "+this.attackable.length+"</span><br>"
 
-		if(this.oobTurns>0)
-			extra_info = extra_info +"<span>Out of Bounds: "+this.oobTurns+"</span><br>"
-		if(this.unaware){
-			extra_info= extra_info + "<span>Unaware</span><br>"
-		}
-		else if(this.incapacitated){
-			extra_info= extra_info + "<span>Incapacitated</span><br>"
-		}
-		
-		extra_info = extra_info + "</div>"
-		$('#extra_info_container').html(extra_info);
-	}
-	
-	show_opinions(){
-		let extra_info = 
-		"<div class='info' style='font-size:12px'>"+
-			"<b style='font-size:18px'>"+this.name+"</b><br>"
-			
-		if(this.rival)
-			extra_info += "<b style='font-size:14px'>Rival: "+this.rival.name+"</b><br>"
-		else
-			extra_info += "<span><b style='font-size:14px'>Rival:</b> None</span><br>"
-		
-		extra_info += "<div style='max-height:400px; overflow-y:auto;'>"+
-			"<table style='font-size:12px; color:white;border-spacing: 0 2px;'>"		
-		
-		let tP = this;
-		this.opinions.forEach(function(opinion, oPiD){		
-			let oP = playerStatic[oPiD];
-			if(oPiD != tP.id && !oP.dead){
-				extra_info += "<tr class='"
-				if(oP == tP.rival)
-					extra_info += " rival";
-				if(tP.opponents.indexOf(oP)>=0)
-					extra_info += " fought"
-				else if(tP.inRangeOfPlayer(oP))
-					extra_info += " inRange"
-				else if(tP.awareOfPlayer(oP))
-					extra_info += " seen"
-					
-				if(tP.inAlliance(oP))
-					extra_info += " ally"			
-				
-							
-				extra_info += "'>"+			
-				"<td style='margin-right:20px; width:100px; word-wrap:break-word; float:left;'>"+ playerStatic[oPiD].name + "</td>"+
-				"<td style='float:right;'>"+ opinion + "</td>"+
-				"</tr>"
-			}
-		});
-		
-		extra_info = extra_info + "</div></table></div>"
-		$('#extra_info_container').html(extra_info);
-	}
-	
 	//other players
 	inAlliance(oP){
 		if(this.alliance)
@@ -512,7 +282,7 @@ class Char {
 				return true;
 			}
 		}
-		if(item instanceof Offhand){
+		else if(item instanceof Offhand){
 			if(this.offhand){
 				return this.offhand.replace_offhand(item);
 			}
@@ -608,11 +378,11 @@ class Char {
 		this.apply_all_effects("healDmg", {"source":source, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
 		this.health += dmg;
 	}	
-	
+		
 	//action planning
-	setPlannedAction(action, actionPriority){
+	setPlannedAction(action, actionPriority, data={}){
 		let replace=false;
-		//chance to replace if prority is same
+		//chance to replace if priority is same
 		if(actionPriority==this.actionPriority){
 			if(Math.random()<0.05){
 				replace=true;
@@ -625,7 +395,8 @@ class Char {
 			log_message(this.name +"'s "+ this.plannedAction +" replaced with " +action+ " " +actionPriority, 0);
 			this.actionPriority = actionPriority;
 			this.plannedAction = action;
-			this.currentAction = {};
+			this.plannedActionData = data;
+			this.currentAction = "";
 			return replace;
 		}
 		log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
@@ -635,16 +406,19 @@ class Char {
 	resetPlannedAction(){
 		this.actionPriority=0;
 		this.plannedAction="";
-		this.currentAction = {};
-		this.prevTarget = this.plannedTarget;
+		this.plannedActionData ={};
+		
+		// this.lastAction = this.currentAction;
+		this.currentAction = "";
 		this.plannedTarget = "";
 	}
 	
 	//check for aware and in range players
 	checkSurroundingPlayers(){
 		this.calc_bonuses();
-				
-		if(this.lastAction == 'sleeping'){
+		
+		//action check update
+		if(this.lastActionState=='sleeping'){
 			this.unaware = true;
 			this.incapacitated = true;
 		}
@@ -913,18 +687,23 @@ class Char {
 		this.apply_all_effects("turnStart");
 		
 		//update some counters
-		if(this.lastAction!="sleeping")
+		//action check update
+		if(this.lastAction instanceof SleepAction == false)
 			this.lastSlept++;
 		else
 			this.lastSlept=0;
-		
-		if(this.lastAction!="fighting")
+		//action check update
+		if(this.lastActionState!="fighting" && this.lastActionState!="attacked")
 			this.lastFight++;
 		else
-			this.lastFight=0;
+			this.lastFight=0;		
 				
 		this.checkSurroundingPlayers();				
 		this.opinionUpdate();
+		
+		if(this.currentAction){
+			this.currentAction.turn_start();
+		}
 		
 		//plan next action
 		/*
@@ -939,15 +718,16 @@ class Char {
 		//force rest if no energy
 				
 		if(this.energy<=0){
+			// this.setPlannedAction("rest", 20);
 			this.setPlannedAction("rest", 20);
 			log_message('rest')
 		}
 		//force movement to center
 		if(!safeBoundsCheck(this.x, this.y)){
 			this.oobTurns = this.oobTurns+1;
-			this.setPlannedAction("move", 9);
-			this.currentAction.targetX=mapSize/2;
-			this.currentAction.targetY=mapSize/2;
+			this.setPlannedAction("move", 9,{'targetX':mapSize/2, 'targetY':mapSize/2});
+			// this.currentAction.;
+			// this.currentAction.targetY=mapSize/2;
 			log_message(this.name +" moving to center", 1)
 		}
 		else{
@@ -955,20 +735,24 @@ class Char {
 		}
 
 		//forage if energy is low
-		if((this.energy/this.maxEnergy) *100 < roll_range(25,50) && getTerrain(this.x,this.y).danger==0 && this.lastAction != "foraging" && this.lastAction != "sleeping"){
-			//set priority for foraging depending on energy
-			let forageLv=2;
-			let energy_percent = (this.energy/this.maxEnergy) *100;
-			if(energy_percent<20){forageLv = 7;}
-			if(energy_percent < 10){forageLv = 14;}
-			if(energy_percent < 5){forageLv = 19;}
-			this.setPlannedAction("forage", forageLv);
-		}
-		//forage if health is low and alone
-		else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  && this.awareOf.length==0)&& getTerrain(this.x,this.y).danger==0){
-			this.setPlannedAction("forage", 2);
-		}
-		
+		if(getTerrain(this.x,this.y).danger==0){
+			//action check update
+			if(this.lastActionState!="foraging" && this.lastActionState != "sleeping"){
+				let energy_percent = (this.energy/this.maxEnergy) *100;
+				if(energy_percent < roll_range(25,50)){
+					//set priority for foraging depending on energy
+					let forageLv=2;
+					if(energy_percent<20){forageLv = 7;}
+					if(energy_percent < 10){forageLv = 14;}
+					if(energy_percent < 5){forageLv = 19;}
+					this.setPlannedAction("forage", forageLv);
+				}
+				//forage if health is low and alone
+				else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  /*&& this.awareOf.length==0*/)){
+					this.setPlannedAction("forage", 2);
+				}
+			}
+		}		
 		//move away from danger
 		if(getTerrain(this.x,this.y).danger>1){
 			this.setPlannedAction("terrainEscape", 7)
@@ -1033,7 +817,8 @@ class Char {
 				options.push(["follow", follow_chance]);
 			}
 			//if it is night add sleep as an option
-			if((hour >= 22 || hour < 5) && this.lastAction != "awaken" && this.lastSlept>=12 && getTerrain(this.x,this.y).danger==0)
+			//action check update
+			if((hour >= 22 || hour < 5) && this.lastAction instanceof SleepAction == false && this.lastSlept>=12 && getTerrain(this.x,this.y).danger==0)
 				options.push(["sleep",10+5*this.lastSlept]);
 			
 			//alliance
@@ -1096,24 +881,61 @@ class Char {
 		this.opponents = [];
 		// this.last_opponent = "";
 		this.followers = [];
-		this.lastAction = "";
+		// this.lastAction = "";
+		// this.lastActionState = "";
 		//removing red fighting border
 		this.div.removeClass("fighting");
 		this.tblDiv.removeClass("fighting");
 		this.tblDiv.removeClass("forage");
-		this.tblDiv.removeClass("allyEvent");
+		this.tblDiv.removeClass("allyEvent");		
+		
+		//set action
+		if(!this.currentAction){
+			switch(this.plannedAction){
+				case "rest":
+					this.currentAction = new RestAction(this)
+					break;
+				case "follow":
+					this.currentAction = new FollowAction(this, this.plannedTarget)
+					break;
+				case "move":
+					this.currentAction = new MoveAction(this,this.plannedActionData)
+					break;				
+				case "sleep":
+					this.currentAction = new SleepAction(this)
+					break;
+				case "ally":
+					this.currentAction = new AllianceAction(this, this.plannedTarget);
+					break;
+				case "fight":
+					this.currentAction = new FightAction(this, this.plannedTarget);
+					break;
+				case "forage":
+					this.currentAction = new ForageAction(this);
+					break;
+				default:
+					this.apply_all_effects("setPlannedAction")
+					break;
+			}
+		}
+		if(!this.currentAction){
+			this.currentAction = new Action(this.plannedAction, this, 0, 0)
+		}
 	}
 	
 	//perform action
 	//called by action in main
-	doAction(){
+	doAction(){		
 		//perform planned action
 		if(this.health > 0 && !this.finishedAction){
 			this.apply_all_effects("doAction");
 		}
 		if(this.health > 0 && !this.finishedAction){
 			//console.log(this.name + " " + this.plannedAction);
-			
+			if(this.currentAction)
+				this.currentAction.perform()
+				this.currentAction.action_successful()
+			/*		
 			switch(this.plannedAction){
 				case "rest":
 					this.action_rest();
@@ -1145,10 +967,11 @@ class Char {
 				default:
 					this.apply_all_effects(this.plannedAction);
 					break;
-			}
+			}*/
 		}
 
 		//toggle class for the last action
+		/*
 		if(this.lastAction == 'sleeping'){
 			this.div.find('.charText').addClass('sleep');
 			this.tblDiv.addClass('sleep');
@@ -1156,11 +979,18 @@ class Char {
 			this.div.find('.charText').removeClass('sleep');
 			this.tblDiv.removeClass('sleep');
 		}
+		*/
 		if(this.statusMessage==""){
 			this.statusMessage = "does nothing"
 		}
 		//action completed
 		this.finishedAction = true;
+		
+		if(this.currentAction){
+			this.currentAction.turn_end()			
+			if(this.currentAction.complete)
+				this.resetPlannedAction();
+		}
 				
 		if(getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).turn_end_effects(this)
@@ -1326,33 +1156,6 @@ class Char {
 						if(loot_type == 'off')
 							this.lastAction = "forage offhand";
 					}
-					/*
-					//roll weapon
-					if(loot_type=="wep"){
-						let weaponOdds = get_weapon_odds(this);
-						let w = roll(weaponOdds)
-						log_message(this.name +" found "+ w, 1);
-						let temp_wep = create_weapon(w); 
-						//add weapon to equipped
-						if(temp_wep){
-							this.equip_item(temp_wep, "wep");
-							this.lastAction = "forage weapon";
-							this.tblDiv.addClass("forage");
-						}
-					}			
-					else if(loot_type=="off"){
-						let offhandOdds = get_offhand_odds(this);
-						let off = roll(offhandOdds)
-						log_message(this.name +" found "+ off, 1);
-						let temp_off = create_offhand(off); 
-						//add weapon to equipped
-						if(temp_off){
-							this.equip_item(temp_off, "off");
-							this.lastAction = "forage offhand";
-							this.tblDiv.addClass("forage");
-						}
-					}
-					*/
 					//restore health and energy
 					this.energy += roll_range(30,60)
 					this.health += roll_range(5,10);
@@ -1462,7 +1265,35 @@ class Char {
 			}
 		}
 	}
-
+	
+	//sleep
+	action_sleep(){
+		//just started sleeping
+		if(this.currentAction.name != "sleep"){
+			this.currentAction.name = "sleep";
+			this.currentAction.turnsLeft = roll_range(5,8);
+			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
+			this.unaware=true;
+			this.incapacitated=true;
+			this.actionPriority=15;
+		}
+		//regain health and energy
+		this.currentAction.turnsLeft--;
+		this.health += Math.floor(Math.random() * 2);
+		this.energy += Math.floor(Math.random() * 10);
+		//wake up
+		if(this.currentAction.turnsLeft > 0){
+			log_message(this.name + " continues sleeping");
+			this.lastAction = "sleeping";			
+			this.statusMessage = "sleeping";			
+		} else {
+			log_message(this.name + " awakens");
+			this.resetPlannedAction();
+			this.lastAction = "awaken";
+			this.statusMessage = "woke up";
+		}
+	}
+	
 	//move towards target through regular means
 	moveToTarget(){
 		//Calculating distance from target
@@ -1528,33 +1359,6 @@ class Char {
 		updatePlayerDists(this)
 	}
 	
-	//sleep
-	action_sleep(){
-		//just started sleeping
-		if(this.currentAction.name != "sleep"){
-			this.currentAction.name = "sleep";
-			this.currentAction.turnsLeft = roll_range(5,8);
-			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
-			this.unaware=true;
-			this.incapacitated=true;
-			this.actionPriority=15;
-		}
-		//regain health and energy
-		this.currentAction.turnsLeft--;
-		this.health += Math.floor(Math.random() * 2);
-		this.energy += Math.floor(Math.random() * 10);
-		//wake up
-		if(this.currentAction.turnsLeft > 0){
-			log_message(this.name + " continues sleeping");
-			this.lastAction = "sleeping";			
-			this.statusMessage = "sleeping";			
-		} else {
-			log_message(this.name + " awakens");
-			this.resetPlannedAction();
-			this.lastAction = "awaken";
-			this.statusMessage = "woke up";
-		}
-	}
 	//check if player is supposed to die
 	limitCheck(){
 		if(this.weapon != ""){
@@ -1619,6 +1423,7 @@ class Char {
 		//if(this.energy < 25)
 			//console.log(this.name + " low on energy");
 	}
+	
 	//action on death
 	die(){
 		// this.health=0;
@@ -1637,6 +1442,248 @@ class Char {
 		personalityNum[this.personality]--;
 		this.dead = true;
 	}
+	
+	draw() {
+		let charDiv = $('#char_' + this.id);
+		if(!charDiv.length){
+			//map icon 
+			$('#players').append(
+			"<div id='char_" + this.id + "' class='char'><div class='charName'>"+
+				"<span class='charText'>" + this.name + "</span><span class='charWeap'></span></div>"+
+			"<div class='charEff'	style='font-size:10px;'></div>"+
+			"<div class='healthBar' style='margin-bottom:-10px'></div>"+
+			"<div class='energyBar' style='margin-bottom:-10px'></div></div>");		
+			charDiv = $('#char_' + this.id);
+			charDiv.css('background-image',"url(" + this.img + ")");
+			this.div = charDiv;
+			
+			//side bar
+			$('#table').append(
+			"<div class='container alive' id='tbl_" + this.id + "'>"+
+				"<img src='" + this.img + "' onclick='highlight_clicked("+this.id+")'>"+ //img 
+				"<div style='position:absolute;width:50px;height:60px;z-index:2;top:0;left:0;pointer-events: none;'>"+ 
+					"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
+					"<div class='kills'></div>"+		//kill counter
+				"</div>"+
+			
+				//info section
+				"<div class='info'>"+
+					"<div>" + 
+						this.moral.substring(0,1) + this.personality.substring(0,1) + " <b>" + this.name +"</b>"+ //name
+						"<span class='weapon'></span>"+
+					"</div>"+
+					"<div class='status'></div>"+		//status message
+					"<div class='effects'></div>"+		//effects message
+				"</div>"+
+				"<div style='position:absolute; width:185px; height:100%; top:0; left:0; margin-left:50px;' onclick='toggle_show_info("+this.id+")'></div>"+	//clickable div
+			"</div>");
+			let tblDiv = $('#tbl_' + this.id);
+			this.tblDiv = tblDiv;
+		} 
+		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
+		//charDiv.css('top',this.y / 1000 * .95 * $('#map').height() - iconSize/2);
+		charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width() - iconSize/2) + "px," + (this.y / mapSize *  $('#map').height() - iconSize/2) + "px)"},function(){
+		});
+	}
+	
+	change_img(new_img){
+		this.img = new_img;
+		this.div.css('background-image', 'url("'+new_img+'")');
+		this.tblDiv.find('img').attr("src", new_img)
+	}
+	
+	change_name(new_name){
+		this.name = new_name;
+		this.div.find('.charText').text(new_name)
+		this.tblDiv.find('.info div:first-child b').text(new_name)
+	}
+	
+	show_main_info(){
+		//prepare clickable icons
+		let terrain_icon = ""
+		if(getTerrain(this.x, this.y)){
+			terrain_icon = getTerrain(this.x, this.y).icon
+		}		
+		let weaponHtml="<span'>Weapon:None</span>";
+		if(this.weapon){
+			weaponHtml = "<span onClick='player_extra_info("+this.id+",\"wep\")'><u>Weapon</u>:"+this.weapon.icon+"</span>"
+		}
+		let offhandHtml="<span>Offhand:None</span>";
+		if(this.offhand){
+			offhandHtml = "<span onClick='player_extra_info("+this.id+",\"off\")'><u>Offhand</u>:"+this.offhand.icon+"</span>"
+		}
+		let statusHtml="None";
+		let tP=this
+		if(this.status_effects.length>0){
+			statusHtml="";
+			this.status_effects.forEach(function(eff, eff_id){
+				statusHtml=statusHtml+"<span onClick='player_extra_info("+tP.id+",\"eff\","+eff_id+")'>"+eff.icon+"</span>"
+			});
+		}
+		let attrHtml="";
+		if(this.attributes.length>0){
+			this.attributes.forEach(function(attr,attr_id){
+				if(attr.display){
+					// attrHtml=attrHtml+attr.name+",";
+					if(attr.has_info){
+						attrHtml=attrHtml+"<span onClick='player_extra_info("+tP.id+",\"attr\","+attr_id+")'><u>"+attr.name+"</u>,</span>"
+					}
+					else{
+						attrHtml=attrHtml+"<span>"+attr.name+",</span>"
+					}
+				}
+			});
+		}
+		if(attrHtml=="")
+			attrHtml="None"
+		if(attrHtml[attrHtml.length-8]==',')
+			attrHtml = attrHtml.substring(0, attrHtml.length-8)+"</span>"
+		//if dead
+		let statusMsgHTML = this.statusMessage;
+		if(this.health<=0){
+			statusMsgHTML = this.death;
+		}		
+		let fightChance = baseFightChance;
+		let peaceChance = basePeaceChance;
+		fightChance = Math.max(fightChance+this.aggroB, 1);
+		peaceChance = Math.max(peaceChance+this.peaceB, 1);
+		let opinion_txt = 'Opinions'
+		if(this.rival)
+			opinion_txt +='🥊'
+		let alliance_html = "<span style='color:gray;'><u>Alliance</u></span>"
+		if(this.alliance)
+			alliance_html = "<span onclick='player_extra_info("+this.id+",\"alliance\")'><u>Alliance</u></span>"
+		let char_info=
+		"<img id='char_info_img' src='"+ this.img+"'>"+
+		"<div class='info'>"+
+			"<b style='font-size:24px'>"+this.name+"</b><br>"+
+			"<span style='font-size:14px'>" + this.moral + " " + this.personality+"</span><br>"+
+			"<span style='font-size:10px;'>ID: "+this.id+"</span><br>"+
+			"<span style='font-size:10px;'>Location: ("+ Math.round(this.x) + " , "+Math.round(this.y)+")"+terrain_icon+"</span><br><br>"+
+			"<span style='width:150px; display:block;'>"+statusMsgHTML+"</span>"+
+			"<div style='width: 170px; height: 25px; bottom:15px; position:absolute;'>"+	//health and energy div
+				"<span style='color:red; float: left;'>"+
+					"<b>Health:</b><br>"+roundDec(this.health)+"/"+this.maxHealth+
+				"</span>"+
+				"<span style='color:green; float: right;'>"+
+					"<b>Energy:</b><br>"+roundDec(this.energy)+"/"+this.maxEnergy+
+				"</span>"+
+			"</div>"+
+			//stats panel on the right
+			"<div id='char_stats'>"+
+				"<span>Attr:"+attrHtml+"</span><br>"+
+				"<span>Effects:"+statusHtml+"</span><br>"+
+				"<div>"+
+					"<div style='float: left;'>"+
+						weaponHtml+"<br>"+
+						"<span>Max Dmg:"+ roundDec(this.fightDmg*this.fightDmgB) +"</span><br>"+
+						"<span>Dmg Bonus: x"+ roundDec(this.fightDmgB) +"</span><br>"+
+						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
+						"<span>Peace/Aggro: "+Math.round(this.peaceB)+"/"+Math.round(this.aggroB)+"</span><br>"+
+						"<span>Fight Chance: "+roll_probs([['fight',fightChance],['peace',peaceChance]])[0][1]+"%</span><br>"+
+						"<span>Intimidation: "+(this.intimidation)+"</span><br>"+
+						"<span onclick='player_extra_info("+this.id+",\"more info\")'><u>More Info</u></span><br>"+
+						
+					"</div>"+
+					"<div style='float:right;  width: 115px; position:absolute; right:0px;'>"+
+						offhandHtml+"<br>"+
+						"<span>Speed: "+roundDec(this.moveSpeed* this.moveSpeedB)+"</span><br>"+
+						"<span>Move Bonus: x"+roundDec(this.moveSpeedB)+"</span><br>"+
+						"<span>Fight Range: "+(this.fightRange+this.fightRangeB)+"</span><br>"+
+						"<span>Vision: "+(this.sightRange+this.sightRangeB)+"</span><br>"+
+						"<span>Visibility: "+(this.visibility+this.visibilityB)+"</span><br>"+
+						"<span onclick='player_extra_info("+this.id+",\"opinions\")'><u>"+opinion_txt+"</u></span><br>"+
+						alliance_html+"<br>"+
+						
+				"</div>"+
+			"</div>"+
+		"</div>"
+		$('#char_info_container').html(char_info);
+	}
+	
+	show_more_info(){
+		let extra_info = 
+		"<div class='info' style='font-size:12px'>"+
+			"<b style='font-size:18px'>"+this.name+"</b><br>"+
+			"<span>Kills: "+this.kills+"</span><br>"+
+			"<span>Exp: "+roundDec(this.exp)+"</span><br>"+
+			"<span>Exp Dmg: x"+roundDec(Math.pow(this.killExp,this.exp/100))+"</span><br>"+
+			"<span>Last Fight: "+this.lastFight+"</span><br>"+
+			"<span>Last Slept: "+this.lastSlept+"</span><br>"+
+			"<span>Aware Of: "+this.awareOf.length+"</span><br>"+
+			"<span>In Range: "+this.inRangeOf.length+"</span><br>"+
+			"<span>Followers: "+this.followers.length+"</span><br>"+
+			"<span>Attackers: "+this.opponents.length+"</span><br>"+
+			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"
+			// "<span>Attackable: "+this.attackable.length+"</span><br>"
+		/*
+		if(this.lastAction){
+			extra_info +="<span>Last Action: "+this.lastActiont+"</span><br>"			
+		}
+		else
+			extra_info +="<span>Last Action: None</span><br>"
+		*/
+		extra_info +="<span>Last Action: "+this.lastActionState+"</span><br>"
+		if(this.currentAction){
+			extra_info += "<span>Current Action: "+this.currentAction.name +"</span><br>" +
+			"<span>Turns Left: "+this.currentAction.turns +"</span><br>"
+		}
+		
+		if(this.oobTurns>0)
+			extra_info = extra_info +"<span>Out of Bounds: "+this.oobTurns+"</span><br>"
+		if(this.unaware){
+			extra_info= extra_info + "<span>Unaware</span><br>"
+		}
+		else if(this.incapacitated){
+			extra_info= extra_info + "<span>Incapacitated</span><br>"
+		}
+		
+		extra_info = extra_info + "</div>"
+		$('#extra_info_container').html(extra_info);
+	}
+	
+	show_opinions(){
+		let extra_info = 
+		"<div class='info' style='font-size:12px'>"+
+			"<b style='font-size:18px'>"+this.name+"</b><br>"
+			
+		if(this.rival)
+			extra_info += "<b style='font-size:14px'>Rival: "+this.rival.name+"</b><br>"
+		else
+			extra_info += "<span><b style='font-size:14px'>Rival:</b> None</span><br>"
+		
+		extra_info += "<div style='max-height:400px; overflow-y:auto;'>"+
+			"<table style='font-size:12px; color:white;border-spacing: 0 2px;'>"		
+		
+		let tP = this;
+		this.opinions.forEach(function(opinion, oPiD){		
+			let oP = playerStatic[oPiD];
+			if(oPiD != tP.id && !oP.dead){
+				extra_info += "<tr class='"
+				if(oP == tP.rival)
+					extra_info += " rival";
+				if(tP.opponents.indexOf(oP)>=0)
+					extra_info += " fought"
+				else if(tP.inRangeOfPlayer(oP))
+					extra_info += " inRange"
+				else if(tP.awareOfPlayer(oP))
+					extra_info += " seen"
+					
+				if(tP.inAlliance(oP))
+					extra_info += " ally"			
+				
+							
+				extra_info += "'>"+			
+				"<td style='margin-right:20px; width:100px; word-wrap:break-word; float:left;'>"+ playerStatic[oPiD].name + "</td>"+
+				"<td style='float:right;'>"+ opinion + "</td>"+
+				"</tr>"
+			}
+		});
+		
+		extra_info = extra_info + "</div></table></div>"
+		$('#extra_info_container').html(extra_info);
+	}
+	
 }
 
 class StatMod{

@@ -426,8 +426,8 @@ function fight_target(tP,oP){
 	oP.last_opponent = tP;
 	oP.opponents.push(tP);
 	
-	tP.lastAction = "fighting"
-	tP.resetPlannedAction();
+	tP.lastActionState = "fighting"
+	// tP.resetPlannedAction();
 	//tP kills oP
 	if(oP.health <= 0){
 		log_message(tP.name + " kills " + oP.name);
@@ -441,7 +441,7 @@ function fight_target(tP,oP){
 			oP.death = "betrayed by " + tP.name;
 			tP.alliance.unity -= 200;
 		} 
-		else if(oP.lastAction == "sleeping"){
+		else if(oP.lastActionState == "sleeping"){
 			tP.statusMessage = "kills " + oP.name + " in their sleep";
 			oP.statusMessage = "killed in their sleep by " + tP.name;
 			// pushMessage(tP, tP.name + " kills " + oP.name + " in their sleep");
@@ -469,7 +469,7 @@ function fight_target(tP,oP){
 		
 		//incapacitated
 		if(oP.incapacitated){
-			if(oP.lastAction == "sleeping"){
+			if(oP.lastActionState == "sleeping"){
 				oP.statusMessage = "attacked in their sleep by "+ tP.name;
 				// pushMessage(oP, "was attacked in their sleep by " + tP.name);
 				fightMsg.events.push(oP.name + " was attacked in their sleep by " + tP.name);
@@ -513,7 +513,7 @@ function fight_target(tP,oP){
 			//opponent counter attack
 			attack(oP,tP, true, fightMsg);
 			oP.current_turn_fights++;
-			oP.lastAction="fighting";
+			// oP.lastActionState="fighting";
 			//oP kills tP
 			if(tP.health <= 0){
 				log_message(oP.name + " kills " + tP.name +" (counterattack)");
@@ -552,14 +552,17 @@ function fight_target(tP,oP){
 		oP.opinions[tP.id] -= 60;
 	}
 
-	oP.lastAction = "attacked";
-	oP.currentAction = {};
+	oP.lastActionState = "attacked";
+	if(oP.currentAction)
+		oP.currentAction.attacked()
+	/*
 	if(oP.finishedAction == false){
 		oP.finishedAction = true;
 		oP.interrupted = true;
 		//interrupt planned actions
 	}
 	oP.resetPlannedAction();
+	*/
 	log_message(tP.name +' vs '+oP.name)
 	log_message(tP.opponents)
 	log_message(oP.opponents)
