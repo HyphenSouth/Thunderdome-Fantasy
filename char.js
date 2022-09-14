@@ -70,8 +70,8 @@ class Char {
 		//used to plan current action
 		this.plannedAction="";
 		this.plannedActionData = {};
-		this.currentAction = "";
-		this.lastAction="";
+		this.currentAction = {};
+		this.lastAction={};
 
 		//the priority of current action
 		//0   : no action
@@ -88,7 +88,7 @@ class Char {
 		//action message to be displayed
 		this.statusMessage = "";
 		//if their current action is complete
-		this.finishedAction = true;
+		// this.finishedAction = true;
 		this.interrupted = false;
 
 		//_______________surrounding players_______________
@@ -396,7 +396,7 @@ class Char {
 			this.actionPriority = actionPriority;
 			this.plannedAction = action;
 			this.plannedActionData = data;
-			this.currentAction = "";
+			this.currentAction = {};
 			return replace;
 		}
 		log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
@@ -409,7 +409,7 @@ class Char {
 		this.plannedActionData ={};
 		
 		// this.lastAction = this.currentAction;
-		this.currentAction = "";
+		this.currentAction = {};
 		this.plannedTarget = "";
 	}
 	
@@ -666,6 +666,9 @@ class Char {
 		return target;
 	}
 	
+	turnStart(){
+	}
+	
 	//plan the next action
 	/*
 	calculate bonuses
@@ -683,6 +686,13 @@ class Char {
 		this.statusMessage = "";
 		this.interrupted = false;
 		
+		this.lastAction = this.currentAction;
+		if(this.currentAction.name){
+			this.currentAction.turn_start();			
+			if(this.currentAction.complete)
+				this.resetPlannedAction();
+		}
+		
 	 	//apply turn start effects
 		this.apply_all_effects("turnStart");
 		
@@ -699,11 +709,8 @@ class Char {
 			this.lastFight=0;		
 				
 		this.checkSurroundingPlayers();				
-		this.opinionUpdate();
+		this.opinionUpdate();	
 		
-		if(this.currentAction){
-			this.currentAction.turn_start();
-		}
 		
 		//plan next action
 		/*
@@ -719,14 +726,15 @@ class Char {
 				
 		if(this.energy<=0){
 			// this.setPlannedAction("rest", 20);
-			this.setPlannedAction("rest", 20);
+			this.setPlannedAction('rest', 20, {'class':RestAction});
 			log_message('rest')
 		}
 		//force movement to center
 		if(!safeBoundsCheck(this.x, this.y)){
 			this.oobTurns = this.oobTurns+1;
-			this.setPlannedAction("move", 9,{'targetX':mapSize/2, 'targetY':mapSize/2});
-			// this.currentAction.;
+			// this.setPlannedAction("move", 9,{'targetX':mapSize/2, 'targetY':mapSize/2});
+			this.setPlannedAction('move', 9,{'class':MoveAction, 'targetCoords':[mapSize/2,,mapSize/2]});
+			// this.currentAction.targetX=mapSize/2;
 			// this.currentAction.targetY=mapSize/2;
 			log_message(this.name +" moving to center", 1)
 		}
@@ -745,14 +753,15 @@ class Char {
 					if(energy_percent<20){forageLv = 7;}
 					if(energy_percent < 10){forageLv = 14;}
 					if(energy_percent < 5){forageLv = 19;}
-					this.setPlannedAction("forage", forageLv);
+					this.setPlannedAction('forage', forageLv,{'class':ForageAction});
 				}
 				//forage if health is low and alone
 				else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  /*&& this.awareOf.length==0*/)){
-					this.setPlannedAction("forage", 2);
+					this.setPlannedAction('forage', 2,{'class':ForageAction});
 				}
 			}
 		}		
+		/*
 		//move away from danger
 		if(getTerrain(this.x,this.y).danger>1){
 			this.setPlannedAction("terrainEscape", 7)
@@ -763,7 +772,7 @@ class Char {
 			this.setPlannedAction("playerEscape", 6)
 			log_message('player escape')
 		}
-		
+		*/
 		//fight
 		if(this.fight_target){
 			let fightChance = baseFightChance+this.aggroB;
@@ -773,29 +782,15 @@ class Char {
 			if(peaceChance<1)
 				peaceChance=1;	
 			if(roll([['fight',fightChance],['peace',peaceChance]]) == 'fight'){
+				/*
 				if(this.setPlannedAction("fight",6)){  
 					this.plannedTarget = this.fight_target;
-				}
+				}*/
+				this.setPlannedAction('fight', 6, {'class':FightAction, 'target':this.fight_target})
 			}
 			if(!fight_target)
 				log_message('no target found')
 		}
-		/*
-		//alliance
-		if(this.ally_target){
-			let fightChance = baseFightChance+this.aggroB;
-			let peaceChance = basePeaceChance+this.peaceB;	
-			if(fightChance<1)
-				fightChance=1;
-			if(peaceChance<1)
-				peaceChance=1;	
-			if(roll([['noally',peaceChance],['ally',fightChance]]) == 'ally'){
-				if(this.setPlannedAction("ally",5)){
-					this.plannedTarget = this.ally_target;
-				}
-			}
-		}
-		*/
 		
 		//continue with current action if there is one
 		if(this.currentAction.name){
@@ -806,11 +801,7 @@ class Char {
 			let options = [];
 			//move 
 			options.push(["move",100]);
-			
-			//fight if players in range
-			// if(this.attackable.length > 0)
-				// options.push(["fight",80 + (this.aggroB - this.peaceB)]);
-			
+						
 			//follow
 			if(this.follow_target){
 				let follow_chance = Math.floor((total_players - players.length)/total_players *80) + 20
@@ -832,25 +823,11 @@ class Char {
 			}			
 			//choose new action
 			let action_option = roll(options);
-			/*
-			if(action_option == "fight"){
-				// set target to the first player in range
-				if(this.setPlannedAction("fight",6)){
-					// this.plannedTarget = this.attackable[0];   
-					this.plannedTarget = this.choose_fight_target()
-				}
-			}*/
 			if(action_option == "follow"){
-				if(this.setPlannedAction("follow",1)){
-					// this.plannedTarget = this.awareOf[0];
-					this.plannedTarget = this.follow_target;
-				}
+				this.setPlannedAction("follow" ,1,{'class':FollowAction,'target':this.follow_target})
 			}
 			else if(action_option == "ally"){
-				if(this.setPlannedAction("ally",5)){
-					// this.plannedTarget = this.awareOf[0];
-					this.plannedTarget = this.ally_target;
-				}
+				this.setPlannedAction("ally", 5, {'class':AllianceAction, 'target':this.ally_target})
 			}
 			else if(action_option == "sleep"){
 				let sleepLv= 3;
@@ -863,10 +840,10 @@ class Char {
 				if(this.lastSlept >= 96){
 					sleepLv = 21
 				}
-				this.setPlannedAction(action_option, sleepLv)
+				this.setPlannedAction("sleep", sleepLv,{'class':SleepAction})
 			}
 			else{
-				this.setPlannedAction(action_option, 1)
+				this.setPlannedAction("move", 1,{'class':MoveAction})
 			}
 		}
 		
@@ -887,10 +864,17 @@ class Char {
 		this.div.removeClass("fighting");
 		this.tblDiv.removeClass("fighting");
 		this.tblDiv.removeClass("forage");
-		this.tblDiv.removeClass("allyEvent");		
+		this.tblDiv.removeClass("allyEvent");
+		this.div.find('.charText').removeClass('sleep');
+		this.tblDiv.removeClass('sleep');
 		
+				
 		//set action
-		if(!this.currentAction){
+		if(!this.currentAction.name){
+			if('class' in this.plannedActionData){
+				this.currentAction = new this.plannedActionData['class'](this, this.plannedActionData)
+			}
+			/*
 			switch(this.plannedAction){
 				case "rest":
 					this.currentAction = new RestAction(this)
@@ -916,60 +900,29 @@ class Char {
 				default:
 					this.apply_all_effects("setPlannedAction")
 					break;
+
 			}
+			*/
 		}
-		if(!this.currentAction){
+		if(!this.currentAction.name){
 			this.currentAction = new Action(this.plannedAction, this, 0, 0)
 		}
 	}
 	
 	//perform action
 	//called by action in main
-	doAction(){		
+	doAction(){
+		// this.finishedAction = false;
 		//perform planned action
-		if(this.health > 0 && !this.finishedAction){
+		if(this.health > 0 && !this.currentAction.turn_complete){
 			this.apply_all_effects("doAction");
 		}
-		if(this.health > 0 && !this.finishedAction){
+		if(this.health > 0 && !this.currentAction.turn_complete){
 			//console.log(this.name + " " + this.plannedAction);
-			if(this.currentAction)
-				this.currentAction.perform()
-				this.currentAction.action_successful()
-			/*		
-			switch(this.plannedAction){
-				case "rest":
-					this.action_rest();
-					break;
-				case "ally":
-					this.action_alliance();
-					break;
-				case "forage":
-					this.action_forage();
-					break;
-				case "follow":
-					this.action_follow();
-					break;
-				case "move":
-					this.action_move();
-					break;				
-				case "terrainEscape":
-					this.action_terrain_escape();
-					break;				
-				case "playerEscape":
-					this.action_player_escape();
-					break;
-				case "fight":
-					this.action_fight();
-					break;
-				case "sleep":
-					this.action_sleep();
-					break;
-				default:
-					this.apply_all_effects(this.plannedAction);
-					break;
-			}*/
+			this.currentAction.perform()
+			this.currentAction.action_successful()
 		}
-
+		// this.finishedAction = true;
 		//toggle class for the last action
 		/*
 		if(this.lastAction == 'sleeping'){
@@ -980,228 +933,23 @@ class Char {
 			this.tblDiv.removeClass('sleep');
 		}
 		*/
+	}
+	
+	turnEnd(){
 		if(this.statusMessage==""){
 			this.statusMessage = "does nothing"
 		}
-		//action completed
-		this.finishedAction = true;
+		if(this.currentAction.name)
+			this.currentAction.turn_end()
 		
-		if(this.currentAction){
-			this.currentAction.turn_end()			
-			if(this.currentAction.complete)
-				this.resetPlannedAction();
-		}
 				
 		if(getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).turn_end_effects(this)
 		}
 		if(this.health > 0)
-			this.apply_all_effects("turnEnd");
+			this.apply_all_effects("turnEnd");		
 	}
 	
-	action_rest(){
-		this.energy += 40;
-		this.health += 5;
-		this.lastAction = "rest";
-		this.statusMessage = "rests";
-		this.resetPlannedAction();
-	}
-	
-
-	//offer to join alliance
-	action_alliance(){
-		this.tblDiv.addClass("allyEvent");
-		log_message(this.name+' alliance ' + this.plannedTarget.name)
-		
-		//no target planned
-		if(!this.plannedTarget){
-			this.lastAction = "alliance fail";
-			this.statusMessage = "has no friends";
-			this.resetPlannedAction();
-			return;
-		}
-		
-		//if target is already dead
-		if(this.plannedTarget.health<=0){
-			this.statusMessage = "tries to befriend " + this.plannedTarget.name + "'s corpse";
-			this.resetPlannedAction();
-			return;
-		}
-		let decision = this.plannedTarget.alliance_offer(this)
-		if(decision){
-			//accepted		
-			if(this.alliance){
-				//add into alliance
-				this.alliance.add_member(this.plannedTarget)
-				this.statusMessage = "invites " + this.plannedTarget.name+" into "+this.alliance.name;
-			}
-			else if(this.plannedTarget.alliance){
-				//join alliance
-				this.plannedTarget.alliance.add_member(this)
-				this.statusMessage = "accepted into " + this.alliance.name +" by "+ this.plannedTarget.name;
-			}
-			else{				
-				//create alliance
-				create_alliance(this, this.plannedTarget)
-				this.statusMessage = "starts "+this.alliance.name+" with " + this.plannedTarget.name;
-			}
-		}
-		else{
-			//rejected		
-			if(this.inAlliance(this.plannedTarget)){
-				this.statusMessage = "teams up with " + this.plannedTarget.name;
-			}
-			else if(this.alliance){
-				//add into alliance
-				this.statusMessage = "unable to get " + this.plannedTarget.name + " to join "+this.alliance.name;
-			}
-			else if(this.plannedTarget.alliance){
-				//join alliance
-				this.statusMessage = "denied entry into " +this.plannedTarget.alliance.name +" by "+ this.plannedTarget.name;
-				this.opinions[this.plannedTarget.id] -= 25
-			}
-			else{
-				//create alliance
-				this.statusMessage = "alliance offer to " + this.plannedTarget.name + " rejected";
-				this.opinions[this.plannedTarget.id] -= 20
-			}			
-		}
-		log_message(decision)
-		this.resetPlannedAction();	
-	}
-	
-	//action functions
-	//fight
-	action_fight(){
-		//add red fighting border
-		//this.div.addClass("fighting");
-		
-		//no target planned
-		if(!this.plannedTarget){
-			this.lastAction = "fighting fail";
-			this.statusMessage = "fights their inner mind goblin";
-			this.resetPlannedAction();
-			return;
-		}
-		if(this.inAlliance(this.plannedTarget))
-			this.alliance.unity -= 100;
-		
-		//if target is already dead
-		if(this.plannedTarget.health<=0){
-			this.statusMessage = "attacks the corpse of " + this.plannedTarget.name;
-			this.resetPlannedAction();
-			return;
-		}
-			
-		//make sure target is still in range
-		let dist = playerDist(this, this.plannedTarget);
-		if(this.fightRange + this.fightRangeB < dist){
-			this.lastAction = "fighting fail";
-			this.statusMessage = "tries to fight "+ this.plannedTarget.name +" but they escape"
-			this.resetPlannedAction();
-			return;
-		}
-				
-		//calculate damage for both fighters
-		// this.plannedTarget.opponents.push(this);
-		fight_target(this,this.plannedTarget);
-		this.lastAction = "fighting";
-		this.energy -= 20;
-		/*
-		if(this.energy < 0){
-			this.death = "exhausted to death from fighting";
-			this.die();
-		}*/
-		//clear target and actions
-		this.plannedTarget = "";
-		this.resetPlannedAction();
-	}
-	
-	//forage
-	action_forage(){
-		//if foraging just started, set current action to foraging and set turns
-		if(this.currentAction.name != "forage"){
-			log_message(this.name + " starts foraging", "foraging", 0);
-			this.currentAction = {};
-			this.currentAction.name = "forage";
-			this.currentAction.turnsLeft = 2;
-		}
-		//lose energy and stamina
-		this.currentAction.turnsLeft--;
-		this.energy -= 5;
-		this.stamina -= 2.5;
-		this.lastAction = "foraging";
-		this.statusMessage = "foraging";
-		//once foraging is done
-		//foraging loot
-		if(this.currentAction.turnsLeft == 0){
-			switch(roll([["success",900],["fail",100],["poisoned",1]])){
-				//if foraging is successful
-				case "success":
-					this.statusMessage = "forage success";
-					this.lastAction = "forage success";
-					//randomly find a weapon
-					let type_prob = [];
-					if(!this.weapon)
-						type_prob.push(["wep", wep_prob])
-					if(!this.offhand)
-						type_prob.push(["off", off_prob])
-					let loot_type=roll(type_prob);
-					let loot = get_random_item(this,loot_type)
-					if(loot){
-						this.equip_item(loot);
-						this.tblDiv.addClass("forage");
-						if(loot_type == 'wep')
-							this.lastAction = "forage weapon";
-						if(loot_type == 'off')
-							this.lastAction = "forage offhand";
-					}
-					//restore health and energy
-					this.energy += roll_range(30,60)
-					this.health += roll_range(5,10);
-					
-					break;
-				//failed forage
-				case "fail":
-					this.lastAction = "forage fail";
-					this.statusMessage = "forage fail";
-					break;
-				//rip
-				case "poisoned":
-					this.health = 0;
-					this.lastAction = "forage death";
-					// this.death = "death from poisoned berries";
-					this.death = "poisoned by a poisy (poisonous flower)";
-					break;
-			}
-			this.apply_all_effects("forage");
-			//clear current action
-			this.resetPlannedAction();
-		}
-	}
-	
-	//follow
-	//will only follow for current turn
-	action_follow(){
-		let newX = 0;
-		let newY = 0;
-		newX = this.plannedTarget.x;
-		newY = this.plannedTarget.y;
-		this.lastAction = "following";
-		this.statusMessage = "following " + this.plannedTarget.name;
-		this.plannedTarget.followers.push(this);
-		
-		this.currentAction.name = "";
-		this.currentAction.targetX = newX;
-		this.currentAction.targetY = newY;
-		
-		this.apply_all_effects("follow", {"opponent":this.plannedTarget});
-		
-		this.moveToTarget();
-		log_message(this.name +" following "+this.plannedTarget.name,0);
-		log_message(this.plannedTarget.name +" at ("+this.plannedTarget.x+","+this.plannedTarget.y+")", 1);
-		this.resetPlannedAction();
-	}
 	//todo
 	action_terrain_escape(){
 		this.action_move()
@@ -1216,89 +964,12 @@ class Char {
 		this.apply_all_effects("playerEscape");
 		this.resetPlannedAction()
 	}
-	//move
-	//will keep moving to that spot in the next turns
-	action_move(){
-		this.lastAction = "moving";
-		this.statusMessage = "on the move";
-		//get a coordinate to move to if not currently moving
-		if(this.currentAction.name != "move"){
-			//clear current actions
-			//this.resetPlannedAction();
-			let newX = 0;
-			let newY = 0;
-			//get new cords to move to
-			let tries = 0;
-			do {
-				newX = Math.floor(Math.random()*mapSize);
-				newY = Math.floor(Math.random()*mapSize);
-				tries++;
-			} while(!safeTerrainCheck(newX,newY) && tries < 10);
-			//if safe location can't be found, move to center
-			if(tries>=10){
-				log_message(this.name + " cant find safe location", 0);
-				newX = mapSize/2
-				newY = mapSize/2
-			}
-			this.currentAction.name = "move";
-			
-			//get a target location to move to
-			this.currentAction.targetX = newX;
-			this.currentAction.targetY = newY;
-			// log_message(this.name +" plans to move to "+ newX +" " +newY);
-		}
-		this.moveToTarget();
-		this.apply_all_effects("move");
-		//if arrived on target location
-		if(this.currentAction.targetX == this.x && this.currentAction.targetY == this.y){
-			this.resetPlannedAction();
-			// log_message(this.name + " movement finished");
-		}
-		else{
-			//randomly stop movement
-			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
-				this.resetPlannedAction()
-				// log_message(this.name + " movement finished early");
-			}
-			else{
-				// log_message(this.name + " movement not finished");
-			}
-		}
-	}
-	
-	//sleep
-	action_sleep(){
-		//just started sleeping
-		if(this.currentAction.name != "sleep"){
-			this.currentAction.name = "sleep";
-			this.currentAction.turnsLeft = roll_range(5,8);
-			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
-			this.unaware=true;
-			this.incapacitated=true;
-			this.actionPriority=15;
-		}
-		//regain health and energy
-		this.currentAction.turnsLeft--;
-		this.health += Math.floor(Math.random() * 2);
-		this.energy += Math.floor(Math.random() * 10);
-		//wake up
-		if(this.currentAction.turnsLeft > 0){
-			log_message(this.name + " continues sleeping");
-			this.lastAction = "sleeping";			
-			this.statusMessage = "sleeping";			
-		} else {
-			log_message(this.name + " awakens");
-			this.resetPlannedAction();
-			this.lastAction = "awaken";
-			this.statusMessage = "woke up";
-		}
-	}
-	
+		
 	//move towards target through regular means
-	moveToTarget(){
+	moveToTarget(actionTargetX, actionTargetY){
 		//Calculating distance from target
-		let distX = this.currentAction.targetX - this.x;
-		let distY = this.currentAction.targetY - this.y;
+		let distX = actionTargetX - this.x;
+		let distY = actionTargetY - this.y;
 		let dist = Math.sqrt(Math.pow(distX,2) + Math.pow(distY,2));
 		let targetX = 0;
 		let targetY = 0;
@@ -1306,8 +977,8 @@ class Char {
 		//move towards target location
 		if(dist <= this.moveSpeed * this.moveSpeedB){
 			//target within reach
-			targetX = this.currentAction.targetX;
-			targetY = this.currentAction.targetY;
+			targetX = actionTargetX;
+			targetY = actionTargetY;
 		} else {
 			//target too far away
 			let shiftX = distX / (dist/(this.moveSpeed * this.moveSpeedB));
@@ -1318,7 +989,7 @@ class Char {
 			//console.log(getTerrainType(targetX,targetY));	
 		
 			//swim check
-			if(getTerrainType(targetX,targetY) == "water" && getTerrainType(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastAction != "swimming"){
+			if(getTerrainType(targetX,targetY) == "water" && getTerrainType(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastActionState != "swimming"){
 				// carried away by water
 				let swimChance = roll([["yes",1],["no",50]]);
 				if(swimChance == "no"){
@@ -1623,9 +1294,9 @@ class Char {
 		else
 			extra_info +="<span>Last Action: None</span><br>"
 		*/
-		extra_info +="<span>Last Action: "+this.lastActionState+"</span><br>"
-		if(this.currentAction){
-			extra_info += "<span>Current Action: "+this.currentAction.name +"</span><br>" +
+		extra_info +="<span>Last Action: "+this.lastAction.name+"</span><br>"
+		if(this.currentAction.name){
+			extra_info += "<span>Current Action: "+this.currentAction.name + ' ('+ this.lastActionState +")</span><br>" +
 			"<span>Turns Left: "+this.currentAction.turns +"</span><br>"
 		}
 		

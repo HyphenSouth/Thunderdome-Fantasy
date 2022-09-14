@@ -448,14 +448,15 @@ document.addEventListener('keydown', (e) => {
 function turn(){
 	hyp_count = 0
 	log_message('======= start of turn '+day+' '+hour+' =======');
+	/*
 	let numReady = 0;// number of players that are ready
 	players.forEach(function(chara,index){
 		//check if the player has finished its actions for the turn
 		if(chara.finishedAction)
 			numReady++;
-	});
+	});*/
 	//if all players are ready
-	if(numReady == players.length){
+	// if(numReady == players.length){
 		//change bg color based on time of day
 		switch(hour){
 			case 7:
@@ -476,12 +477,12 @@ function turn(){
 		//randomize the player list
 		players.sort(() => Math.random() - 0.5);
 		// players.forEach(chara => chara.plannedAction = "");
-		players.forEach(chara => chara.finishedAction = false);
+		// players.forEach(chara => chara.finishedAction = false);
 		//plan an action for each player
 		players.forEach(function(chara,index){
 			chara.planAction();
 		});
-	}
+	// }
 	log_message(hyp_count)
 	hyp_count = 0
 	actionPhase()
@@ -493,7 +494,10 @@ function actionPhase(){
 	players.forEach(function(chara,index){
 		chara.doAction();
 	});
-		
+	
+	players.forEach(function(chara,index){
+		chara.turnEnd();
+	});
 	//update alliances
 	allianceUpdate();
 	

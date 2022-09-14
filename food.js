@@ -1,4 +1,15 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",500]]
+
+class EatAction extends Action{
+	constructor(player, data){		
+		super("eat", player);
+		this.food = data['food']
+	}
+	perform(){
+		this.food.eat();
+		this.player.lastActionState = "eating";
+	}
+}
 
 class Food extends Offhand{
 	constructor(name) {
@@ -34,7 +45,7 @@ class Food extends Offhand{
 		this.player.heal_damage(this.heal, this, "food")
 		this.player.energy += this.energy_heal;
 		this.player.statusMessage =  "eats a " +this.name;
-		this.player.resetPlannedAction();
+		// this.player.resetPlannedAction();
 		this.use();
 	}
 	
@@ -47,12 +58,12 @@ class Food extends Offhand{
 					if(health_percent<20){eatLv = 7;}
 					if(health_percent < 10){eatLv = 14;}
 					if(health_percent < 5){eatLv = 19;}
-					this.player.setPlannedAction("eat", eatLv);
+					this.player.setPlannedAction("eat", eatLv, {'class':EatAction, 'food':this});
 				}
 				break;
-			case "eat":
-				this.eat();
-				break;
+			// case "eat":
+				// this.eat();
+				// break;
 			default:
 				super.effect(state, data)
 				break;
@@ -96,14 +107,14 @@ class StrPotion extends Food{
 		str_eff.icon = "💪";
 		this.player.inflict_status_effect(str_eff)
 		this.player.statusMessage =  "drinks a strength potion";
-		this.player.resetPlannedAction();
+		// this.player.resetPlannedAction();		
 		this.use();
 	}
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
 				if(25 + this.player.inRangeOf.length*5  + this.player.aggroB/20 > roll_range(0,100)){
-					this.player.setPlannedAction("eat", 6);
+					this.player.setPlannedAction("eat", 6, {'class':EatAction, 'food':this});
 				}
 				break;
 			default:
@@ -141,7 +152,7 @@ class Ebiroll extends Food{
 				this.player.statusMessage =  "chokes on the Ebiroll";
 			}
 		}
-		this.player.resetPlannedAction();
+		// this.player.resetPlannedAction();
 		this.use();
 	}
 	stat_html(){
@@ -169,10 +180,14 @@ class PurpleSweet extends Food{
 	effect(state, data={}){
 		switch(state){
 			case "takeDmg":
+				log_message(this.player.name+' dmg sweet')
 				if(data.fightMsg.events){
 					data.fightMsg.events.push(this.player.name + ' quickly eats a purple sweet')
 				}
 				this.eat()
+				// this.player.finishedAction = true;
+				this.player.currentAction.turn_complete = true;
+				
 				break;
 			default:
 				super.effect(state, data)

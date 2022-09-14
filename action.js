@@ -7,15 +7,16 @@ class Action{
 		this.complete = false;
 		
 		//if the action can be interrupted by combat
-		this.combat_interruptable = true;			
+		this.combat_interruptable = true;
+		
+		//if the action is finished for the turn
+		this.turn_complete = false;	
 		
 		//used for continuous actions
 		//turns the action will last for
 		this.turns = turns;
 		//priority when planning
-		this.action_priority = action_priority;		
-		//if the action is finished for the turn
-		this.turn_complete = false;
+		this.action_priority = action_priority;	
 		//if the action will be over after combat
 		this.combat_cancellable = true;
 		
@@ -23,9 +24,15 @@ class Action{
 	}	
 	
 	//prior to action planning
-	turn_start(){		
-		this.action_priority = this.action_priority;
-		this.turn_complete=false;
+	turn_start(){
+		this.turns-=1;
+		if(this.turns<=0){
+			this.complete = true;
+		}
+		else{
+			this.player.action_priority = this.player.action_priority;
+			this.turn_complete=false;			
+		}
 	}
 	
 	//performing action
@@ -36,8 +43,7 @@ class Action{
 	//after successfully performing action
 	action_successful(){
 		this.turn_complete=true;
-		this.player.lastAction = this;
-		this.player.finishedAction = true;
+		// this.player.finishedAction = true;
 	}
 	
 	//attacked
@@ -46,8 +52,7 @@ class Action{
 			if(!this.turn_complete){
 				this.interrupted=true;
 				this.turn_complete=true;
-				this.player.finishedAction = true;
-				this.interrupted = true;
+				// this.player.finishedAction = true;
 				this.player.interrupted = true;
 			}
 		}
@@ -58,15 +63,12 @@ class Action{
 	
 	//end of turn
 	turn_end(){
-		this.turns-=1;
-		if(this.turns<=0){
-			this.complete = true;
-		}
+		
 	}	
 }
 
 class RestAction extends Action{
-	constructor(player){
+	constructor(player, data){
 		super("rest", player)
 	}
 	perform(){
@@ -78,10 +80,14 @@ class RestAction extends Action{
 }
 
 class MoveAction extends Action{
-	constructor(player){		
+	constructor(player, data){		
 		super("move", player, 9999, 1)
 		//get a coordinate to move to if not currently moving
-		
+		if('targetCoords' in data){
+			this.targetX = data['targetCoords'][0];
+			this.targetY = data['targetCoords'][1];
+			return
+		}
 		let newX = 0;
 		let newY = 0;
 		//get new cords to move to
@@ -112,7 +118,7 @@ class MoveAction extends Action{
 	perform(){
 		this.player.lastActionState = "moving";
 		this.player.statusMessage = "on the move";		
-		this.player.moveToTarget();
+		this.player.moveToTarget(this.targetX , this.targetY);
 		this.player.apply_all_effects("move");
 	}
 	
@@ -186,9 +192,9 @@ class MoveAction extends Action{
 }
 
 class FollowAction extends Action{
-	constructor(player, target){		
+	constructor(player, data){		
 		super("follow", player);
-		this.target = target;
+		this.target = data.target;
 	}
 	
 	perform(){
@@ -210,7 +216,7 @@ class FollowAction extends Action{
 		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
 		this.player.apply_all_effects("follow", {"opponent":this.target});
 		
-		this.player.moveToTarget();
+		this.player.moveToTarget(this.targetX, this.targetY);
 		this.player.lastActionState = "following"
 	}
 	/*
@@ -239,22 +245,28 @@ class FollowAction extends Action{
 }
 
 class SleepAction extends Action{
-	constructor(player){		
-		super("sleep", player, roll_range(5,8), 15)
+	constructor(player, data){
+		let min_duration = 5
+		if('minDuration' in data)
+			min_duration = data.minDuration
+		let max_duration = 8
+		if('maxDuration' in data)
+			max_duration = data.maxDuration
+		super("sleep", player, roll_range(min_duration,max_duration), 15)
 		this.player.unaware=true;
-		this.incapacitated=true;
+		this.player.incapacitated=true;
 	}
 	turn_start(){
 		super.turn_start()
 		this.player.unaware=true;
-		this.incapacitated=true;
+		this.player.incapacitated=true;
 		this.player.div.find('.charText').removeClass('sleep');
 		this.player.tblDiv.removeClass('sleep');
 	}
 	
 	perform(){
 		this.player.unaware=true;
-		this.incapacitated=true;
+		this.player.incapacitated=true;
 		this.player.health += Math.floor(Math.random() * 2);
 		this.player.energy += Math.floor(Math.random() * 10);
 		//wake up
@@ -306,9 +318,9 @@ class SleepAction extends Action{
 }
 
 class AllianceAction extends Action{
-	constructor(player, target){		
+	constructor(player, data){		
 		super("alliance", player);
-		this.target = target;
+		this.target = data.target;
 	}
 	
 	perform(){
@@ -444,9 +456,9 @@ class AllianceAction extends Action{
 }
 
 class FightAction extends Action{
-	constructor(player, target){		
+	constructor(player, data){		
 		super("fight", player);
-		this.target = target;
+		this.target = data.target;
 	}
 	
 	perform(){
@@ -541,7 +553,7 @@ class FightAction extends Action{
 }
 
 class ForageAction extends Action{
-	constructor(player){		
+	constructor(player, data){
 		super("forage", player, 2, 6);
 	}
 	

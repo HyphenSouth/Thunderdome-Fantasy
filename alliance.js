@@ -238,19 +238,14 @@ class Alliance{
 	
 	alliance_plan_action(tP){
 		if(tP.awareOfPlayer(this.leader) && playerDist(tP,this.leader)>50){
-			if(Math.random()<0.8){
-				if(tP.setPlannedAction("follow", 3))
-					tP.plannedTarget = this.leader;
-			}
+			if(Math.random()<0.8)
+				tP.setPlannedAction("follow", 3, {'class':FollowAction, 'target': this.leader})
 		}
 		if(this.attack_target && Math.random()<0.9){
-			if(tP.inRangeOfPlayer(this.attack_target)){
-				if(tP.setPlannedAction("fight", 7))
-					tP.plannedTarget = this.attack_target;
-			}
+			if(tP.inRangeOfPlayer(this.attack_target))
+				tP.setPlannedAction("follow", 3, {'class':FightAction, 'target': this.attack_target})
 			else if(tP.awareOfPlayer(this.attack_target)){
-				if(tP.setPlannedAction("follow", 4))
-					tP.plannedTarget = this.attack_target;
+				tP.setPlannedAction("follow", 4, {'class':FollowAction, 'target': this.attack_target})
 			}
 		}
 	}

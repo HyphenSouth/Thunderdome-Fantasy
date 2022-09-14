@@ -295,9 +295,9 @@ class MirrorEntity extends Doodad{
 			trigger_player.statusMessage = "teleported by a stray scrying mirror"
 		}
 		trigger_player.moveToCoords(newX, newY);
-		trigger_player.resetPlannedAction()
-		trigger_player.finishedAction = true;
-
+		// trigger_player.resetPlannedAction()
+		// trigger_player.finishedAction = true;
+		trigger_player.currentAction.turn_complete = true;
 		this.destroy();
 	}
 }

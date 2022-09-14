@@ -417,7 +417,7 @@ function fight_target(tP,oP){
 	
 	//fight opponent
 	attack(tP,oP, false, fightMsg);
-	tP.finishedAction = true
+	// tP.finishedAction = true
 	tP.current_turn_fights++;
 	
 	tP.last_opponent = oP;

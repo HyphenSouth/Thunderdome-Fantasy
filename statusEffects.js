@@ -84,6 +84,54 @@ class StatusEffect extends StatMod{
 	}
 }
 
+class EscapeAction extends Action{
+	constructor(player, data){		
+		super("escape", player, 999, 22)
+		this.effect = data.effect
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		
+		this.combat_interruptable = false;	
+		this.combat_cancellable = false;
+	}
+		
+	perform(){
+		this.turns = 999
+		this.player.div.find('.charName').addClass('trapped');
+		log_message(this.player.name + " escape attempt")
+		this.player.currentAction.name="escape";
+		
+		if (roll_range(0,10) > 8){
+			//escape successful
+			log_message(this.player.name+" escapes");
+			this.player.statusMessage = "escaped a trap";
+			this.player.lastActionState="escaped";
+			// this.player.resetPlannedAction();
+			// this.player.finishedAction = true;
+			this.player.div.find('.charName').removeClass('trapped');
+			this.effect.wear_off();
+			this.turns=0
+		}
+		else{
+			//escape failed
+			this.player.energy -= 10;
+			
+			this.player.take_damage(this.effect.calc_dmg(), this.effect, "none")
+			// this.player.health -= Math.floor(Math.random() * 5);
+			this.player.lastActionState = "trapped";
+			this.player.statusMessage = "tried to escape a trap";
+			this.effect.turns_trapped++;
+			log_message(this.player.name + " fails to escape");
+			if(this.player.health <= 0){
+				this.player.death = this.effect.death_msg;
+				if(this.owner)
+					this.effect.owner.kills++;
+			}
+			// this.player.finishedAction = true;
+		}
+	}
+}	
+
 
 class Trapped extends StatusEffect{
 	constructor(level, owner){
@@ -95,13 +143,23 @@ class Trapped extends StatusEffect{
 		this.death_msg = "died escaping "+ this.owner.name + "'s trap";	
 	}
 	
-	afflict(player){
+	afflict(player){	
 		super.afflict(player)
 		this.player.unaware=true;
-		this.player.incapacitated=true;
-		this.player.lastAction = "trapped";
-		this.player.currentAction.name = "trapped";
+		this.player.incapacitated=true;	
+		// let player_action_complete = this.player.currentAction.turn_complete
+
+		this.player.currentAction = new EscapeAction(this.player, {'effect':this})
+		this.player.currentAction.turn_complete = true
 		this.player.div.find('.charName').addClass('trapped');
+	}
+	
+	calc_dmg(){
+		let dmg=Math.floor(Math.random() * 2 * this.level);
+		if(this.player.energy==0)
+			dmg = dmg + 3;
+		log_message(dmg);
+		return dmg
 	}
 	
 	//cannot be stacked
@@ -109,28 +167,72 @@ class Trapped extends StatusEffect{
 		return false;
 	}
 	
+	/*
+	escapeAction(){
+		this.player.div.find('.charName').addClass('trapped');
+		log_message(this.player.name + " escape attempt")
+		this.player.currentAction.name="escape";
+		if (roll_range(0,10) > 8){
+			//escape successful
+			log_message(this.player.name+" escapes");
+			this.player.statusMessage = "escaped a trap";
+			this.player.lastAction="escaped";
+			this.player.resetPlannedAction();
+			// this.player.finishedAction = true;
+			this.player.div.find('.charName').removeClass('trapped');
+			this.wear_off();
+		}
+		else{
+			//escape failed
+			this.player.energy -= 10;
+			let dmg=Math.floor(Math.random() * 2 * this.level);
+			if(this.player.energy==0){
+				dmg = dmg + 3;
+			}
+			log_message(dmg);
+			this.player.take_damage(dmg, this, "none")
+			// this.player.health -= Math.floor(Math.random() * 5);
+			this.player.lastAction = "trapped";
+			this.player.statusMessage = "tried to escape a trap";
+			this.turns_trapped++;
+			log_message(this.player.name + " fails to escape");
+			if(this.player.health <= 0){
+				this.player.death = this.death_msg;	
+				this.owner.kills++;
+			}
+			// this.player.finishedAction = true;
+		}
+		
+	}
+	*/
+	
 	effect(state, data={}){
 		let oP="";
 		switch(state){
+			/*
 			case "turnStart":
-				if(this.player.lastAction=="escaped"){
+				if(this.player.lastActionState=="escaped"){
 					this.wear_off();
 				}
 				else{
-					this.player.lastAction="trapped";
+					this.player.lastActionState="trapped";
 					this.player.unaware = true;
 					this.player.incapacitated = true;
 					this.player.currentAction.name="escape"
 				}
 				break;
+			*/
 			case "planAction":
 				// if(this.player.lastAction="trapped"){
 				log_message(this.player.name + " escape planning")
-				this.player.setPlannedAction("escape", 22);
-				this.player.awareOf=[];
-				this.player.inRangeOf=[];
+				if(this.player.currentAction.name!='escape')
+					this.player.setPlannedAction("escape", 22,{'class':EscapeAction, 'effect':this});
+				// this.player.setPlannedAction("escape", 22);
+				// this.player.awareOf=[];
+				// this.player.inRangeOf=[];
 				// }
 				break;
+			/*
 			case "escape":
 				this.player.div.find('.charName').addClass('trapped');
 				log_message(this.player.name + " escape attempt")
@@ -166,6 +268,7 @@ class Trapped extends StatusEffect{
 					this.player.finishedAction = true;
 				}
 				break;
+			*/
 			default:
 				super.effect(state, data);
 				break;
@@ -392,17 +495,17 @@ class Comfy extends Peace{
 				}
 				break;
 			case "turnEnd":
-				if(this.player.lastAction=="rest"){
+				if(this.player.lastActionState=="rest"){
 					this.player.health+=roll_range(this.heal_range[0]+1, this.heal_range[1]+2)
 					this.player.energy+=roll_range(this.heal_range[0]+5, this.heal_range[1]*2+2)
 					this.player.statusMessage="has a comfy rest"
 				}
-				else if(this.player.lastAction=="sleeping"){
+				else if(this.player.lastActionState=="sleeping"){
 					this.player.health+=roll_range(this.heal_range[0]+3, this.heal_range[1]+4)
 					this.player.energy+=roll_range(this.heal_range[0]+5, this.heal_range[1]*3+5)
 					this.player.statusMessage="sleeps cozily"
 				}
-				else if(this.player.lastAction!="fighting"){
+				else if(this.player.lastActionState!="fighting"){
 					this.player.health+=roll_range(this.heal_range[0], this.heal_range[1])
 					this.player.energy+=roll_range(this.heal_range[0], this.heal_range[1]*2)
 				}
@@ -493,6 +596,43 @@ class DecoyEffect extends StatusEffect{
 	}	
 }
 
+class FrozenAction extends Action{
+	constructor(player, data){		
+		super("frozen", player, data.effect.duration, 22)
+		this.effect = data.effect
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		
+		this.combat_interruptable = false;	
+		this.combat_cancellable = false;
+	}	
+
+	perform(){
+		this.turns = this.effect.duration;
+		// this.effect.frozenAction();
+		
+		if(this.turns<=0 || this.player.status_effects.indexOf(this.effect)<0){
+			this.player.statusMessage = "thaws out";
+			// this.player.finishedAction = true;	
+			this.player.lastActionState ="thaw";
+			this.effect.wear_off();
+		}
+		else{
+			//take damage
+			this.player.take_damage(this.effect.calc_dmg(), this.effect, 'ice');
+			if(this.player.health<=0){
+				this.player.death = this.effect.death_msg
+				if(this.effect.owner)
+					this.effect.owner.kills++;
+			}
+			this.player.lastActionState ="frozen";
+			this.player.statusMessage = "frozen in ice";
+			// this.player.finishedAction = true;					
+		}
+		
+	}
+}
+
 class Frozen extends StatusEffect{
 	constructor(level, duration, owner){
 		super("frozen",level, duration);
@@ -505,7 +645,11 @@ class Frozen extends StatusEffect{
 	afflict(player){
 		super.afflict(player)
 		this.player.unaware=true;
-		this.player.incapacitated=true;
+		this.player.incapacitated=true;	
+		let player_action_complete = this.player.currentAction.turn_complete
+
+		this.player.currentAction = new FrozenAction(this.player, {'effect':this})
+		this.player.currentAction.turn_complete = player_action_complete
 	}
 	
 	stack_effect(new_eff){
@@ -513,26 +657,54 @@ class Frozen extends StatusEffect{
 		this.level += Math.round(new_eff.level/2)
 		return true;
 	}
-
+	
+	calc_dmg(){
+		return roll_range(0, 2 * this.level);
+	}
+	/*
+	frozenAction(){
+		if(this.duration<=0){
+			this.player.statusMessage = "thaws out";
+			// this.player.resetPlannedAction();
+			// this.player.finishedAction = true;	
+			this.player.lastActionState ="thaw";
+			this.wear_off();
+		}
+		else{
+			//take damage
+			this.player.take_damage(roll_range(0, 2 * this.level), this, 'ice');
+			if(this.player.health<=0){
+				this.player.death = this.death_msg
+				if(this.owner)
+					this.owner.kills++;
+			}
+			this.player.lastActionState ="frozen";
+			this.player.statusMessage = "frozen in ice";
+			// this.player.resetPlannedAction();
+			// this.player.finishedAction = true;					
+		}
+	}
+	*/
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
-				this.player.lastAction="frozen";
 				this.player.unaware = true;
 				this.player.incapacitated = true;
-				this.player.currentAction.name="frozen"
+				// this.player.currentAction.name="frozen"
 				this.duration -= 1;
 				break;
 			case "planAction":
-				this.player.setPlannedAction("frozen", 22);
-				this.player.awareOf=[];
-				this.player.inRangeOf=[];
+				if(this.player.currentAction.name!='frozen')
+					this.player.setPlannedAction("frozen", 22,{'class':FrozenAction, 'effect':this});
+				// this.player.awareOf=[];
+				// this.player.inRangeOf=[];
 				break;
+			/*
 			case "frozen":
 				if(this.duration<=0){
 					this.player.statusMessage = "thaws out";
 					this.player.resetPlannedAction();
-					this.player.finishedAction = true;		
+					// this.player.finishedAction = true;	
 					this.wear_off();
 				}
 				else{
@@ -545,9 +717,10 @@ class Frozen extends StatusEffect{
 					}
 					this.player.statusMessage = "frozen in ice";
 					this.player.resetPlannedAction();
-					this.player.finishedAction = true;					
+					// this.player.finishedAction = true;					
 				}				
 				break;
+			*/
 			case "newStatus":
 				let eff = data["eff"]
 				//burn reduces duration
