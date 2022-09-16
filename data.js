@@ -42,8 +42,77 @@ function create_attr(attr_name, player){
 				'Ryouko','Fine'
 			]
 			return new ProfileSwap('fine', player, fine_imgs,fine_names, true, true, false);
-			break;		
-
+			break;
+		case "puchi":
+			let puchi_imgs = [
+				'https://cdn.myanimelist.net/images/characters/5/242497.jpg',
+				'https://cdn.myanimelist.net/images/characters/16/249335.jpg',
+				'https://cdn.myanimelist.net/images/characters/7/243273.jpg',
+				'https://cdn.myanimelist.net/images/characters/9/243031.jpg',
+				'https://cdn.discordapp.com/attachments/998843166138572821/1009613528585486397/1584302796574.png',
+				'https://cdn.myanimelist.net/images/characters/3/244887.jpg',
+				'https://cdn.myanimelist.net/images/characters/9/243271.jpg',
+				'https://cdn.myanimelist.net/images/characters/11/245881.jpg',
+				'https://cdn.myanimelist.net/images/characters/7/245885.jpg',
+				'https://cdn.myanimelist.net/images/characters/5/242495.jpg',
+				'https://cdn.myanimelist.net/images/characters/12/249377.jpg',
+				'https://cdn.myanimelist.net/images/characters/6/243891.jpg',
+				'https://cdn.myanimelist.net/images/characters/9/247897.jpg',
+				'https://cdn.myanimelist.net/images/characters/5/245347.jpg'
+			]
+			let puchi_names = [
+				'Harukasan',
+				'Afu',
+				'Yukipo',
+				'Yayo',
+				'Takanya',
+				'Miurasan',
+				'Makochi',
+				'Smol Shart',
+				'Smol Fart',
+				'Io',
+				'Chihya',				
+				'Chicchan',				
+				'Chibiki',				
+				'PiyoPiyo'		
+			]
+			return new ProfileSwap('puchi', player, puchi_imgs,puchi_names, true, true, false);
+			break;
+		case "im@s":
+			let idol_imgs = [
+					'https://cdn.myanimelist.net/images/characters/13/425143.jpg',
+					'https://cdn.myanimelist.net/images/characters/14/140081.jpg',
+					'https://cdn.myanimelist.net/images/characters/11/134645.jpg',
+					'https://cdn.myanimelist.net/images/characters/4/117962.jpg',
+					'https://cdn.discordapp.com/attachments/998843166138572821/1009615366739197982/unknown.png',
+					'https://cdn.discordapp.com/attachments/998843166138572821/1009615516287127552/d7059e448a885ff0b350edc420005eba.jpg',
+					'https://cdn.myanimelist.net/images/characters/14/193795.jpg',
+					'https://cdn.myanimelist.net/images/characters/16/134635.jpg',
+					'https://cdn.myanimelist.net/images/characters/3/139929.jpg',
+					'https://cdn.myanimelist.net/images/characters/13/126935.jpg',
+					'https://cdn.myanimelist.net/images/characters/13/118310.jpg',
+					'https://cdn.myanimelist.net/images/characters/6/118317.jpg',
+					'https://cdn.myanimelist.net/images/characters/14/140079.jpg',
+					'https://cdn.myanimelist.net/images/characters/5/298464.jpg',
+			]
+			let idol_names = [
+				'Haruka',
+				'Takane',
+				'Yayoi',
+				'Azusa',
+				'Anal',
+				'Chihaya',
+				'Makoto',
+				'Miki',
+				'Yukiho',
+				'Hibiki',
+				'Fart',
+				'Shart',
+				'Ritsuko',
+				'Kotori',
+			]
+			return new ProfileSwap('im@s', player, idol_imgs,idol_names, true, true, false);
+			break;
 		default:
 			if(attr_name in attr_data){
 				return new attr_data[attr_name]( player)
@@ -83,6 +152,12 @@ var weapon_data = {
 		"dmg_type" : "melee",
 		"fightBonus" : 1.1,
 		"uses" : [5,10]	
+	},		
+	"guitar" : {
+		"icon":"🎸", 
+		"dmg_type" : "melee",
+		"fightBonus" : 1.5,
+		"uses" : 1
 	},		
 	"wand" : {
 		"icon" : "./icons/wand.png",

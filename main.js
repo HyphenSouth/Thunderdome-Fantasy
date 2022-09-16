@@ -232,7 +232,7 @@ function saveResults(filename = ''){
 	let a = document.createElement('a');
 	a.download = filename+".csv";
 	a.href = window.URL.createObjectURL(blob);
-	a.click();	
+	// a.click();	
 }
 
 //save players

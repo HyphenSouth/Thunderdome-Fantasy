@@ -2,7 +2,7 @@ var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 var defaultWeaponOdds = [
-	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],
+	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],["guitar",18],
 	["katana", 25], ["shotgun", 25], ["sniper",20],
 	["clang",10], ["flamethrower",20], ["ancient", 25],
 	["Nothing",400]
