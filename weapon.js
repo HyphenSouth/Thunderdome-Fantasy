@@ -304,6 +304,26 @@ class Sniper extends Weapon {
 	}
 }
 
+class ShotgunReloadAction extends Action{
+	constructor(player, data){
+		super("reloadShotgun", player);
+		this.shotgun = data.shotgun
+	}
+	
+	perform(){
+		if(this.shotgun.player != this.player){
+			this.player.statusMessage = "lost the shotgun they want to reload";
+			this.player.lastActionState = "reloading fail"
+		}
+		else{
+			log_message(this.player.name + " reloads");
+			this.player.statusMessage = "reloads their shotgun";
+			this.player.lastActionState = "reloading"
+			this.shotgun.reload()
+		}			
+	}
+}
+
 //2 shells loaded at a time
 //takes time to reload
 //damage based on distance
@@ -327,9 +347,6 @@ class Shotgun extends Weapon {
 	}
 	reload(){
 		if(this.uses>0){
-			log_message(this.player.name + " reloads");
-			this.player.statusMessage = "reloads their shotgun";
-			this.player.lastAction = "reload"
 			this.loaded_shells=this.max_shells;
 			this.uses--;
 		}
@@ -350,14 +367,16 @@ class Shotgun extends Weapon {
 				}	
 				break;
 			case "planAction":
-				if(this.loaded_shells==0 && Math.random()<0.5){
-					this.player.setPlannedAction("reloadShotgun", 2);
-				}
+				if(this.loaded_shells==0 && Math.random()<0.5)
+					this.player.setPlannedAction("reloadShotgun", 2,{'class':ShotgunReloadAction, 'shotgun':this});
+					// this.player.setPlannedAction("reloadShotgun", 2);
 				break;
+			/*
 			case "reloadShotgun":
 				this.reload();
 				this.player.resetPlannedAction();
 				break;
+			*/
 			case "attack":
 				oP=data['opponent'];
 				counter=data['counter'];
@@ -404,8 +423,9 @@ class Shotgun extends Weapon {
 									pushMessage(unfortunate_victim, "hit by a stray pellet from "+temp_wep.player.name+"'s shotgun");
 								}
 								
-								unfortunate_victim.finishedAction = true;
-								unfortunate_victim.resetPlannedAction();
+								// unfortunate_victim.finishedAction = true;
+								// unfortunate_victim.resetPlannedAction();
+								unfortunate_victim.currentAction.turn_complete = true;
 							}
 						});		
 					}
@@ -533,8 +553,8 @@ class Nanasatsu extends Weapon {
 			case "opAware":
 				oP=data['opponent'];
 				if (Math.random() > 0.3){
-					let temp_charm = new Charm(this.player,10);
-					temp_charm.aggro=true;
+					let temp_charm = new Charm(this.player,10, true);
+					// temp_charm.aggro=true;
 					temp_charm.follow_message = "following SEX SWORD"
 					oP.inflict_status_effect(temp_charm);
 				}
@@ -892,8 +912,9 @@ class Ancient extends Weapon{
 								aoe_target.statusMessage = "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]
 								pushMessage(aoe_target, "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]);
 							}
-							aoe_target.finishedAction = true;
-							aoe_target.resetPlannedAction();
+							// aoe_target.finishedAction = true;
+							// aoe_target.resetPlannedAction();
+							aoe_target.currentAction.turn_complete = true;
 							hits++;
 						}
 						if(hits>=8){

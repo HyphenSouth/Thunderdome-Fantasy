@@ -235,41 +235,49 @@ class Char {
 		}
 		if(this.dmgReductionB <0){
 			this.dmgReductionB = 0;
-		}
-		
+		}	
 	}
-	//apply effects to self
-	apply_inv_effects(state, wep_data={}, offhand_data={}){
+
+	apply_all_effects(state, data={}){
 		if(this.weapon)
-			this.weapon.effect(state, wep_data)
-		if(this.offhand){
-			if(this.offhand_data)
-				this.offhand.effect(state, offhand_data)
-			else
-				this.offhand.effect(state, wep_data)
-		}
-	}
-	//apply status effects to self
-	apply_status_effects(state, data={}){
+			this.weapon.effect(state, data)
+		if(this.offhand)
+			this.offhand.effect(state, data)
 		this.status_effects.forEach(function(eff,index){
 			eff.effect(state, data);
-		});		
-	}	
-	
-	//apply attribute effects to self
-	apply_attr_effects(state, data={}){
+		});	
 		this.attributes.forEach(function(attr,index){
 			attr.effect(state, data);
 		});		
-	}	
-
-	apply_all_effects(state, data={}){
-		this.apply_inv_effects(state, data);
-		this.apply_status_effects(state, data);
-		this.apply_attr_effects(state,data);
-		// this.apply_terrain_effects(state, data);
 	}
-		
+
+	apply_player_effects(state, data={}){
+		if(this.weapon)
+			this.weapon[state](data)
+		if(this.offhand)
+			this.offhand[state](data)
+		this.attributes.forEach(function(attr,index){
+			attr[state](data);
+		});	
+		this.attributes.forEach(function(attr,index){
+			attr[state](data);
+		});	
+	}
+
+	apply_player_calcs(state, x, data={}){
+		if(this.weapon)
+			x=this.weapon[state](x, data)
+		if(this.offhand)
+			x=this.offhand[state](x, data)
+		this.attributes.forEach(function(attr,index){
+			x=attr[state](x, data);
+		});	
+		this.attributes.forEach(function(attr,index){
+			x=attr[state](x, data);
+		});	
+		return x
+	}
+	
 	//equipping an item
 	equip_item(item){
 		if(item instanceof Weapon){
@@ -292,6 +300,10 @@ class Char {
 				return true;
 			}
 		}
+		// else{
+			// this.apply_all_effects("equipItem",{'item':item,'type':'unknown'})
+			// return false;
+		// }
 	}	
 	
 	//unequipping an item
@@ -381,26 +393,22 @@ class Char {
 		
 	//action planning
 	setPlannedAction(action, actionPriority, data={}){
-		let replace=false;
+		if(actionPriority<this.actionPriority){
+			log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
+			return false
+		}			
 		//chance to replace if priority is same
 		if(actionPriority==this.actionPriority){
-			if(Math.random()<0.05){
-				replace=true;
-			}
+			if(Math.random()>=0.05)
+				return false
+			log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
 		}
-		if(actionPriority>this.actionPriority){
-			replace=true;
-		}
-		if(replace){
-			log_message(this.name +"'s "+ this.plannedAction +" replaced with " +action+ " " +actionPriority, 0);
-			this.actionPriority = actionPriority;
-			this.plannedAction = action;
-			this.plannedActionData = data;
-			this.currentAction = {};
-			return replace;
-		}
-		log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
-		return replace;
+		log_message(this.name +"'s "+ this.plannedAction +" replaced with " +action+ " " +actionPriority, 0);
+		this.actionPriority = actionPriority;
+		this.plannedAction = action;
+		this.plannedActionData = data;
+		this.currentAction = {};
+		return true;
 	}
 	//reset planned action
 	resetPlannedAction(){
@@ -426,7 +434,7 @@ class Char {
 		let tP=this;
 		this.awareOf = [];
 		if(!this.unaware){
-			players.forEach(function(oP,index){
+			players.forEach(function(oP){
 				if(oP == tP)
 					return
 				let aware = awareOfCheck(tP,oP);
@@ -438,8 +446,12 @@ class Char {
 			});	
 		}
 		this.inRangeOf = [];
-		if(!this.incapacitated)
+		if(!this.incapacitated){
 			this.inRangeOf = this.nearbyPlayers(tP.fightRange + tP.fightRangeB);
+			this.inRangeOf.forEach(function(oP){
+				oP.apply_all_effects("opInRange", {"opponent":tP});
+			});
+		}
 		
 		this.opinionUpdate();
 		
@@ -733,7 +745,7 @@ class Char {
 		if(!safeBoundsCheck(this.x, this.y)){
 			this.oobTurns = this.oobTurns+1;
 			// this.setPlannedAction("move", 9,{'targetX':mapSize/2, 'targetY':mapSize/2});
-			this.setPlannedAction('move', 9,{'class':MoveAction, 'targetCoords':[mapSize/2,,mapSize/2]});
+			this.setPlannedAction('move', 9,{'class':MoveAction, 'targetCoords':[mapSize/2,mapSize/2]});
 			// this.currentAction.targetX=mapSize/2;
 			// this.currentAction.targetY=mapSize/2;
 			log_message(this.name +" moving to center", 1)
@@ -914,9 +926,9 @@ class Char {
 	doAction(){
 		// this.finishedAction = false;
 		//perform planned action
-		if(this.health > 0 && !this.currentAction.turn_complete){
-			this.apply_all_effects("doAction");
-		}
+		if(this.health > 0 && !this.currentAction.turn_complete)
+			this.apply_all_effects("doActionBefore",{'action':this.currentAction});
+		
 		if(this.health > 0 && !this.currentAction.turn_complete){
 			//console.log(this.name + " " + this.plannedAction);
 			this.currentAction.perform()
@@ -1102,7 +1114,7 @@ class Char {
 		dedPlayers.push(this);
 		if(!this.death){
 			// this.death = this.name + " died of unknown causes";
-			this.death = this.name + " Cast in the name of God, Ye Guilty";
+			this.death = "Cast in the name of God, Ye Guilty";
 		}
 		$("#tbl_" + this.id).addClass("dead");
 		$("#tbl_" + this.id).removeClass("alive");
@@ -1355,67 +1367,4 @@ class Char {
 		$('#extra_info_container').html(extra_info);
 	}
 	
-}
-
-class StatMod{
-	constructor(name){
-		this.name = name;
-		this.display_name = this.name[0].toUpperCase() + this.name.substring(1);
-		
-		this.sightBonus = 0;
-		this.visibilityB = 0;
-		
-		this.rangeBonus = 0;
-		this.fightBonus = 1;
-		this.dmgReductionB = 1;
-		
-		this.peaceBonus=0
-		this.aggroBonus=0
-		this.intimidationBonus=0;
-		
-		this.moveSpeedB = 1;
-		
-		this.player = ''
-	}
-	calc_bonuses(){
-		this.player.sightRangeB += this.sightBonus;
-		this.player.visibilityB += this.visibilityB;
-		
-		this.player.fightRangeB += this.rangeBonus;
-		this.player.fightDmgB *= this.fightBonus;
-		this.player.dmgReductionB *= this.dmgReductionB;
-		
-		this.player.peaceB += this.peaceBonus;
-		this.player.aggroB += this.aggroBonus;
-		this.player.intimidation += this.intimidationBonus;
-				
-		this.player.moveSpeedB *= this.moveSpeedB;
-	}
-	
-	effect(state, data={}){}
-	item_odds(prob,item_type){}
-	show_info(){}
-	
-	stat_html(){
-		let html=""
-		if(this.fightBonus != 1)
-			html=html+"<span><b>Dmg Bonus:</b>x"+roundDec(this.fightBonus)+"</span><br>"			
-		if(this.dmgReductionB != 1)
-			html=html+"<span><b>Dmg Reduction:</b>x"+roundDec(this.dmgReductionB)+"</span><br>"		
-		if(this.rangeBonus != 0)
-			html=html+"<span><b>Range Bonus:</b>"+roundDec(this.rangeBonus)+"</span><br>"		
-		if(this.sightBonus != 0)
-			html=html+"<span><b>Sight Bonus:</b>"+roundDec(this.sightBonus)+"</span><br>"		
-		if(this.visibilityB != 0)
-			html=html+"<span><b>Visibility Bonus:</b>"+roundDec(this.visibilityB)+"</span><br>"		
-		if(this.peaceBonus != 0)
-			html=html+"<span><b>Peace Bonus:</b>"+roundDec(this.peaceBonus)+"</span><br>"		
-		if(this.aggroBonus != 0)
-			html=html+"<span><b>Aggro Bonus:</b>"+roundDec(this.aggroBonus)+"</span><br>"	
-		if(this.intimidationBonus != 0)
-			html=html+"<span><b>Intimidation Bonus:</b>"+roundDec(this.intimidationBonus)+"</span><br>"		
-		if(this.moveSpeedB != 1)
-			html=html+"<span><b>Speed Bonus:</b>x"+roundDec(this.moveSpeedB)+"</span><br>"	
-		return html;
-	}
 }

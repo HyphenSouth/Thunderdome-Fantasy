@@ -389,6 +389,8 @@ function startGame(){
 		page_num=0;
 	}
 	total_players = players.length;
+	max_alliance_size = Math.min(6, 2 + Math.floor(total_players/20))
+	max_alliance_count = Math.min(alliance_names.length, 1 + Math.floor(total_players/(max_alliance_size*3)));
 	//set up distances and opinions
 	playerStatic.forEach(function(tP){
 		updatePlayerDists(tP);
@@ -809,15 +811,18 @@ function toggle_selected_alliance(alliance_id){
 	div_clicked=false
 }
 var div_clicked=false
-function alliance_div_click(alliance_id, char_id){	
+//player icon clicked on alliance page
+function alliance_div_click(alliance_id, char_id){
 	if(show_info_id==-1){
 		select_show_info(char_id)
+		player_extra_info(char_id, 'alliance')
 		select_alliance(alliance_id)
 	}
 	//another character selected
 	else if(show_info_id!=char_id){		
 		deselect_show_info()
 		select_show_info(char_id)
+		player_extra_info(char_id, 'alliance')
 		deselect_alliance()		
 		select_alliance(alliance_id)
 	}

@@ -289,15 +289,17 @@ class MirrorEntity extends Doodad{
 			log_message("mirror tele death")
 			trigger_player.health=0
 			trigger_player.death = "accidentally teleports into space and dies"
-			trigger_player.lastAction = "teleport"
+			trigger_player.lastActionState = "teleport ground"
 		}
 		else{
 			trigger_player.statusMessage = "teleported by a stray scrying mirror"
+			trigger_player.lastActionState = "teleport ground"
 		}
 		trigger_player.moveToCoords(newX, newY);
 		// trigger_player.resetPlannedAction()
 		// trigger_player.finishedAction = true;
 		trigger_player.currentAction.turn_complete = true;
+		trigger_player.currentAction.complete = true;
 		this.destroy();
 	}
 }
@@ -499,7 +501,7 @@ class FuckDuck extends MovableEntity{
 	}
 	
 	trigger(trigger_player){
-		if(trigger_player.lastAction == "moving" && this.fuck_count<this.fuck_max){
+		if(trigger_player.lastActionState == "moving" && this.fuck_count<this.fuck_max){
 			trigger_player.statusMessage = "fucks the duck"
 			this.fuck_count++;
 			log_message("duck fucked "+this.fuck_count+"/"+this.fuck_max)

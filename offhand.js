@@ -327,14 +327,17 @@ class Campfire extends Offhand{
 		}
 	}
 }
-class Mirror extends Offhand{
-	constructor() {
-		super("mirror");
-		this.display_name = "Scrying Mirror"
-		//tele target
-		this.target=""
-		this.broken=false;
+
+class TeleportAction extends Action{
+	constructor(player, data){		
+		super("teleport", player)
+		this.tele_goal = data.tele_goal
+		this.mirror = data.mirror
+		//get a coordinate to move to if not currently moving
+		if('targetCoords' in data)
+			this.target = data['targetCoords']
 	}
+	
 	//choose random coords on the map
 	choose_random_dest(){
 		let newX = 0;
@@ -348,14 +351,68 @@ class Mirror extends Offhand{
 		} while(!safeBoundsCheck(newX,newY) && tries < 5);
 		return [newX, newY];
 	}
+			
+	can_choose(){
+		let choose = false
+		//check if user can choose target
+		if(this.player.has_attr('magic', 'demon')){
+			choose=true;
+		}
+		//sword force attack if user cannot choose
+		if(this.player.weapon){
+			if(this.player.weapon.name=="nanasatsu" && !choose){
+				this.tele_goal="attack"
+				choose = true
+			}
+		}
+		return choose
+	}
+	perform(){
+		//choose target
+		let choose = this.can_choose()
+		if(!this.target){
+			if(choose)
+				this.target = this.choose_dest()
+			else
+				this.target = this.choose_random_dest()
+		}		
+		
+		//oob coords
+		if(!inBoundsCheck(this.target[0], this.target[1])){
+			this.player.health=0
+			this.player.death = "teleports into space and dies"
+			this.player.lastActionState = "teleport"
+		}
+		else{
+			//teleport
+			this.player.statusMessage = "teleports using their scrying mirror"
+			if(this.tele_goal=="escape"){
+				log_message(this.player.name +" tele escape")
+				if(choose)
+					this.player.statusMessage = "teleports to safer ground"
+				else
+					this.player.statusMessage = "teleports away from danger"
+			}
+			else if(this.tele_goal=="attack"){
+				log_message(this.player.name +" tele attack")
+				if(choose)
+					this.player.statusMessage = "teleports to " + this.tele_target.name
+				else
+					this.player.statusMessage = "teleports to hunt for prey"
+			}
+			this.player.lastActionState = "teleport"			
+		}
+		this.player.moveToCoords(this.target[0], this.target[1]);
+		this.mirror.use();
+	}
 	
 	//choose a specific target based on player
-	choose_dest(tele_goal=""){
+	choose_dest(){
 		let newX = mapSize/2;
 		let newY = mapSize/2;
 		let tries = 0;
 		//aggressive teleport
-		if(tele_goal=="attack"){
+		if(this.tele_goal=="attack"){
 			//go to random player
 			do {
 				//select a target
@@ -372,12 +429,12 @@ class Mirror extends Offhand{
 				}
 				newX = target_player.x
 				newY = target_player.y
-				this.target=target_player
+				this.tele_target=target_player
 				tries++;
 			} while(!safeBoundsCheck(newX,newY) && tries < 10);
 		}
 		//defensive teleport
-		else if(tele_goal=="escape"){
+		else if(this.tele_goal=="escape"){
 			let safe_location=false
 			do {
 				newX = Math.floor(Math.random()*mapSize);
@@ -408,55 +465,17 @@ class Mirror extends Offhand{
 		}
 		return [newX, newY];
 	}
-	
-	teleport(tele_goal=""){
-		let tele_coords = [500,500];
-		let choose = false
-		
-		//check if user can choose target
-		
-		if(this.player.has_attr('magic', 'demon')){
-			choose=true;
-		}
-		//sword force attack if user cannot choose
-		if(this.player.weapon){
-			if(this.player.weapon.name=="nanasatsu" && !choose){
-				tele_goal="attack"
-				choose = true
-			}
-		}
-		
-		//select coordinates to teleport to
-		if(choose){tele_coords = this.choose_dest(tele_goal)}
-		else{tele_coords = this.choose_random_dest()}
-		
-		//oob coords
-		if(!inBoundsCheck(tele_coords[0], tele_coords[1])){
-			this.player.health=0
-			this.player.death = "teleports into space and dies"
-			this.player.lastAction = "teleport"
-		}
-		else{
-			//teleport
-			this.player.statusMessage = "teleports using their scrying mirror"
-			if(tele_goal=="escape"){
-				log_message(this.player.name +" tele escape")
-				if(choose){this.player.statusMessage = "teleports to safer ground"}
-				else{this.player.statusMessage = "teleports away from danger"}
-			}
-			else if(tele_goal=="attack"){
-				log_message(this.player.name +" tele attack")
-				if(choose){this.player.statusMessage = "teleports to " + this.target.name}
-				else{this.player.statusMessage = "teleports to hunt for prey"}
-			}
-			this.player.lastAction = "teleport"			
-		}
-		this.player.moveToCoords(tele_coords[0], tele_coords[1]);
-		this.player.resetPlannedAction()
-		this.player.finishedAction = true;
-		this.use();
-	}
+}
 
+class Mirror extends Offhand{
+	constructor() {
+		super("mirror");
+		this.display_name = "Scrying Mirror"
+		//tele target
+		this.target=""
+		this.broken=false;
+	}
+	
 	effect(state, data={}){
 		switch(state){
 			case "defend":
@@ -471,26 +490,32 @@ class Mirror extends Offhand{
 				break;
 			case "planAction":
 				//oob
-				if(!safeBoundsCheck(this.player.x, this.player.y)&&this.player.plannedAction=="move"){
-					this.player.plannedAction = "mirrorTeleportEscape"	
+				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
+					this.player.plannedAction = "mirrorTeleportEscape"
+					this.player.plannedActionData = {"class":TeleportAction, "tele_goal":"escape", "mirror":this};
 				}
 				//player/terrain escape
 				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
 					this.player.plannedAction = "mirrorTeleportEscape"
+					this.player.plannedActionData = {"class":TeleportAction, "tele_goal":"escape", "mirror":this};
 				}
 				//low hp after fight
-				if(this.player.lastAction=="fighting" || this.player.health < roll_range(20,40)){
-					this.player.setPlannedAction("mirrorTeleportEscape", 6); 
+				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
+					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
+					this.player.setPlannedAction("mirrorTeleportEscape", 6,{"class":TeleportAction, "tele_goal":"escape", "mirror":this});
 				}
 				//look for fight				
 				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
-					this.player.setPlannedAction("mirrorTeleportAttack", 4); 
+					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
+					this.player.setPlannedAction("mirrorTeleportAttack", 4,{"class":TeleportAction, "tele_goal":"attack", "mirror":this});
 				}				
 				// random
 				if(Math.random()<0.1){
-					this.player.setPlannedAction("mirrorTeleport", 4); 
+					// this.player.setPlannedAction("mirrorTeleport", 4);
+					this.player.setPlannedAction("mirrorTeleport", 4,{"class":TeleportAction, "tele_goal":"neutral", "mirror":this});
 				}
 				break;
+			/*
 			case "mirrorTeleport":
 				this.teleport();
 				break;				
@@ -499,7 +524,8 @@ class Mirror extends Offhand{
 				break;				
 			case "mirrorTeleportAttack":
 				this.teleport("attack");
-				break;			
+				break;
+			*/
 			default:
 				super.effect(state, data)
 				break;

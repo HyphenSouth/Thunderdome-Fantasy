@@ -1,17 +1,19 @@
 //functions for actions that require more than one char, such as combat and range check
+//check if tp is aware of op
 function awareOfCheck(tP, oP){
 	if(oP == tP)
 		return false
-	let tp_sight = tP.sightRange + tP.sightRangeB;
-	let tp_fight = tP.fightRange + tP.fightRangeB;
 
-	let dist = playerDist(oP, tP);
-	
 	//check if tP has special aggro effects
 	tP.apply_all_effects("awareCheck", {"opponent":oP});
 	
 	//check if oP forces tP to aggro
 	oP.apply_all_effects("awareCheckOthers", {"opponent":tP});
+	
+	let tp_sight = tP.sightRange + tP.sightRangeB;
+	let tp_fight = tP.fightRange + tP.fightRangeB;
+
+	let dist = playerDist(oP, tP);
 	
 	let op_vis = Math.max(oP.visibility + oP.visibilityB, 0);
 
@@ -20,6 +22,7 @@ function awareOfCheck(tP, oP){
 		if(Math.pow((Math.random()*(op_vis/100)),1/3) * (tp_sight - tp_fight) > dist - tp_fight)
 			return true
 	}
+	return false
 }
 
 //get opponents for that tP can fight
@@ -152,7 +155,11 @@ function get_follow_score(tP,oP, follow_type){
 		score += 100
 	if(tP.inAlliance(oP))
 		score += 100
-	
+			
+	//check if tP has special follow effects
+	tP.apply_all_effects("followCalc", {"opponent":oP});
+	//check if oP forces tP to follow
+	oP.apply_all_effects("followCalcOthers", {"opponent":tP});
 	return score;
 }
 
@@ -161,7 +168,6 @@ function get_fight_score(tP, oP){
 		return 0
 	if(!tP.awareOfPlayer(oP))
 		return 0
-	
 	if(!tP.inRangeOfPlayer(oP))
 		return 0
 	
@@ -208,9 +214,9 @@ function get_fight_score(tP, oP){
 		score += 20
 			
 	//check if tP has special aggro effects
-	tP.apply_all_effects("aggroCheck", {"opponent":oP});
+	tP.apply_all_effects("aggroCalc", {"opponent":oP});
 	//check if oP forces tP to aggro
-	oP.apply_all_effects("aggroCheckOthers", {"opponent":tP});
+	oP.apply_all_effects("aggroCalcOthers", {"opponent":tP});
 	return Math.round(score)
 }
 
@@ -268,15 +274,16 @@ function get_ally_score(tP, oP){
 	}
 				
 	//check if tP has special aggro effects
-	tP.apply_all_effects("allyCheck", {"opponent":oP});
+	tP.apply_all_effects("allyCalc", {"opponent":oP});
 	//check if oP forces tP to aggro
-	oP.apply_all_effects("allyCheckOthers", {"opponent":tP});
+	oP.apply_all_effects("allyCalcOthers", {"opponent":tP});
 	
 	return score
 }
 
 var max_opinion = 300;
 var min_opinion = -max_opinion;
+//update tP's opinion of oP
 function opinion_calc(tP, oP){
 	if(oP==tP){
 		tP.opinions[tP.id] = 0;
@@ -330,15 +337,13 @@ function opinion_calc(tP, oP){
 			// tP.opinions[oP.id] -= Math.round(roll_range(0, tP.lastFight)/20)
 		}
 	}	
-	tP.apply_all_effects("opinionCheck", {"opponent":oP});
-	oP.apply_all_effects("opinionCheckOthers", {"opponent":tP});
+	tP.apply_all_effects("opinionCalc", {"opponent":oP});
+	oP.apply_all_effects("opinionCalcOthers", {"opponent":tP});
 	tP.opinions[oP.id] = Math.round(tP.opinions[oP.id])
-	if(tP.opinions[oP.id]>max_opinion){
+	if(tP.opinions[oP.id]>max_opinion)
 		tP.opinions[oP.id] = max_opinion
-	}
-	else if(tP.opinions[oP.id]<min_opinion){
+	else if(tP.opinions[oP.id]<min_opinion)
 		tP.opinions[oP.id] = min_opinion
-	}
 }
 
 function doodadCheck(tP){
@@ -369,6 +374,8 @@ function rollDmg(tP, oP){
 		dmg = oP.health;
 	if(dmg<0)
 		dmg=0;
+	// dmg = attacker.apply_all_effects("dmgCalcOut", {"opponent":defender, "counter":counter, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
+	// dmg = defender.apply_all_effects("dmgCalcIn", {"opponent":attacker, "counter":counter, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
 	return dmg;
 }
 

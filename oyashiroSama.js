@@ -8,6 +8,24 @@ function HAUAU(){
 }
 var oyashiro_msg = [["runs away from Oyashiro-sama",25],["hears a distant HAU-AU",30],["trains herblore",5],["feels like they're being watched",5]]
 
+
+class ItchAction extends Action{
+	constructor(player,data){
+		super('itch',player)
+	}
+	perform(){
+		this.player.health = this.player.health-(5+this.player.oobTurns);
+		if(this.player.health<=0){
+			this.player.death = "claws out their throat"		
+		}
+		else{
+			this.player.statusMessage = "feels maggots under their skin"
+		}
+		this.player.lastActionState = "itch"
+	}
+	
+}
+
 var lvlup_data = [100,300,1000,1200,500]
 class Hinamizawa extends StatusEffect{
 	constructor(level){
@@ -33,9 +51,9 @@ class Hinamizawa extends StatusEffect{
 	
 	afflict(player){
 		super.afflict(player)
-		if(this.level>1){
+		if(this.level>1)
 			pushMessage(this.player,this.player.name +  " LEVEL "+this.level);
-		}	}
+	}
 	/*
 	calc_bonuses(){
 		switch(this.level){
@@ -105,8 +123,8 @@ class Hinamizawa extends StatusEffect{
 		else{
 			this.player.statusMessage = "feels maggots under their skin"
 		}
-		this.player.resetPlannedAction();
-		this.player.finishedAction;
+		// this.player.resetPlannedAction();
+		// this.player.finishedAction;
 	}
 	
 	level_up(){
@@ -153,7 +171,7 @@ class Hinamizawa extends StatusEffect{
 					//only activates with more than 5 players or out of bounds
 					if(this.player.oobTurns>3 || players.length>5){
 						if(5+3*this.player.oobTurns>roll_range(0,100)){
-							this.player.setPlannedAction("itch", 15)
+							this.player.setPlannedAction("itch", 15, {"class":ItchAction})
 						}
 					}
 					//attack follower
@@ -161,10 +179,13 @@ class Hinamizawa extends StatusEffect{
 						let tP = this.player
 						tP.followers.forEach(function(oP){
 							if(tP.inRangeOfPlayer(oP)){
+								tP.setPlannedAction("fight", 8,{"class":FightAction,"target":oP})
+								/*
 								if(tP.setPlannedAction("fight", 8)){
 									log_message(tP.name +" attacks follower " + oP.name)
 									tP.plannedTarget = oP
 								}
+								*/
 							}
 						});				
 					}

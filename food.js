@@ -1,4 +1,4 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",500]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5]]
 
 class EatAction extends Action{
 	constructor(player, data){		
@@ -180,14 +180,15 @@ class PurpleSweet extends Food{
 	effect(state, data={}){
 		switch(state){
 			case "takeDmg":
+				//in case the item is used up
+				let tP = this.player;
 				log_message(this.player.name+' dmg sweet')
 				if(data.fightMsg.events){
 					data.fightMsg.events.push(this.player.name + ' quickly eats a purple sweet')
-				}
+				}				
 				this.eat()
-				// this.player.finishedAction = true;
-				this.player.currentAction.turn_complete = true;
-				
+				// this.player.finishedAction = true;				
+				tP.currentAction.turn_complete = true;
 				break;
 			default:
 				super.effect(state, data)

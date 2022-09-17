@@ -4,7 +4,7 @@ var allianceStatic = []
 var alliance_radius = 75;
 var alliance_id = 0;
 var base_unity = 200;
-var max_alliance_size = 5;
+var max_alliance_size = 6;
 
 var alliance_names = [
 	["Goat",true],
@@ -39,8 +39,10 @@ function create_alliance(p1, p2){
 	
 	log_message(alliances.length)
 	let name_id = roll_range(0, alliance_names.length-1)
-	while(alliance_names[name_id][1]==false){
-		name_id = roll_range(0, alliance_names.length-1)
+	let cnt = 0
+	while(alliance_names[name_id][1]==false && cnt<25){
+		name_id = roll_range(0, alliance_names.length-1);
+		cnt++;
 	}
 	
 	temp_alliance = new Alliance(p1,p2,unity, name_id)
@@ -125,15 +127,20 @@ class Alliance{
 			tA.members.forEach(function(other_member){
 				if(member == other_member)
 					return
-				member.opinions[other_member.id] *=0.5
-				member.opinions[other_member.id] -= 60
+				member.opinions[other_member.id] *=0.6
+				member.opinions[other_member.id] -= 50
 			})
-		})
+		});
 		// remove alliance
 		this.active = false
 		this.members.forEach(function(member){
+			$("#alliance_"+tA.id+"_char_" + member.id).remove()
+			$('#tbl_' + member.id).removeClass('alliance')
 			member.alliance = ""
 		});
+		if(selected_alliance_id==this.id)
+			selected_alliance_id = -1
+		
 	}
 	
 	delete_alliance(){

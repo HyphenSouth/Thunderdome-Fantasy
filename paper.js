@@ -1,3 +1,96 @@
+//paper master class
+class PaperCreateAction extends Action{
+	constructor(player, data){
+		super("paperCreate", player);
+		this.attr = data.attr
+		this.creation_type = data.creation_type
+	}
+	
+	perform(){
+		if(this.attr.paper<150){
+			this.player.statusMessage = 'does not have enough paper'
+			this.player.lastActionState = 'paper create fail'
+			return
+		}
+		switch(this.creation_type){
+			case 'wep':
+				this.create_wep();
+				break;
+			case 'off':
+				this.create_off();
+				break;
+			case 'fam':
+				this.create_fam();
+				break;			
+			default:
+				this.player.lastActionState = 'create paper null'
+				break;
+		}
+	}
+	
+	create_wep(){
+		let wep = roll([['bow',10],['sword',10]]);
+		let extra_uses = 0;
+		switch(wep){
+			case 'bow':
+				let tempBow = new PaperBow()
+				this.attr.paper -= 150;
+				extra_uses = Math.min(roll_range(0,Math.round(this.attr.paper/10)), 20)
+				tempBow.uses+=extra_uses
+				this.attr.paper -= extra_uses*10;
+				this.player.equip_item(tempBow);					
+				break;
+			case 'sword':
+				let tempSword = new PaperSword()
+				this.attr.paper -= 150;
+				extra_uses = Math.min(roll_range(0,Math.round(this.attr.paper/12)), 15)
+				tempSword.uses+=extra_uses
+				this.attr.paper -= extra_uses*12;
+				this.player.equip_item(tempSword);					
+				break;
+		}
+		this.player.lastActionState = 'create paper weapon'
+	}
+			
+	create_off(){
+		// let off = roll([['plane',5],['shield',10]]);
+		let off = roll([['shield',10]]);
+		let extra_uses = 0;
+		switch(off){
+			case 'shield':
+				let tempShield = new PaperShield()
+				this.attr.paper -= 150;
+				extra_uses = Math.min(roll_range(0,Math.round(this.attr.paper/5)), 100)
+				tempShield.power += extra_uses;
+				this.attr.paper -= extra_uses*5;
+				this.player.equip_item(tempShield);					
+				break;
+		}
+		this.player.lastActionState = 'create paper offhand'
+	}
+	
+	create_fam(){
+		log_message('b')
+		let fam = roll([['bird',10]]);
+		let extra_uses = 0;
+		switch(fam){
+			case 'bird':
+				let temp_bird = new PaperBird(this.player.x, this.player.y, this.player, this.attr)
+				this.attr.paper -= 150;
+				extra_uses = Math.min(roll_range(0,Math.round(this.attr.paper/10)), 60)
+				temp_bird.power += extra_uses;
+				this.attr.paper -= extra_uses*10;
+				temp_bird.draw();
+				doodads.push(temp_bird);
+				this.familiar = temp_bird
+				this.player.statusMessage = 'creates a paper bird'
+				break;
+		}		
+		this.player.lastActionState = 'create paper familiar'
+	}	
+}
+
+
 class PaperMaster extends Attr{
 	constructor(player){
 		super("paper", player);
@@ -7,7 +100,6 @@ class PaperMaster extends Attr{
 	}
 		
 	effect(state, data={}){
-		let extra_uses = 0;
 		switch(state){
 			case "planAction":
 				if(this.paper >= 150 && Math.random()>0.3){
@@ -22,73 +114,15 @@ class PaperMaster extends Attr{
 					
 					let item_type = roll(item_prob)
 					if(item_type == 'wep')
-						this.player.setPlannedAction("createWeapon", 5);
+						this.player.setPlannedAction("createWeapon", 5, {"class":PaperCreateAction,"creation_type":'wep',"attr":this});
 					if(item_type == 'off')
-						this.player.setPlannedAction("createOffhand", 5);
+						this.player.setPlannedAction("createOffhand", 5, {"class":PaperCreateAction,"creation_type":'off',"attr":this});
 					if(item_type == 'fam')
-						this.player.setPlannedAction("createFamiliar", 5);
+						this.player.setPlannedAction("createFamiliar", 5, {"class":PaperCreateAction,"creation_type":'fam',"attr":this});
 				}
-				break;
-			case "createWeapon":
-				let wep = roll([['bow',10],['sword',10]]);
-				switch(wep){
-					case 'bow':
-						let tempBow = new PaperBow()
-						this.paper -= 150;
-						extra_uses = Math.min(roll_range(0,Math.round(this.paper/10)), 20)
-						tempBow.uses+=extra_uses
-						this.paper -= extra_uses*10;
-						this.player.equip_item(tempBow);					
-						break;
-					case 'sword':
-						let tempSword = new PaperSword()
-						this.paper -= 150;
-						extra_uses = Math.min(roll_range(0,Math.round(this.paper/12)), 15)
-						tempSword.uses+=extra_uses
-						this.paper -= extra_uses*12;
-						this.player.equip_item(tempSword);					
-						break;
-				}
-				this.player.lastAction = 'create weapon'
-				this.player.resetPlannedAction()
-				break;
-			case "createOffhand":
-				// let off = roll([['plane',5],['shield',10]]);
-				let off = roll([['shield',10]]);
-				switch(off){
-					case 'shield':
-						let tempShield = new PaperShield()
-						this.paper -= 150;
-						extra_uses = Math.min(roll_range(0,Math.round(this.paper/5)), 100)
-						tempShield.power += extra_uses;
-						this.paper -= extra_uses*5;
-						this.player.equip_item(tempShield);					
-						break;
-				}
-				this.player.lastAction = 'create offhand'
-				this.player.resetPlannedAction()
-				break;
-			case "createFamiliar":
-				let fam = roll([['bird',10]]);
-					switch(fam){
-						case 'bird':
-							let temp_bird = new PaperBird(this.player.x, this.player.y, this.player, this)
-							this.paper -= 150;
-							extra_uses = Math.min(roll_range(0,Math.round(this.paper/10)), 60)
-							temp_bird.power += extra_uses;
-							this.paper -= extra_uses*10;
-							temp_bird.draw();
-							doodads.push(temp_bird);
-							this.familiar = temp_bird
-							this.player.statusMessage = 'creates a paper bird'
-							break;
-					}
-				
-				this.player.lastAction = 'create familiar'
-				this.player.resetPlannedAction()
 				break;
 			case "turnEnd":
-				if(this.player.lastAction == "forage success"){
+				if(this.player.lastActionState == "forage success"){
 					this.player.statusMessage = 'finds paper'
 					this.paper += roll_range(40,180)
 				}

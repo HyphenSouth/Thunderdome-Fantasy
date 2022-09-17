@@ -151,6 +151,16 @@ class Cunny extends Attr{
 	}
 }
 
+class TeaAction extends Action{
+	constructor(player, data){
+		super("tea", player);
+		this.attr = data.attr
+	}
+	perform(){
+		this.attr.tea();
+	}
+}
+
 //drinks tea at 3
 class Bong extends Attr{
 	constructor(player){
@@ -159,20 +169,17 @@ class Bong extends Attr{
 	tea(){
 		this.player.energy += this.player.maxEnergy*0.5;
 		this.player.health += this.player.maxHealth*0.3;
-		this.player.lastAction = "tea";
+		this.player.lastActionState = "tea";
 		this.player.statusMessage = "Stops to drink tea";
-		this.player.resetPlannedAction();
+		// this.player.resetPlannedAction();
 	}
 	
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
 				if(hour == 15){
-					this.player.setPlannedAction("tea", 5);
+					this.player.setPlannedAction("tea", 5, {"class":TeaAction,"attr":this});
 				}
-				break;
-			case "tea":
-				this.tea();
 				break;
 		}
 	}
@@ -320,6 +327,7 @@ class Butai extends Attr{
 		this.player.health = this.player.maxHealth;
 
 		this.player.resetPlannedAction();
+		
 		//clear status
 		this.player.status_effects.forEach(function(eff){
 			if(eff.name!='hinamizawa'){
@@ -390,6 +398,62 @@ class Ninja extends Attr{
 	
 }
 
+class Gauron extends Attr{
+	constructor(player){
+		super("gauron", player);
+		this.has_info = true;		
+		this.dmgReductionB =4;
+		
+		this.revives=0;
+		this.revive_chance=100; //percent
+	}
+	effect(state, data={}){
+		switch(state){
+			case "death":
+				if(roll_range(1,100)<=this.revive_chance)
+					this.revive()
+				else
+					this.player.death += " (for real)"
+			break;
+		}
+	}
+	revive(){
+		this.revives++;
+		this.revive_chance-=1;
+		
+		//fake death
+		$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + this.player.img + "'></img><del>" + this.player.death + "</del></td>>");
+		this.player.death = '';
+		this.player.dead = false;
+		
+		//update status
+		pushMessage(this.player, this.player.name +' escapes death');
+
+		
+		//set health
+		this.player.maxHealth = Math.max(this.player.maxHealth-2, 1);
+		this.player.health = this.player.maxHealth;
+
+		this.player.resetPlannedAction();
+		
+		//clear status
+		this.player.status_effects.forEach(function(eff){
+			if(eff.name!='hinamizawa'){
+				eff.wear_off();
+			}			
+		});
+		
+		//stat increase
+		this.dmgReductionB *=1.1;
+		this.intimidationBonus += 3;
+	}
+		stat_html(){
+		let html= super.stat_html()+
+			"<span><b>Deaths:</b>"+this.revives+"</span><br>"+
+			"<span><b>Death Chance:</b>"+(100-this.revive_chance)+"%</span><br>"
+		return html;
+	}
+}
 
 
 

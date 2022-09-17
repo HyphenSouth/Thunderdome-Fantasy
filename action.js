@@ -43,6 +43,7 @@ class Action{
 	//after successfully performing action
 	action_successful(){
 		this.turn_complete=true;
+		this.player.apply_all_effects("doActionAfter",{'action':this});
 		// this.player.finishedAction = true;
 	}
 	
@@ -62,9 +63,7 @@ class Action{
 	}
 	
 	//end of turn
-	turn_end(){
-		
-	}	
+	turn_end(){}	
 }
 
 class RestAction extends Action{
@@ -119,7 +118,7 @@ class MoveAction extends Action{
 		this.player.lastActionState = "moving";
 		this.player.statusMessage = "on the move";		
 		this.player.moveToTarget(this.targetX , this.targetY);
-		this.player.apply_all_effects("move");
+		// this.player.apply_all_effects("move");
 	}
 	
 	turn_end(){
@@ -139,56 +138,6 @@ class MoveAction extends Action{
 			}
 		}
 	}
-	
-	/*
-	action_move(){
-		this.lastAction = "moving";
-		this.statusMessage = "on the move";
-		//get a coordinate to move to if not currently moving
-		if(this.currentAction.name != "move"){
-			//clear current actions
-			//this.resetPlannedAction();
-			let newX = 0;
-			let newY = 0;
-			//get new cords to move to
-			let tries = 0;
-			do {
-				newX = Math.floor(Math.random()*mapSize);
-				newY = Math.floor(Math.random()*mapSize);
-				tries++;
-			} while(!safeTerrainCheck(newX,newY) && tries < 10);
-			//if safe location can't be found, move to center
-			if(tries>=10){
-				log_message(this.name + " cant find safe location", 0);
-				newX = mapSize/2
-				newY = mapSize/2
-			}
-			this.currentAction.name = "move";
-			
-			//get a target location to move to
-			this.currentAction.targetX = newX;
-			this.currentAction.targetY = newY;
-			// log_message(this.name +" plans to move to "+ newX +" " +newY);
-		}
-		this.moveToTarget();
-		this.apply_all_effects("move");
-		//if arrived on target location
-		if(this.currentAction.targetX == this.x && this.currentAction.targetY == this.y){
-			this.resetPlannedAction();
-			// log_message(this.name + " movement finished");
-		}
-		else{
-			//randomly stop movement
-			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
-				this.resetPlannedAction()
-				// log_message(this.name + " movement finished early");
-			}
-			else{
-				// log_message(this.name + " movement not finished");
-			}
-		}
-	}
-	*/
 }
 
 class FollowAction extends Action{
@@ -214,34 +163,11 @@ class FollowAction extends Action{
 		this.targetY = newY;
 		
 		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
-		this.player.apply_all_effects("follow", {"opponent":this.target});
+		// this.player.apply_all_effects("follow", {"opponent":this.target});
 		
 		this.player.moveToTarget(this.targetX, this.targetY);
 		this.player.lastActionState = "following"
 	}
-	/*
-	action_follow(){
-		let newX = 0;
-		let newY = 0;
-		newX = this.plannedTarget.x;
-		newY = this.plannedTarget.y;
-		this.lastAction = "following";
-		this.statusMessage = "following " + this.plannedTarget.name;
-		this.plannedTarget.followers.push(this);
-		
-		this.currentAction.name = "";
-		this.currentAction.targetX = newX;
-		this.currentAction.targetY = newY;
-		
-		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
-		this.apply_all_effects("follow", {"opponent":this.plannedTarget});
-		
-		this.moveToTarget();
-		log_message(this.name +" following "+this.plannedTarget.name,0);
-		log_message(this.plannedTarget.name +" at ("+this.plannedTarget.x+","+this.plannedTarget.y+")", 1);
-		this.resetPlannedAction();
-	}
-	*/
 }
 
 class SleepAction extends Action{
@@ -285,36 +211,6 @@ class SleepAction extends Action{
 			this.player.lastActionState = "awaken";
 		}
 	}
-	
-	/*
-	//sleep
-	action_sleep(){
-		//just started sleeping
-		if(this.currentAction.name != "sleep"){
-			this.currentAction.name = "sleep";
-			this.currentAction.turnsLeft = roll_range(5,8);
-			// log_message(this.name + " sleeps for the next " + this.currentAction.turnsLeft + " turns");
-			this.unaware=true;
-			this.incapacitated=true;
-			this.actionPriority=15;
-		}
-		//regain health and energy
-		this.currentAction.turnsLeft--;
-		this.health += Math.floor(Math.random() * 2);
-		this.energy += Math.floor(Math.random() * 10);
-		//wake up
-		if(this.currentAction.turnsLeft > 0){
-			log_message(this.name + " continues sleeping");
-			this.lastAction = "sleeping";			
-			this.statusMessage = "sleeping";			
-		} else {
-			log_message(this.name + " awakens");
-			this.resetPlannedAction();
-			this.lastAction = "awaken";
-			this.statusMessage = "woke up";
-		}
-	}
-	*/
 }
 
 class AllianceAction extends Action{
@@ -389,70 +285,6 @@ class AllianceAction extends Action{
 		}
 		log_message(decision)
 	}
-	/*
-	
-	//offer to join alliance
-	action_alliance(){
-		this.tblDiv.addClass("allyEvent");
-		log_message(this.name+' alliance ' + this.plannedTarget.name)
-		
-		//no target planned
-		if(!this.plannedTarget){
-			this.lastAction = "alliance fail";
-			this.statusMessage = "has no friends";
-			this.resetPlannedAction();
-			return;
-		}
-		
-		//if target is already dead
-		if(this.plannedTarget.health<=0){
-			this.statusMessage = "tries to befriend " + this.plannedTarget.name + "'s corpse";
-			this.resetPlannedAction();
-			return;
-		}
-		let decision = this.plannedTarget.alliance_offer(this)
-		if(decision){
-			//accepted		
-			if(this.alliance){
-				//add into alliance
-				this.alliance.add_member(this.plannedTarget)
-				this.statusMessage = "invites " + this.plannedTarget.name+" into "+this.alliance.name;
-			}
-			else if(this.plannedTarget.alliance){
-				//join alliance
-				this.plannedTarget.alliance.add_member(this)
-				this.statusMessage = "accepted into " + this.alliance.name +" by "+ this.plannedTarget.name;
-			}
-			else{				
-				//create alliance
-				create_alliance(this, this.plannedTarget)
-				this.statusMessage = "starts "+this.alliance.name+" with " + this.plannedTarget.name;
-			}
-		}
-		else{
-			//rejected		
-			if(this.inAlliance(this.plannedTarget)){
-				this.statusMessage = "teams up with " + this.plannedTarget.name;
-			}
-			else if(this.alliance){
-				//add into alliance
-				this.statusMessage = "unable to get " + this.plannedTarget.name + " to join "+this.alliance.name;
-			}
-			else if(this.plannedTarget.alliance){
-				//join alliance
-				this.statusMessage = "denied entry into " +this.plannedTarget.alliance.name +" by "+ this.plannedTarget.name;
-				this.opinions[this.plannedTarget.id] -= 25
-			}
-			else{
-				//create alliance
-				this.statusMessage = "alliance offer to " + this.plannedTarget.name + " rejected";
-				this.opinions[this.plannedTarget.id] -= 20
-			}			
-		}
-		log_message(decision)
-		this.resetPlannedAction();	
-	}
-	*/
 }
 
 class FightAction extends Action{
@@ -503,58 +335,14 @@ class FightAction extends Action{
 		}*/
 		
 	}
-	
-/*
-	action_fight(){
-		//add red fighting border
-		//this.div.addClass("fighting");
-		
-		//no target planned
-		if(!this.plannedTarget){
-			this.lastAction = "fighting fail";
-			this.statusMessage = "fights their inner mind goblin";
-			this.resetPlannedAction();
-			return;
-		}
-		if(this.inAlliance(this.plannedTarget))
-			this.alliance.unity -= 100;
-		
-		//if target is already dead
-		if(this.plannedTarget.health<=0){
-			this.statusMessage = "attacks the corpse of " + this.plannedTarget.name;
-			this.resetPlannedAction();
-			return;
-		}
-			
-		//make sure target is still in range
-		let dist = playerDist(this, this.plannedTarget);
-		if(this.fightRange + this.fightRangeB < dist){
-			this.lastAction = "fighting fail";
-			this.statusMessage = "tries to fight "+ this.plannedTarget.name +" but they escape"
-			this.resetPlannedAction();
-			return;
-		}
-				
-		//calculate damage for both fighters
-		// this.plannedTarget.opponents.push(this);
-		fight_target(this,this.plannedTarget);
-		this.lastAction = "fighting";
-		this.energy -= 20;
-		/*
-		if(this.energy < 0){
-			this.death = "exhausted to death from fighting";
-			this.die();
-		}
-		//clear target and actions
-		this.plannedTarget = "";
-		this.resetPlannedAction();
-	}
-*/	
 }
 
 class ForageAction extends Action{
 	constructor(player, data){
 		super("forage", player, 2, 6);
+		this.forage_state=''
+		this.foraged_item=''
+		this.success_prob=[["success",900],["fail",100],["poisoned",1]]
 	}
 	
 	perform(){
@@ -568,11 +356,12 @@ class ForageAction extends Action{
 		//once foraging is done
 		//foraging loot
 		if(this.turns==1){
-			switch(roll([["success",900],["fail",100],["poisoned",1]])){
+			switch(roll(this.success_prob)){
 				//if foraging is successful
 				case "success":
 					this.player.statusMessage = "forage success";
 					this.player.lastActionState = "forage success";
+					this.forage_state='success'
 					//randomly find a weapon
 					let type_prob = [];
 					if(!this.player.weapon)
@@ -580,22 +369,26 @@ class ForageAction extends Action{
 					if(!this.player.offhand)
 						type_prob.push(["off", off_prob])
 					let loot_type=roll(type_prob);
-					let loot = get_random_item(this.player,loot_type)
-					if(loot){
-						this.player.equip_item(loot);
+					this.foraged_item = get_random_item(this.player,loot_type)
+					if(this.foraged_item){
+						this.player.equip_item(this.foraged_item);
 						this.player.tblDiv.addClass("forage");
-						if(loot_type == 'wep')
+						if(loot_type == 'wep'){
 							this.player.lastActionState = "forage weapon";
-						if(loot_type == 'off')
+							this.forage_state='wep'
+						}
+						if(loot_type == 'off'){
 							this.player.lastActionState = "forage offhand";
+							this.forage_state='off'
+						}
 					}
 					//restore health and energy
 					this.player.energy += roll_range(30,60)
 					this.player.health += roll_range(5,10);
-					
 					break;
 				//failed forage
 				case "fail":
+					this.forage_state='fail'
 					this.player.lastActionState = "forage fail";
 					this.player.statusMessage = "forage fail";
 					break;
@@ -607,8 +400,7 @@ class ForageAction extends Action{
 					this.player.death = "poisoned by a poisy (poisonous flower)";
 					break;
 			}
-			this.player.apply_all_effects("forage");
-			//clear current action
+			// this.player.apply_all_effects("forage");
 		}	
 	}
 		

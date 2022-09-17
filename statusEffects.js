@@ -305,11 +305,11 @@ class Trapped extends StatusEffect{
 }
 
 class Charm extends StatusEffect{
-	constructor(target, level){
-		super("charm", level, 1);
+	constructor(target, level, aggro=false, duration=1){
+		super("charm", level, duration);
 		this.target=target;
 		this.icon="💗";
-		this.aggro=false;	//whether target will be attacked
+		this.aggro=aggro;	//whether target will be attacked
 		this.follow_message="";
 		this.dmgReductionB = 1.1;
 	}
@@ -338,17 +338,25 @@ class Charm extends StatusEffect{
 				log_message(this.player.name + " charm planning");
 				//force player to attack target
 				if(this.aggro && this.player.inRangeOfPlayer(this.target) && this.level * 10 >roll_range(0,105)){
+					log_message(this.player.name +" forced to fight " + this.target.name)
+					this.player.setPlannedAction("fight", 11,{'class':FightAction, 'target':this.target});
+					/*
 					if(this.player.setPlannedAction("fight", 11)){
 						log_message(this.player.name +" forced to fight " + this.target.name)
 						this.player.plannedTarget = this.target;
 					}
+					*/
 				}
 				//force player to follow target
 				else if(this.player.awareOfPlayer(this.target) && this.level * 9 >roll_range(0,100)){
+					log_message(this.player.name +" forced to follow " + this.target.name)
+					this.player.setPlannedAction("follow", 11,{'class':FollowAction, 'target':this.target});
+					/*
 					if(this.player.setPlannedAction("follow", 11)){
 						log_message(this.player.name +" forced to follow " + this.target.name)
 						this.player.plannedTarget = this.target;
 					}
+					*/
 				}
 				break;
 			case "follow":
@@ -432,25 +440,35 @@ class Berserk extends StatusEffect{
 				*/
 				//forced attack
 				if(this.player.inRangeOf.length>0){
+					log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
+					this.player.setPlannedAction("fight", 12,{'class':FightAction, 'target':this.player.inRangeOf[0]});					
+					/*
 					if(this.player.setPlannedAction("fight", 12)){
 						// log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
 						this.player.plannedTarget = this.player.inRangeOf[0]
 					}
+					*/
 				}
 				//forced follow
 				else if(this.player.awareOf.length>0){
+					log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
+					this.player.setPlannedAction("follow", 12,{'class':FollowAction, 'target':this.player.awareOf[0]});
+					/*
 					if(this.player.setPlannedAction("follow", 12)){
 						// log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
 						this.player.plannedTarget = this.player.awareOf[0]
 					}
+					*/
 				}
 				break;
+			/*
 			case "attack":
 				oP = data['opponent']
 				if(oP == this.player.plannedTarget){
 					this.player.fightDmgB *=1.05
 				}
 				break;
+			*/
 			default:
 				super.effect(state, data);
 				break;
@@ -490,9 +508,9 @@ class Comfy extends Peace{
 	effect(state, data={}){
 		switch(state){
 			case "planAction":
-				if(this.player.lastSlept>12){
-					this.player.setPlannedAction("sleep", 8)
-				}
+				if(this.player.lastSlept>12)
+					this.player.setPlannedAction("sleep", 8,{'class':SleepAction, 'min_duration':6})
+					// this.player.setPlannedAction("sleep", 8)				
 				break;
 			case "turnEnd":
 				if(this.player.lastActionState=="rest"){
@@ -505,7 +523,7 @@ class Comfy extends Peace{
 					this.player.energy+=roll_range(this.heal_range[0]+5, this.heal_range[1]*3+5)
 					this.player.statusMessage="sleeps cozily"
 				}
-				else if(this.player.lastActionState!="fighting"){
+				else if(this.player.lastActionState!="fighting" || this.player.lastActionState!="attacked"){
 					this.player.health+=roll_range(this.heal_range[0], this.heal_range[1])
 					this.player.energy+=roll_range(this.heal_range[0], this.heal_range[1]*2)
 				}

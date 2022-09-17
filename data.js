@@ -8,7 +8,8 @@ var attr_data = {
 		"butai": Butai,
 		"meido": Meido,
 		"paper": PaperMaster,
-		"ninja": Ninja
+		"ninja": Ninja,
+		"gauron": Gauron
 }
 
 // attr
