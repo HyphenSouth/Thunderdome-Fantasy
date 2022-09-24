@@ -178,7 +178,7 @@ class Bong extends Attr{
 		switch(state){
 			case "planAction":
 				if(hour == 15){
-					this.player.setPlannedAction("tea", 5, {"class":TeaAction,"attr":this});
+					this.player.setPlannedAction("tea", 5, TeaAction, {"attr":this});
 				}
 				break;
 		}
@@ -354,6 +354,55 @@ class Meido extends Attr{
 			break;
 		}
 	}
+	effect_calc(state, x, data={}){
+		let oP=''
+		let alliance=''
+		switch(state){
+			case "opinionCalc":
+			case "allyCalc":
+				oP=data.opponent;
+				if(oP.has_attr('meido')){
+					x+=100;
+					log_message('meido friendship');
+				}
+				break;
+			case "followCalc":
+				let follow_type = data.follow_type;
+				if(follow_type=='aggro')
+					x-=100;
+				else if(follow_type=="def")
+					x+=100;
+				break;
+			case "aggroCalc":
+				oP=data.opponent;
+				if(oP.has_attr('meido')){
+					x-=100;		
+					log_message('meido aggro reduce');			
+				}
+					
+				break;
+			case "allianceLeaveCalc":
+				alliance=data.alliance;
+				log_message(this.player.name)
+				log_message(alliance)
+				alliance.members.forEach(function(member){
+					if(member.has_attr('meido')){	
+						x+=100;
+					}
+				})
+				break;
+			case "allianceUnityUpdate":
+				alliance=data.alliance;
+				log_message(alliance)
+				alliance.members.forEach(function(member){
+					if(member.has_attr('meido')){	
+						x+=20;
+					}
+				})
+				break;
+		}
+		return x
+	}
 }
 
 class Ninja extends Attr{
@@ -402,10 +451,32 @@ class Gauron extends Attr{
 	constructor(player){
 		super("gauron", player);
 		this.has_info = true;		
-		this.dmgReductionB =4;
+		this.dmgReductionB =3;
 		
 		this.revives=0;
 		this.revive_chance=100; //percent
+		this.revival_names = [
+			'Gauron the unbeatable', 
+			'Gauron the undefeated', 
+			'Gauron the unkillable', 
+			'Gauron the deathless',
+			'Gauron the invincible',
+			'Gauron the undying', 
+			'Gauron the immortal', 
+			'Gauron the eternal', 
+			]
+		this.revival_imgs = [
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022220185391861831/FaceApp_1663394335621.jpg',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022227840848117800/gauron2.png',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022231378005348392/gauron3.png',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022227841619853332/gauron4.png',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022227842127380490/gauron5.png',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022227842576175114/gauron6.png',
+			// 'https://cdn.discordapp.com/attachments/998843166138572821/1022227882858254446/FaceApp_1663394524933.jpg',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022233822647038062/FaceApp_1663394524933.png',
+			'https://cdn.discordapp.com/attachments/998843166138572821/1022244467765411941/gauron_the_immortal.gif',
+		]
+		this.revival_milestones = [1,2,3,5,8,10,13,16]
 	}
 	effect(state, data={}){
 		switch(state){
@@ -421,6 +492,13 @@ class Gauron extends Attr{
 		this.revives++;
 		this.revive_chance-=1;
 		
+		//change name
+		let revive_index = this.revival_milestones.indexOf(this.revives)
+		if(revive_index!=-1){
+			this.player.change_name(this.revival_names[revive_index])
+			this.player.change_img(this.revival_imgs[revive_index])
+		}
+		
 		//fake death
 		$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + this.player.img + "'></img><del>" + this.player.death + "</del></td>>");
 		this.player.death = '';
@@ -431,10 +509,11 @@ class Gauron extends Attr{
 
 		
 		//set health
-		this.player.maxHealth = Math.max(this.player.maxHealth-2, 1);
+		this.player.maxHealth = Math.max(this.player.maxHealth-5, 5);
 		this.player.health = this.player.maxHealth;
 
 		this.player.resetPlannedAction();
+		
 		
 		//clear status
 		this.player.status_effects.forEach(function(eff){
@@ -445,15 +524,200 @@ class Gauron extends Attr{
 		
 		//stat increase
 		this.dmgReductionB *=1.1;
-		this.intimidationBonus += 3;
+		this.intimidationBonus += 5;
 	}
-		stat_html(){
+	stat_html(){
 		let html= super.stat_html()+
 			"<span><b>Deaths:</b>"+this.revives+"</span><br>"+
 			"<span><b>Death Chance:</b>"+(100-this.revive_chance)+"%</span><br>"
 		return html;
 	}
 }
+
+class AidsAttr extends Attr{
+	constructor(player){
+		super("aids", player);
+		this.has_info = true;		
+		this.infections = 0
+		this.player.inflict_status_effect(new AidsStatus(10,"", "parent"))
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				let eff = this.player.get_status_effect("aids")
+				if(!eff)
+					this.player.inflict_status_effect(new AidsStatus(10,"", "parent"));
+				else
+					this.infections = eff.infections;
+			break;
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()+
+			"<span><b>Infections:</b>"+this.infections+"</span><br>"
+		return html;
+	}
+}
+
+class AidsStatus extends StatusEffect{
+	constructor(level, source="", patient_zero=""){
+		super("aids", level, 9999, {'dmgReductionB':[1,0.02]});
+		this.icon = "🎗️";
+		this.source = source;
+		this.patient_zero = patient_zero;
+		if(patient_zero=="parent")
+			this.patient_zero = this;
+		this.infections = 0;
+		this.original_max_health = 0;
+		this.infected_time = 0;
+	}
+	afflict(player){
+		this.player=player;
+		this.original_max_health = player.maxHealth;
+		if(this.source)
+			this.source.infections++;
+		if(this.patient_zero && this.patient_zero!=this)
+			this.patient_zero.infections++;
+	}
+	
+	stack_effect(eff){
+		if(eff.level > this.level){
+			this.level++;
+			this.update_data();
+		}		
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.infected_time++;
+				if(this.level>5){
+					if(roll_range(0,this.level+10)>14){
+						this.player.health-=roll_range(1,this.level/2)
+						if(this.player.maxHealth>5 && roll_range(0,this.level+100)>104){
+							this.player.maxHealth-=1;
+						}
+						if(this.player.health<=0){
+							this.player.death = "died of aids"
+						}
+					}
+				}
+				if(this.level<8){
+					if(this.infected_time%40==0){
+						this.level++;
+						this.update_data();
+					}
+				}
+				else{
+					if(this.infected_time%60==0){
+						this.level++;
+						this.update_data();
+					}
+				}
+				
+				break;
+			case "defend":
+				if(!data.opponent.get_status_effect("aids"))
+					data.opponent.inflict_status_effect(new AidsStatus(1, this, this.patient_zero))
+				else
+					data.opponent.inflict_status_effect(new AidsStatus(this.level, this, this.patient_zero))
+				break;
+		}
+	}
+	show_info(){
+		let status_info=
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
+			"<span><b>Infection Duration:</b>"+this.infected_time+"</span><br>"+
+			"<span><b>Level:</b>"+this.level+"</span><br>"+
+			this.stat_html()+
+		"</div>"
+		
+		$('#extra_info_container').html(status_info);
+	}
+	stat_html(){
+		let html= super.stat_html()+
+			"<span><b>Infections:</b>"+this.infections+"</span><br>"
+			
+		if(this.source)
+			html+="<span><b>Infected by:</b>"+this.source.player.name+"</span><br>"
+		if(this.patient_zero && this.patient_zero!=this){
+			html+="<span><b>Patient Zero:</b>"+this.patient_zero.player.name+"</span><br>"
+		}
+		return html;
+	}
+	
+}
+
+class Band extends Attr{
+	constructor(player){
+		super("band", player);
+		// this.guitar_dmg = 1.2;
+		this.has_info=true;
+	}	
+	item_odds(prob, item_type, data={}){
+		if(item_type=='wep'){
+			prob.push(["guitar",150])
+		}
+	}
+	effect(state, data={}){
+		switch(state){
+			case "doActionAfter":
+				if(!(this.player.currentAction instanceof ForageAction))
+					return;
+				if(this.player.lastActionState=="forage weapon"){
+					if(this.player.weapon.name=="guitar"){
+						this.player.weapon.uses=3;
+						this.player.weapon.fightBonus=1.8;
+					} 
+				}
+				super.effect(state,data);
+				break;
+			/*
+			case "attack":
+				if(this.player.weapon.name=="guitar"){
+					this.player.fightDmgB *= this.guitar_dmg;
+				}
+				break;
+			*/
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()+
+		// "<span><b>Bonus Guitar Damage:</b>"+this.guitar_dmg+"</span><br>"+
+		"<span class='desc'>"+
+			"<span>WADDA FULL</span><br>"+	
+		"</span>"
+		return html;
+	}
+}
+
+class Kurt extends Band{
+	constructor(player){
+		super(player);
+		this.name = "kurt"
+		this.display_name="Kurt"
+	}
+	item_odds(prob, item_type, data={}){
+		if(item_type=='wep'){
+			prob.push(["guitar",500]);
+			prob.push(["shotgun", 600]);
+		}
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				if(this.player.weapon instanceof Shotgun){
+					this.player.health = 0;
+					this.player.death = "shoots himself in the face";
+				} 
+				
+				super.effect(state,data);
+				break;
+		}
+	}
+}
+
 
 
 

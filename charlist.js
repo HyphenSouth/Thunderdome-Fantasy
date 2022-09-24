@@ -56,7 +56,10 @@ var charlist_gochiusa = [
 	},
 	{
 		"name": "Tedeza Rize ",
-		"img": "https://cdn.myanimelist.net/images/characters/15/243377.jpg"
+		"img": "https://cdn.myanimelist.net/images/characters/15/243377.jpg",
+		"attr": [
+			"toji"
+		]
 	},
 	{
 		"name": "Ujimatsu Chiya ",

@@ -114,11 +114,11 @@ class PaperMaster extends Attr{
 					
 					let item_type = roll(item_prob)
 					if(item_type == 'wep')
-						this.player.setPlannedAction("createWeapon", 5, {"class":PaperCreateAction,"creation_type":'wep',"attr":this});
+						this.player.setPlannedAction("createWeapon", 5, PaperCreateAction, {"creation_type":'wep',"attr":this});
 					if(item_type == 'off')
-						this.player.setPlannedAction("createOffhand", 5, {"class":PaperCreateAction,"creation_type":'off',"attr":this});
+						this.player.setPlannedAction("createOffhand", 5, PaperCreateAction, {"creation_type":'off',"attr":this});
 					if(item_type == 'fam')
-						this.player.setPlannedAction("createFamiliar", 5, {"class":PaperCreateAction,"creation_type":'fam',"attr":this});
+						this.player.setPlannedAction("createFamiliar", 5,PaperCreateAction, {"creation_type":'fam',"attr":this});
 				}
 				break;
 			case "turnEnd":

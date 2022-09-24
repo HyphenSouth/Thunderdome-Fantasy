@@ -69,6 +69,7 @@ class Char {
 		//the action performed in the previous turn
 		//used to plan current action
 		this.plannedAction="";
+		this.plannedActionClass = "";
 		this.plannedActionData = {};
 		this.currentAction = {};
 		this.lastAction={};
@@ -109,6 +110,8 @@ class Char {
 		this.follow_target = "";
 		this.ally_target = "";
 		
+		this.danger_score = 0;
+		
 		this.opponents = [];
 		this.last_opponent = "";
 		this.followers = [];
@@ -126,7 +129,11 @@ class Char {
 		this.goal = "";
 
 		this.unaware = false;
-		this.incapacitated = false;		
+		this.incapacitated = false;
+		//if the player can fight back when attacked
+		this.fight_back = true;
+		
+		this.death = "Cast in the name of God, Ye Guilty";
 		this.dead = false;
 	}
 
@@ -249,6 +256,19 @@ class Char {
 		this.attributes.forEach(function(attr,index){
 			attr.effect(state, data);
 		});		
+	}
+	apply_all_calcs(state, x, data={}){
+		if(this.weapon)
+			x=this.weapon.effect_calc(state, x, data)
+		if(this.offhand)
+			x=this.offhand.effect_calc(state, x, data)
+		this.status_effects.forEach(function(eff,index){
+			x=eff.effect_calc(state, x, data);
+		});	
+		this.attributes.forEach(function(attr,index){
+			x=attr.effect_calc(state, x, data);
+		});	
+		return x
 	}
 
 	apply_player_effects(state, data={}){
@@ -392,7 +412,7 @@ class Char {
 	}	
 		
 	//action planning
-	setPlannedAction(action, actionPriority, data={}){
+	setPlannedAction(action, actionPriority, actionClass, data={}){
 		if(actionPriority<this.actionPriority){
 			log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
 			return false
@@ -406,7 +426,8 @@ class Char {
 		log_message(this.name +"'s "+ this.plannedAction +" replaced with " +action+ " " +actionPriority, 0);
 		this.actionPriority = actionPriority;
 		this.plannedAction = action;
-		this.plannedActionData = data;
+		this.plannedActionData = data;		
+		this.plannedActionClass = actionClass
 		this.currentAction = {};
 		return true;
 	}
@@ -414,11 +435,12 @@ class Char {
 	resetPlannedAction(){
 		this.actionPriority=0;
 		this.plannedAction="";
+		this.plannedActionClass = "";
 		this.plannedActionData ={};
 		
 		// this.lastAction = this.currentAction;
 		this.currentAction = {};
-		this.plannedTarget = "";
+		// this.plannedTarget = "";
 	}
 	
 	//check for aware and in range players
@@ -454,6 +476,7 @@ class Char {
 		}
 		
 		this.opinionUpdate();
+		this.danger_score = this.get_danger_level();
 		
 		this.follow_target = "";
 		this.fight_target = "";		
@@ -505,27 +528,43 @@ class Char {
 		
 		this.apply_all_effects("opinionUpdate");
 	}
-	//calculates some stats on the opinions
-	opinion_stats(){
-		let sum = 0
-		let avg = 0
-		let sd = 0
-		//sum 
-		this.opinions.forEach(function(opinion){
-			sum += opinion;
-		})
-		avg = sum/this.opinions.length
-		//sd 
-		let var_sum = 0
-		this.opinions.forEach(function(opinion){
-			let variance = Math.pow(opinion - avg, 2)
-			var_sum+=variance
-		})
-		sd = Math.sqrt(var_sum/this.opinions.length)
-		console.log(this.moral[0]+this.personality[0])
-		console.log('sum: '+sum)
-		console.log('avg: '+avg)
-		console.log('sd: '+sd)
+	
+	//get the level of danger at a given point
+	get_danger_level(dist=75, coords=[]){
+		let danger_score = 0
+		let nearby=[];
+		let x=-1;
+		let y=-1;
+		if(coords.length<2){
+			nearby = this.nearbyPlayers(dist)
+			x=this.x
+			y=this.y
+		}
+		else{
+			nearby = nearbyPlayers(x,y, dist)
+			x=coords[0]
+			y=coords[1]
+		}
+		let tP = this;
+		nearby.forEach(function(oP){
+			let player_danger_score = get_player_danger_score(tP,oP)
+			danger_score += player_danger_score
+			if(player_danger_score>200)
+				danger_score += 50
+		});
+		
+		if(nearby.length>0)
+			danger_score = danger_score/Math.min(nearby.length,5)
+		//terrain
+		danger_score += (Math.pow(3,getTerrain(x,y).danger)-1)*12
+		if(!safeBoundsCheck(x,y))
+			danger_score += 100
+		
+		danger_score = this.apply_all_calcs('dangerCalc', danger_score, {'coords':coords})	
+		danger_score -= this.aggroB/10
+		danger_score = Math.round(danger_score)
+		
+		return danger_score;
 	}
 		
 	//offered to join alliance
@@ -539,8 +578,9 @@ class Char {
 		if(this.rival==oP)
 			score -= 100;		
 		if(this.ally_target == oP)
-			score += 500;		
+			score += 500;
 		
+		//accepting another player into alliance
 		if(this.alliance){
 			log_message('alliance invite offer')
 			// accept into alliance
@@ -553,11 +593,12 @@ class Char {
 					return				
 				score += get_ally_score(member,oP)/(tP.alliance.members.length*2);
 			});
-			score -= this.alliance.members.length * 30
+			score -= ((this.alliance.members.length-2)/max_alliance_size * 100)
 			log_message(score)
 			if(score>roll_range(150,300))
 				return true;			
 		}
+		//joining someone else's alliance
 		else if(oP.alliance){
 			log_message('alliance join offer')
 			//join existing alliance
@@ -578,12 +619,12 @@ class Char {
 			if(score>roll_range(150,250))				
 				return true;	
 		}
+		//starting a new alliance
 		else{
 			log_message('alliance start offer')
 			//starting new alliance
 			if(alliances.length>=max_alliance_count)
 				return false
-			
 			if(this.personality == oP.personality){
 				//same personality
 				score *= 1.5
@@ -592,10 +633,11 @@ class Char {
 				score *= 0.5
 			}
 			else{
-				score += 80
+				score += 50
 			}
+			
 			log_message(score)
-			if(score>roll_range(150,250))		
+			if(score>roll_range(150,250))	
 				return true;					
 		}
 		return false;
@@ -610,6 +652,7 @@ class Char {
 		let tP = this
 		let target = '';
 		let target_score = 0
+		//choose highest target score
 		this.awareOf.forEach(function(oP){
 			let score = get_follow_score(tP,oP,follow_type);
 			if(!target){
@@ -633,8 +676,7 @@ class Char {
 			return ""
 		}
 		let tP = this
-		let target_lst = []
-		let base_score = 100
+		let target_lst = [['',Math.min(this.peaceB/3,200)]]
 		
 		this.inRangeOf.forEach(function(oP){
 			if(tP==oP)
@@ -659,7 +701,7 @@ class Char {
 			return ""
 		}
 		let tP = this
-		let target_lst = []
+		let target_lst = [['',150]]
 		
 		this.awareOf.forEach(function(oP){
 			if(tP==oP)
@@ -679,22 +721,13 @@ class Char {
 	}
 	
 	turnStart(){
-	}
-	
-	//plan the next action
-	/*
-	calculate bonuses
-	apply inventory effects
-	choose an action
-	*/
-	//decide what action to take for the next turn
-	planAction(){
 		//calculate bonuses
 		this.calc_bonuses();
 		//reset variables
 		this.current_turn_fights = 0
 		this.unaware = false;
 		this.incapacitated = false;
+		this.fight_back = true;
 		this.statusMessage = "";
 		this.interrupted = false;
 		
@@ -721,9 +754,18 @@ class Char {
 			this.lastFight=0;		
 				
 		this.checkSurroundingPlayers();				
-		this.opinionUpdate();	
-		
-		
+		this.opinionUpdate();
+		this.planAction()
+	}
+	
+	//plan the next action
+	/*
+	calculate bonuses
+	apply inventory effects
+	choose an action
+	*/
+	//decide what action to take for the next turn
+	planAction(){		
 		//plan next action
 		/*
 			out of bounds: move to center
@@ -738,14 +780,14 @@ class Char {
 				
 		if(this.energy<=0){
 			// this.setPlannedAction("rest", 20);
-			this.setPlannedAction('rest', 20, {'class':RestAction});
+			this.setPlannedAction('rest', 20, RestAction);
 			log_message('rest')
 		}
 		//force movement to center
 		if(!safeBoundsCheck(this.x, this.y)){
 			this.oobTurns = this.oobTurns+1;
 			// this.setPlannedAction("move", 9,{'targetX':mapSize/2, 'targetY':mapSize/2});
-			this.setPlannedAction('move', 9,{'class':MoveAction, 'targetCoords':[mapSize/2,mapSize/2]});
+			this.setPlannedAction('move', 9, MoveAction, {'targetCoords':[mapSize/2,mapSize/2]});
 			// this.currentAction.targetX=mapSize/2;
 			// this.currentAction.targetY=mapSize/2;
 			log_message(this.name +" moving to center", 1)
@@ -755,7 +797,7 @@ class Char {
 		}
 
 		//forage if energy is low
-		if(getTerrain(this.x,this.y).danger==0){
+		if(getTerrain(this.x,this.y).danger==0 && this.danger_score<roll_range(150, 500)){
 			//action check update
 			if(this.lastActionState!="foraging" && this.lastActionState != "sleeping"){
 				let energy_percent = (this.energy/this.maxEnergy) *100;
@@ -765,26 +807,15 @@ class Char {
 					if(energy_percent<20){forageLv = 7;}
 					if(energy_percent < 10){forageLv = 14;}
 					if(energy_percent < 5){forageLv = 19;}
-					this.setPlannedAction('forage', forageLv,{'class':ForageAction});
+					this.setPlannedAction('forage', forageLv, ForageAction);
 				}
 				//forage if health is low and alone
 				else if((Math.pow(this.maxHealth - this.health,2) > Math.random() * 2500+ 2500  /*&& this.awareOf.length==0*/)){
-					this.setPlannedAction('forage', 2,{'class':ForageAction});
+					this.setPlannedAction('forage', 2, ForageAction);
 				}
 			}
 		}		
-		/*
-		//move away from danger
-		if(getTerrain(this.x,this.y).danger>1){
-			this.setPlannedAction("terrainEscape", 7)
-			log_message('terrain escape')
-		}
-		if(this.inRangeOf.length>0 && (1-(this.health/this.maxHealth))*100+(this.peaceB - this.aggroB )>roll_range(0, 250)){
-		// if(this.inRangeOf.length>0 && (1-(this.health/this.maxHealth))*100+(this.peaceB - this.aggroB )>roll_range(0, 1)){
-			this.setPlannedAction("playerEscape", 6)
-			log_message('player escape')
-		}
-		*/
+		
 		//fight
 		if(this.fight_target){
 			let fightChance = baseFightChance+this.aggroB;
@@ -798,11 +829,25 @@ class Char {
 				if(this.setPlannedAction("fight",6)){  
 					this.plannedTarget = this.fight_target;
 				}*/
-				this.setPlannedAction('fight', 6, {'class':FightAction, 'target':this.fight_target})
+				this.setPlannedAction('fight', 6, FightAction, {'target':this.fight_target})
 			}
 			if(!fight_target)
 				log_message('no target found')
 		}
+		
+		//move away from danger
+		if(getTerrain(this.x,this.y).danger>1){
+			// this.setPlannedAction("terrainEscape", 7)
+			this.setPlannedAction("terrainEscape", 7, TerrainEscapeAction)
+			log_message('terrain escape')
+		}
+		if(this.danger_score>roll_range(100, 500)){
+		// if(this.danger_score>roll_range(-1000, -1000)){
+			// this.setPlannedAction("playerEscape", 6)
+			this.setPlannedAction("playerEscape", 60, PlayerEscapeAction)
+			log_message('player escape')
+		}
+		
 		
 		//continue with current action if there is one
 		if(this.currentAction.name){
@@ -836,10 +881,10 @@ class Char {
 			//choose new action
 			let action_option = roll(options);
 			if(action_option == "follow"){
-				this.setPlannedAction("follow" ,1,{'class':FollowAction,'target':this.follow_target})
+				this.setPlannedAction("follow" ,1, FollowAction, {'target':this.follow_target})
 			}
 			else if(action_option == "ally"){
-				this.setPlannedAction("ally", 5, {'class':AllianceAction, 'target':this.ally_target})
+				this.setPlannedAction("ally", 5, AllianceAction, {'target':this.ally_target})
 			}
 			else if(action_option == "sleep"){
 				let sleepLv= 3;
@@ -852,10 +897,10 @@ class Char {
 				if(this.lastSlept >= 96){
 					sleepLv = 21
 				}
-				this.setPlannedAction("sleep", sleepLv,{'class':SleepAction})
+				this.setPlannedAction("sleep", sleepLv, SleepAction)
 			}
 			else{
-				this.setPlannedAction("move", 1,{'class':MoveAction})
+				this.setPlannedAction("move", 1, MoveAction)
 			}
 		}
 		
@@ -883,8 +928,8 @@ class Char {
 				
 		//set action
 		if(!this.currentAction.name){
-			if('class' in this.plannedActionData){
-				this.currentAction = new this.plannedActionData['class'](this, this.plannedActionData)
+			if(this.plannedActionClass){
+				this.currentAction = new this.plannedActionClass(this, this.plannedActionData)
 			}
 			/*
 			switch(this.plannedAction){
@@ -934,6 +979,7 @@ class Char {
 			this.currentAction.perform()
 			this.currentAction.action_successful()
 		}
+		// this.apply_all_effects("doActionAfter",{'action':this.currentAction});
 		// this.finishedAction = true;
 		//toggle class for the last action
 		/*
@@ -961,40 +1007,26 @@ class Char {
 		if(this.health > 0)
 			this.apply_all_effects("turnEnd");		
 	}
-	
-	//todo
-	action_terrain_escape(){
-		this.action_move()
-		this.statusMessage = "looks for safer ground";
-		this.apply_all_effects("terrainEscape");
-		this.resetPlannedAction()
-	}
-	//todo
-	action_player_escape(){
-		this.action_move()
-		this.statusMessage = "tries to run away";
-		this.apply_all_effects("playerEscape");
-		this.resetPlannedAction()
-	}
 		
 	//move towards target through regular means
-	moveToTarget(actionTargetX, actionTargetY){
+	moveToTarget(actionTargetX, actionTargetY, moveDist=this.moveSpeed * this.moveSpeedB){
+		// log_message(this.name+' moves')
 		//Calculating distance from target
 		let distX = actionTargetX - this.x;
 		let distY = actionTargetY - this.y;
 		let dist = Math.sqrt(Math.pow(distX,2) + Math.pow(distY,2));
 		let targetX = 0;
 		let targetY = 0;
-				
+		// log_message(moveDist)
 		//move towards target location
-		if(dist <= this.moveSpeed * this.moveSpeedB){
+		if(dist <= moveDist){
 			//target within reach
 			targetX = actionTargetX;
 			targetY = actionTargetY;
 		} else {
 			//target too far away
-			let shiftX = distX / (dist/(this.moveSpeed * this.moveSpeedB));
-			let shiftY = distY / (dist/(this.moveSpeed * this.moveSpeedB));
+			let shiftX = distX / (dist/(moveDist));
+			let shiftY = distY / (dist/(moveDist));
 			//destination coords
 			targetX = this.x + shiftX;
 			targetY = this.y + shiftY;
@@ -1007,17 +1039,17 @@ class Char {
 				if(swimChance == "no"){
 					var redirectTimes = 0;
 					var redirectDir = roll([[-1,1],[1,1]]);
-					var initialDir = Math.acos(shiftY/(this.moveSpeed*this.moveSpeedB));
+					var initialDir = Math.acos(shiftY/(moveDist));
 					var tries = 314;
 					do {					
 						redirectTimes++;
 						let newDir = initialDir + redirectDir * redirectTimes * 0.05;
-						shiftX = (this.moveSpeed * this.moveSpeedB) * Math.sin(newDir);
-						shiftY = (this.moveSpeed * this.moveSpeedB) * Math.cos(newDir);
+						shiftX = (moveDist) * Math.sin(newDir);
+						shiftY = (moveDist) * Math.cos(newDir);
 						targetX = this.x + shiftX;
 						targetY = this.y + shiftY;
 						tries--;
-					} while (getTerrainType(targetX,targetY) == "water" && tries > 0 && safeTerrainCheck(targetX,targetY));
+					} while (getTerrainType(targetX,targetY) == "water" && tries > 0 && safeBoundsCheck(targetX,targetY));
 				}
 			}
 		}
@@ -1146,7 +1178,7 @@ class Char {
 				"<img src='" + this.img + "' onclick='highlight_clicked("+this.id+")'>"+ //img 
 				"<div style='position:absolute;width:50px;height:60px;z-index:2;top:0;left:0;pointer-events: none;'>"+ 
 					"<div class='healthBar'></div><div class='energyBar'></div>"+ //hp+ep bar
-					"<div class='kills'></div>"+		//kill counter
+					"<div class='kills'></div>"+ //kill counter
 				"</div>"+
 			
 				//info section
@@ -1209,7 +1241,7 @@ class Char {
 				if(attr.display){
 					// attrHtml=attrHtml+attr.name+",";
 					if(attr.has_info){
-						attrHtml=attrHtml+"<span onClick='player_extra_info("+tP.id+",\"attr\","+attr_id+")'><u>"+attr.name+"</u>,</span>"
+						attrHtml=attrHtml+"<span onClick='player_extra_info("+tP.id+",\"attr\","+attr_id+")'><u>"+attr.display_name+"</u>,</span>"
 					}
 					else{
 						attrHtml=attrHtml+"<span>"+attr.name+",</span>"
@@ -1293,11 +1325,13 @@ class Char {
 			"<span>Exp Dmg: x"+roundDec(Math.pow(this.killExp,this.exp/100))+"</span><br>"+
 			"<span>Last Fight: "+this.lastFight+"</span><br>"+
 			"<span>Last Slept: "+this.lastSlept+"</span><br>"+
+			"<span>Area Danger Levels: "+this.danger_score+"</span><br>"+
 			"<span>Aware Of: "+this.awareOf.length+"</span><br>"+
 			"<span>In Range: "+this.inRangeOf.length+"</span><br>"+
 			"<span>Followers: "+this.followers.length+"</span><br>"+
 			"<span>Attackers: "+this.opponents.length+"</span><br>"+
 			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"
+			
 			// "<span>Attackable: "+this.attackable.length+"</span><br>"
 		/*
 		if(this.lastAction){
@@ -1317,11 +1351,11 @@ class Char {
 		if(this.unaware){
 			extra_info= extra_info + "<span>Unaware</span><br>"
 		}
-		else if(this.incapacitated){
+		if(this.incapacitated){
 			extra_info= extra_info + "<span>Incapacitated</span><br>"
 		}
-		
-		extra_info = extra_info + "</div>"
+
+		extra_info += "</div>"
 		$('#extra_info_container').html(extra_info);
 	}
 	

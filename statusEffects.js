@@ -84,9 +84,9 @@ class StatusEffect extends StatMod{
 	}
 }
 
-class EscapeAction extends Action{
+class TrapEscapeAction extends Action{
 	constructor(player, data){		
-		super("escape", player, 999, 22)
+		super("trap escape", player, 999, 22)
 		this.effect = data.effect
 		this.player.unaware=true;
 		this.player.incapacitated=true;
@@ -149,7 +149,7 @@ class Trapped extends StatusEffect{
 		this.player.incapacitated=true;	
 		// let player_action_complete = this.player.currentAction.turn_complete
 
-		this.player.currentAction = new EscapeAction(this.player, {'effect':this})
+		this.player.currentAction = new TrapEscapeAction(this.player, {'effect':this})
 		this.player.currentAction.turn_complete = true
 		this.player.div.find('.charName').addClass('trapped');
 	}
@@ -226,7 +226,7 @@ class Trapped extends StatusEffect{
 				// if(this.player.lastAction="trapped"){
 				log_message(this.player.name + " escape planning")
 				if(this.player.currentAction.name!='escape')
-					this.player.setPlannedAction("escape", 22,{'class':EscapeAction, 'effect':this});
+					this.player.setPlannedAction("escape", 22, TrapEscapeAction, {'effect':this});
 				// this.player.setPlannedAction("escape", 22);
 				// this.player.awareOf=[];
 				// this.player.inRangeOf=[];
@@ -339,7 +339,7 @@ class Charm extends StatusEffect{
 				//force player to attack target
 				if(this.aggro && this.player.inRangeOfPlayer(this.target) && this.level * 10 >roll_range(0,105)){
 					log_message(this.player.name +" forced to fight " + this.target.name)
-					this.player.setPlannedAction("fight", 11,{'class':FightAction, 'target':this.target});
+					this.player.setPlannedAction("fight", 11, FightAction, {'target':this.target});
 					/*
 					if(this.player.setPlannedAction("fight", 11)){
 						log_message(this.player.name +" forced to fight " + this.target.name)
@@ -350,7 +350,7 @@ class Charm extends StatusEffect{
 				//force player to follow target
 				else if(this.player.awareOfPlayer(this.target) && this.level * 9 >roll_range(0,100)){
 					log_message(this.player.name +" forced to follow " + this.target.name)
-					this.player.setPlannedAction("follow", 11,{'class':FollowAction, 'target':this.target});
+					this.player.setPlannedAction("follow", 11, FollowAction, {'target':this.target});
 					/*
 					if(this.player.setPlannedAction("follow", 11)){
 						log_message(this.player.name +" forced to follow " + this.target.name)
@@ -441,7 +441,7 @@ class Berserk extends StatusEffect{
 				//forced attack
 				if(this.player.inRangeOf.length>0){
 					log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
-					this.player.setPlannedAction("fight", 12,{'class':FightAction, 'target':this.player.inRangeOf[0]});					
+					this.player.setPlannedAction("fight", 12,FightAction, {'target':this.player.inRangeOf[0]});					
 					/*
 					if(this.player.setPlannedAction("fight", 12)){
 						// log_message(this.player.name +" angrily attacks " + this.player.inRangeOf[0].name)
@@ -452,7 +452,7 @@ class Berserk extends StatusEffect{
 				//forced follow
 				else if(this.player.awareOf.length>0){
 					log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
-					this.player.setPlannedAction("follow", 12,{'class':FollowAction, 'target':this.player.awareOf[0]});
+					this.player.setPlannedAction("follow", 12, FollowAction, {'target':this.player.awareOf[0]});
 					/*
 					if(this.player.setPlannedAction("follow", 12)){
 						// log_message(this.player.name +" angrily follows " + this.player.awareOf[0].name)
@@ -509,7 +509,7 @@ class Comfy extends Peace{
 		switch(state){
 			case "planAction":
 				if(this.player.lastSlept>12)
-					this.player.setPlannedAction("sleep", 8,{'class':SleepAction, 'min_duration':6})
+					this.player.setPlannedAction("sleep", 8,SleepAction, {'min_duration':6})
 					// this.player.setPlannedAction("sleep", 8)				
 				break;
 			case "turnEnd":
@@ -633,7 +633,8 @@ class FrozenAction extends Action{
 			this.player.statusMessage = "thaws out";
 			// this.player.finishedAction = true;	
 			this.player.lastActionState ="thaw";
-			this.effect.wear_off();
+			if(!this.player.status_effects.indexOf(this.effect)<0)
+				this.effect.wear_off();
 		}
 		else{
 			//take damage
@@ -713,7 +714,7 @@ class Frozen extends StatusEffect{
 				break;
 			case "planAction":
 				if(this.player.currentAction.name!='frozen')
-					this.player.setPlannedAction("frozen", 22,{'class':FrozenAction, 'effect':this});
+					this.player.setPlannedAction("frozen", 22, FrozenAction, {'effect':this});
 				// this.player.awareOf=[];
 				// this.player.inRangeOf=[];
 				break;

@@ -157,9 +157,9 @@ function get_follow_score(tP,oP, follow_type){
 		score += 100
 			
 	//check if tP has special follow effects
-	tP.apply_all_effects("followCalc", {"opponent":oP});
+	score = tP.apply_all_calcs("followCalc", score, {"opponent":oP, "follow_type":follow_type});
 	//check if oP forces tP to follow
-	oP.apply_all_effects("followCalcOthers", {"opponent":tP});
+	score = oP.apply_all_calcs("followCalcOthers", score, {"opponent":tP, "follow_type":follow_type});
 	return score;
 }
 
@@ -172,13 +172,13 @@ function get_fight_score(tP, oP){
 		return 0
 	
 	let score = 100;
-	score = score - tP.opinions[oP.id];
+	score = score - (tP.opinions[oP.id]);
 	score = score - (oP.intimidation * 3);
 	score = score + tP.aggroB / 4;
 	score = score - tP.peaceB / 5;
 	
 	if(tP.inAlliance(oP)){
-		score -= tP.alliance.unity-80
+		score -= (tP.alliance.unity-80)
 		if(tP.moral=='Chaotic')
 			score += 10
 	}
@@ -210,16 +210,24 @@ function get_fight_score(tP, oP){
 		score += ((oP.health/oP.maxHealth)-0.5)*20
 	}
 	
-	if(tP.prevTarget == oP)
-		score += 20
+	if(tP.lastAction instanceof FightAction){
+		if(tP.lastAction.target == oP)
+			score +=30
+	}
+	else if(tP.lastAction instanceof FollowAction){
+		if(tP.lastAction.target == oP && tP.opinions[oP.id]<0)
+			score +=30
+	}
+		
+	// if(tP.prevTarget == oP)
+		// score += 20
 			
 	//check if tP has special aggro effects
-	tP.apply_all_effects("aggroCalc", {"opponent":oP});
+	score = tP.apply_all_calcs("aggroCalc", score, {"opponent":oP});
 	//check if oP forces tP to aggro
-	oP.apply_all_effects("aggroCalcOthers", {"opponent":tP});
+	score = oP.apply_all_calcs("aggroCalcOthers", score, {"opponent":tP});
 	return Math.round(score)
 }
-
 
 function get_ally_score(tP, oP){
 	if(oP==tP)
@@ -264,19 +272,37 @@ function get_ally_score(tP, oP){
 	
 	if(tP.personality == oP.personality){
 		//same personality
-		score += roll_range(-10, 50)
+		score += 20
 	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
 		//opposing personality
-		score += roll_range(-50, 10)
+		score -=20
 	}
-	else{
-		score += roll_range(-20, 20)
-	}
-				
+	
+	if(tP.moral=='Chaotic')
+		score-=40;
+	else if(tP.mora=='Lawful')
+		score+=20
+	
+	if(tP.alliance){
+		let opinion_sum=0
+		tP.alliance.members.forEach(function(member){
+			if(member==tP)
+				return
+			opinion_sum+=member.opinions[oP.id]
+			if(member.opinions[oP.id]<20){
+				score -= 50
+			}
+		})
+		if(opinion_sum/(tP.alliance.members.length-1)<expected_alliance_opinion-50)
+			score-=50
+		else if(opinion_sum/(tP.alliance.members.length-1)>expected_alliance_opinion+50)
+			score+=30
+	}	
+	
 	//check if tP has special aggro effects
-	tP.apply_all_effects("allyCalc", {"opponent":oP});
+	score = tP.apply_all_calcs("allyCalc", score, {"opponent":oP});
 	//check if oP forces tP to aggro
-	oP.apply_all_effects("allyCalcOthers", {"opponent":tP});
+	score = oP.apply_all_calcs("allyCalcOthers", score, {"opponent":tP});
 	
 	return score
 }
@@ -330,21 +356,76 @@ function opinion_calc(tP, oP){
 	if(tP.inAlliance(oP)){
 		tP.alliance.calc_opinions(tP, oP)
 	}
-	else{
-		//decrease opinions over time
-		if(tP.lastFight > 30){
-			tP.opinions[oP.id] = tP.opinions[oP.id] * Math.max(1-(roll_range(30,tP.lastFight)/600),0.75)
-			// tP.opinions[oP.id] -= Math.round(roll_range(0, tP.lastFight)/20)
-		}
-	}	
-	tP.apply_all_effects("opinionCalc", {"opponent":oP});
-	oP.apply_all_effects("opinionCalcOthers", {"opponent":tP});
+
+	//decrease opinions over time
+	if(tP.lastFight > 30){
+		tP.opinions[oP.id] -= Math.max(tP.opinions[oP.id] * Math.min(roll_range(30,tP.lastFight)/600,0.25), 50)
+		// tP.opinions[oP.id] -= Math.round(roll_range(0, tP.lastFight)/20)
+	}
+		
+	tP.opinions[oP.id] = tP.apply_all_calcs("opinionCalc",tP.opinions[oP.id], {"opponent":oP});
+	tP.opinions[oP.id] = oP.apply_all_calcs("opinionCalcOthers",tP.opinions[oP.id], {"opponent":tP});
 	tP.opinions[oP.id] = Math.round(tP.opinions[oP.id])
 	if(tP.opinions[oP.id]>max_opinion)
 		tP.opinions[oP.id] = max_opinion
 	else if(tP.opinions[oP.id]<min_opinion)
 		tP.opinions[oP.id] = min_opinion
 }
+
+function get_player_danger_score(tP, oP){
+	if(tP==oP)
+		return 0
+	if(!tP.inAlliance(oP)){	
+		player_danger_score = 5	
+		player_danger_score += oP.intimidation - tP.intimidation/2
+		player_danger_score -= (tP.opinions[oP.id])/5
+		
+		if(oP.weapon)
+			player_danger_score += 20
+		if(oP.offhand)
+			player_danger_score += 10
+		
+		if(tP.opinions[oP.id]>250)
+			player_danger_score-=30
+		else if(tP.opinions[oP.id]<-250)
+			player_danger_score+=10
+		
+		if(player_danger_score > 0){
+			player_danger_score *= (1 + (oP.health/oP.maxHealth))
+			player_danger_score *= (2 - (tP.health/tP.maxHealth))
+		}				
+		else{
+			player_danger_score *= (2 - oP.health/oP.maxHealth)	
+			player_danger_score *= (1 + (tP.health/tP.maxHealth))
+		}				
+		
+	}
+	else{
+		//alliance members
+		player_danger_score = -20		
+		player_danger_score -= oP.intimidation/5
+		player_danger_score -= tP.opinions[oP.id]/10
+		player_danger_score += tP.alliance.unity/10
+		
+		if(oP.weapon)
+			player_danger_score -= 10
+		if(oP.offhand)
+			player_danger_score -= 5
+		
+		if(player_danger_score > 0)
+			player_danger_score *= (2 - oP.health/oP.maxHealth)
+		else
+			player_danger_score *= (1 + (oP.health/oP.maxHealth))				
+	}
+	if(oP==tP.last_opponent)
+		player_danger_score += 50;
+	player_danger_score = tP.apply_all_calcs('playerDangerCalc', player_danger_score, {'opponent':oP})
+	player_danger_score = oP.apply_all_calcs('playerDangerCalcOther', player_danger_score, {'opponent':tP})
+				
+	return player_danger_score
+	// console.log(oP.name + ' ' +player_danger_score)
+}
+
 
 function doodadCheck(tP){
 	doodads.forEach(function(tD,index){
@@ -374,8 +455,6 @@ function rollDmg(tP, oP){
 		dmg = oP.health;
 	if(dmg<0)
 		dmg=0;
-	// dmg = attacker.apply_all_effects("dmgCalcOut", {"opponent":defender, "counter":counter, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
-	// dmg = defender.apply_all_effects("dmgCalcIn", {"opponent":attacker, "counter":counter, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg});
 	return dmg;
 }
 
@@ -402,6 +481,8 @@ function attack(attacker, defender, counter, fightMsg){
 	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
 
 	dmg = rollDmg(attacker, defender);
+	dmg = attacker.apply_all_calcs("dmgCalcOut", dmg, {"opponent":defender, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
+	dmg = defender.apply_all_calcs("dmgCalcIn", dmg, {"opponent":attacker, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
 	
 	fightMsg.events.push(attacker.name + " deals "+ roundDec(dmg)+ " damage to " + defender.name);
 	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg });
@@ -420,7 +501,8 @@ function fight_target(tP,oP){
 	oP.tblDiv.addClass("fighting");
 	
 	let fightMsg = {'fight':true, 'attacker': tP, 'defender': oP, 'events':[]}
-	events.push(fightMsg);	
+	events.push(fightMsg);
+	
 	
 	//fight opponent
 	attack(tP,oP, false, fightMsg);
@@ -431,13 +513,16 @@ function fight_target(tP,oP){
 	tP.opponents.push(oP);
 	
 	oP.last_opponent = tP;
-	oP.opponents.push(tP);
+	oP.opponents.push(tP);	
 	
-	tP.lastActionState = "fighting"
+	tP.lastActionState = "fighting"	
+	if(oP.currentAction)
+		oP.currentAction.attacked(tP,fightMsg);	
+	oP.lastActionState = "attacked";	
 	// tP.resetPlannedAction();
 	//tP kills oP
-	if(oP.health <= 0){
-		log_message(tP.name + " kills " + oP.name);
+	if(oP.health <= 0){	
+			log_message(tP.name + " kills " + oP.name);
 		tP.kills++;
 		// if(tP.personality == oP.personality && tP.personality != 'Neutral'){
 		if(tP.inAlliance(oP)){
@@ -473,10 +558,9 @@ function fight_target(tP,oP){
 	else{
 		//push event message
 		// pushMessage(tP, tP.name + " " + tP.statusMessage);
-		
 		//incapacitated
 		if(oP.incapacitated){
-			if(oP.lastActionState == "sleeping"){
+			if(oP.currentAction instanceof SleepAction){
 				oP.statusMessage = "attacked in their sleep by "+ tP.name;
 				// pushMessage(oP, "was attacked in their sleep by " + tP.name);
 				fightMsg.events.push(oP.name + " was attacked in their sleep by " + tP.name);
@@ -489,11 +573,18 @@ function fight_target(tP,oP){
 				oP.opinions[tP.id] -= 5;
 			}
 		}
+		//cannot fight back due to action
+		else if(!oP.fight_back){
+			oP.statusMessage = "does not fight back against " + tP.name;
+			// pushMessage(oP, " is unable to fight back against " + tP.name);
+			fightMsg.events.push(oP.name + " does not fight back against " + tP.name);
+			oP.opinions[tP.id] -= 10;
+		}
 		//unaware
 		else if(!(oP.awareOf.indexOf(tP)>=0)){
 			oP.statusMessage = "caught offguard";
 			// pushMessage(oP, oP.name + " is caught offguard by " + tP.name);
-			fightMsg.events.push( tP.name + " is caught offguard by " + tP.name);
+			fightMsg.events.push( tP.name + " is caught offguard by " + oP.name);
 			oP.opinions[tP.id] -= 10;
 		}
 		//out of range
@@ -516,7 +607,7 @@ function fight_target(tP,oP){
 			if(oP.statusMessage=="")
 				oP.statusMessage= "tries to fight back against " + tP.name + "'s corpse"
 		}
-		else{
+		else{			
 			//opponent counter attack
 			attack(oP,tP, true, fightMsg);
 			oP.current_turn_fights++;
@@ -559,24 +650,7 @@ function fight_target(tP,oP){
 		oP.opinions[tP.id] -= 60;
 	}
 
-	oP.lastActionState = "attacked";
-	if(oP.currentAction)
-		oP.currentAction.attacked()
-	/*
-	if(oP.finishedAction == false){
-		oP.finishedAction = true;
-		oP.interrupted = true;
-		//interrupt planned actions
-	}
-	oP.resetPlannedAction();
-	*/
 	log_message(tP.name +' vs '+oP.name)
-	log_message(tP.opponents)
-	log_message(oP.opponents)
-	// if(tP.health<=0){
-		// tP.die()
-	// }	
-	// if(oP.health<=0){
-		// oP.die()
-	// }
+	// log_message(tP.opponents)
+	// log_message(oP.opponents)
 }

@@ -5,7 +5,7 @@ var alliance_radius = 75;
 var alliance_id = 0;
 var base_unity = 200;
 var max_alliance_size = 6;
-
+var expected_alliance_opinion = 150
 var alliance_names = [
 	["Goat",true],
 	["Cow",true],
@@ -71,6 +71,9 @@ class Alliance{
 		alliance_names[this.name_id][1] = false;
 		
 		this.attack_target = "";
+		
+		this.max_action_points = 10;
+		this.action_points = this.max_action_points;
 	}
 	
 	//calculate opinion between members
@@ -78,8 +81,12 @@ class Alliance{
 		if(!oP in this.members){
 			return
 		}
-		tP.opinions[oP.id] += Math.min(this.unity/40,5)
+		if(tP.opinions[oP.id]<expected_alliance_opinion)
+			tP.opinions[oP.id] += Math.min((this.unity-100)/40,10)
+		else
+			tP.opinions[oP.id] += roll_range(0,1)
 		tP.opinions[oP.id] += tP.intimidation - oP.intimidation
+		tP.opinions[oP.id] = tP.apply_all_calcs("allianceOpinionCalc", tP.opinions[oP.id],{"opponent": oP, 'alliance':this});
 	}
 	
 	add_member(member){
@@ -89,14 +96,15 @@ class Alliance{
 	}
 	
 	leave_alliance(member){
+		log_message(member.name+' leaves alliance')
 		$('#char_' + member.id).removeClass('alliance')
 		$('#tbl_' + member.id).removeClass('alliance')
 		$("#alliance_"+this.id+"_char_" + member.id).remove()
-		
+		member.apply_all_effects("allianceLeave", {'alliance':this});
 		member.alliance = ""
 		this.members = arrayRemove(this.members, member)
 		if(this.members.length<=1){
-			this.disband()
+			this.disband(member.name+' depart')
 		}
 		else{
 			this.members.forEach(function(other_member){
@@ -110,9 +118,9 @@ class Alliance{
 		$("#alliance_"+this.id+"_char_" + member.id).remove()
 		
 		this.members = arrayRemove(this.members, member);
-		this.unity -= 150;
+		this.unity -= 100;
 		if(this.members.length<=1){
-			this.disband()
+			this.disband(member.name + ' death')
 		}
 		if(member==this.leader){
 			//assign new leader
@@ -120,27 +128,28 @@ class Alliance{
 		}
 	}	
 	
-	disband(){
+	disband(reason){
 		let tA = this
 		// update opinions
 		this.members.forEach(function(member){
 			tA.members.forEach(function(other_member){
 				if(member == other_member)
 					return
-				member.opinions[other_member.id] *=0.6
+				member.opinions[other_member.id] *= 0.6
 				member.opinions[other_member.id] -= 50
 			})
+			member.apply_all_effects("allianceDisband",{'alliance':this});
 		});
 		// remove alliance
 		this.active = false
 		this.members.forEach(function(member){
-			$("#alliance_"+tA.id+"_char_" + member.id).remove()
+			// $("#alliance_"+tA.id+"_char_" + member.id).remove()
 			$('#tbl_' + member.id).removeClass('alliance')
 			member.alliance = ""
 		});
 		if(selected_alliance_id==this.id)
 			selected_alliance_id = -1
-		
+		this.disband_reason = reason
 	}
 	
 	delete_alliance(){
@@ -155,11 +164,12 @@ class Alliance{
 		// $('#alliances .container.ally_active').last().after($("#alliance_" + this.id));
 		
 		$('#active_alliances').remove(this.tblDiv)
-		$('#disbanded_alliances').append(this.tblDiv)
+		$('#disbanded_alliances').prepend(this.tblDiv)
+		$("#alliance_" + this.id + " .disband_reason").html(this.disband_reason);
 	}
 	
 	update(){
-		this.unity += roll_range(-50,10) * (this.members.length-1)
+		this.unity += roll_range(-30,10) * (this.members.length-1)
 		let tA = this
 		let attackers = []
 		this.members.forEach(function(member){
@@ -167,8 +177,10 @@ class Alliance{
 				tA.member_death(member)
 				return
 			}
+			if(!tA.active)
+				 return
 			if(member.moral == 'Chaotic')
-				tA.unity -= 5			
+				tA.unity -= 10
 			
 			//check others opinions
 			let opinion_sum = 0;			
@@ -177,13 +189,25 @@ class Alliance{
 					return
 				let other_opinion = member.opinions[other_member.id]
 				opinion_sum += other_opinion
+				//if aware of ally
 				if(member.awareOfPlayer(other_member)){
-					tA.unity += Math.max((other_opinion-100)/5, 20)
+					// log_message(member.name+' can see ally ' + other_member.name)
+					if(other_opinion<expected_alliance_opinion-50)
+						tA.unity -= 5
+					else if(other_opinion>expected_alliance_opinion+100)
+						tA.unity += 5
+					
 					if(other_member==tA.leader)
-						tA.unity += 20
+						tA.unity += 5
 				}
 				else{
-					tA.unity += (other_opinion-100)/20
+					// log_message(member.name+' cannot see ally ' + other_member.name)
+					if(!(member.currentAction instanceof SleepAction)){
+						// log_message(member.name+' not asleep')
+						tA.unity -= 10
+						if(other_member==tA.leader)
+							tA.unity -= 5
+					}					
 				}
 			});
 			if(tA.attack_target)
@@ -194,17 +218,28 @@ class Alliance{
 				if(oP.alliance == tA)
 					tA.unity -= 150
 				if(oP == tA.attack_target)
-					tA.unity += 10
+					tA.unity += 5
 				if(!oP.dead){
 					attackers.push(oP)
 				}
 			});
+			tA.unity = member.apply_all_calcs("allianceUnityUpdate", tA.unity,{'alliance':tA});
 			
-			if(opinion_sum < roll_range(0,50)*(tA.members.length-1) - tA.peaceB){
-				log_message(member.name +' quits alliance')
-				this.leave_alliance(member)
-			}
-			
+			let leave_score = roll_range(20,expected_alliance_opinion-50)
+			leave_score -= member.peaceB/5
+			leave_score -= tA.unity/20
+			if(member.moral == 'Lawful')
+				leave_score -= 20
+			if(tA.members.length==2)
+				leave_score -= 20
+			if(member == tA.leader)
+				leave_score -= 5
+			leave_score -= member.apply_all_calcs("allianceLeaveCalc", 0, {'alliance':tA})
+			let opinion_avg = opinion_sum/(tA.members.length-1)
+			if(opinion_avg <  leave_score){
+				log_message(member.name +' quits alliance '+ leave_score+', '+ opinion_avg)
+				tA.leave_alliance(member)
+			}			
 		});
 		
 		this.unity = Math.min(Math.round(this.unity), 500)
@@ -235,10 +270,12 @@ class Alliance{
 		if (isNaN(this.unity))
 			this.unity=0
 		if(this.unity<=0)
-			this.disband()		
-		if(this.members.length<=1)
-			this.disband()
-		
+				this.disband('no unity')	
+		if(this.active){				
+			if(this.members.length<=1)
+				this.disband('1 mem left')
+		}
+				
 		if(!this.active)
 			this.delete_alliance();		
 	}
@@ -246,13 +283,13 @@ class Alliance{
 	alliance_plan_action(tP){
 		if(tP.awareOfPlayer(this.leader) && playerDist(tP,this.leader)>50){
 			if(Math.random()<0.8)
-				tP.setPlannedAction("follow", 3, {'class':FollowAction, 'target': this.leader})
+				tP.setPlannedAction("follow", 3, FollowAction, {'target': this.leader})
 		}
 		if(this.attack_target && Math.random()<0.9){
 			if(tP.inRangeOfPlayer(this.attack_target))
-				tP.setPlannedAction("follow", 3, {'class':FightAction, 'target': this.attack_target})
+				tP.setPlannedAction("follow", 3, FightAction, {'target': this.attack_target})
 			else if(tP.awareOfPlayer(this.attack_target)){
-				tP.setPlannedAction("follow", 4, {'class':FollowAction, 'target': this.attack_target})
+				tP.setPlannedAction("follow", 4, FollowAction, {'target': this.attack_target})
 			}
 		}
 	}
@@ -283,7 +320,7 @@ class Alliance{
 		if(this.attack_target)
 			alliance_info += "<span><b>Target: </b>"+this.attack_target.name+"</span><br>"
 		else
-			alliance_info += "<span><b>Target: </b>"+"None"+"</span><br>"
+			alliance_info += "<span><b>Target: </b>None</span><br>"
 		
 		alliance_info += 
 			"<div>"+
@@ -295,6 +332,9 @@ class Alliance{
 			"<td style='width:20px;'>"+member.moral[0] + member.personality[0]+"</td>" + 
 			"<td style='/*max-width:100px;*/ /* min-width:85px;*/ width:100px; word-wrap:break-word;'>" + member.name + "</td>"+
 			"<td style='width:50px; color:red;'>"+ Math.round(member.health) +'/'+ Math.round(member.maxHealth) + "</td>"//+
+			if(show_info_id!=-1)
+				alliance_info += "<td style='width:20px;'>"+ playerStatic[show_info_id].opinions[member.id] + "</td>"//+
+			
 			alliance_info += "</tr>"	
 			
 		});	
@@ -313,13 +353,19 @@ class Alliance{
 		"<div style='margin-bottom:10px' class='container ally_active' id='alliance_" + this.id + "' onclick='toggle_selected_alliance("+this.id+")'>"+
 			"<div>"+
 				"<b style='font-size:24px'>" + this.name +"</b><br>"+
+				"<span style='font-size:10px;'>ID: "+this.id+"</span><br>"+
 				// "<span style='font-size:10px;'>ID: "+this.id+"</span><br>"+
-				"<b>Unity: </b><span class='unity'>"+this.unity+"</span><br>"+
-				"<b>Target: </b><span class='alliance_target'>"+this.attack_target+"</span><br>"+
-			"</div>"+
+				"<b>Unity: </b><span class='unity'>"+this.unity+"</span><br>"
+			if(this.attack_target)
+				html += "<b>Target: </b><span class='alliance_target'>"+this.attack_target.name+"</span><br>"
+			else
+				html += "<b>Target: </b><span class='alliance_target'>None</span><br>"
+				
+			html +="</div>"+
 			"<span><b>Members</b></span><br>"+
 			"<div class='alliance_members'>"+
 			"</div>"+
+			"<span style='font-size:10px;' class='disband_reason'></span><br>"+
 		"</div>"
 		
 		$('#active_alliances tbody').append(html)
@@ -333,6 +379,7 @@ class Alliance{
 			// html+=mem_html
 			$("#alliance_" + tA.id+' .alliance_members').append(mem_html)
 		});
+		
 	}
 	
 	create_member_div(member){
@@ -379,3 +426,4 @@ class Alliance{
 		return mem_html;
 	}
 }
+class AllianceGift extends Action{}

@@ -9,7 +9,11 @@ var attr_data = {
 		"meido": Meido,
 		"paper": PaperMaster,
 		"ninja": Ninja,
-		"gauron": Gauron
+		"gauron": Gauron,
+		"toji": Toji,
+		"aids": AidsAttr,
+		"band": Band,
+		"kurt": Kurt,
 }
 
 // attr

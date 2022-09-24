@@ -389,7 +389,7 @@ function startGame(){
 		page_num=0;
 	}
 	total_players = players.length;
-	max_alliance_size = Math.min(6, 2 + Math.floor(total_players/20))
+	max_alliance_size = Math.min(6, 2 + Math.floor(total_players/15))
 	max_alliance_count = Math.min(alliance_names.length, 1 + Math.floor(total_players/(max_alliance_size*3)));
 	//set up distances and opinions
 	playerStatic.forEach(function(tP){
@@ -482,7 +482,7 @@ function turn(){
 		// players.forEach(chara => chara.finishedAction = false);
 		//plan an action for each player
 		players.forEach(function(chara,index){
-			chara.planAction();
+			chara.turnStart();
 		});
 	// }
 	log_message(hyp_count)
@@ -1185,7 +1185,10 @@ function updateEvents(){
 function updateAlliances(){
 	alliances.forEach(function(alli,index){
 		$("#alliance_" + alli.id + " .unity").html(alli.unity);
-		$("#alliance_" + alli.id + " .alliance_target").html(alli.attack_target);
+		if(alli.attack_target)
+			$("#alliance_" + alli.id + " .alliance_target").html(alli.attack_target.name);
+		else
+			$("#alliance_" + alli.id + " .alliance_target").html("None");
 		alli.members.forEach(function(member){
 			//remove players not in alliance
 			if(alli.members.indexOf(member)<0){
@@ -1286,56 +1289,6 @@ function nearbyPlayers(x, y, dist){
 		}
 	});
 	return temp_list;
-}
-
-function getDangerLevel(x, y, player, dist=50){
-	danger_score = 0
-	nearby = nearbyPlayers(x,y, dist)
-	nearby.forEach(function(oP){
-		if(player==oP)
-			return
-				
-		if(!player.inAlliance(oP)){	
-			player_danger_score = 5		
-			player_danger_score += oP.intimidation - player.intimidation/2
-			player_danger_score -= player.opinions[oP.id]/20
-			
-			if(oP.weapon)
-				player_danger_score += 20
-			if(oP.offhand)
-				player_danger_score += 10
-			
-			if(player_danger_score > 0)
-				player_danger_score *= (1 + (oP.health/oP.maxHealth))
-			else
-				player_danger_score *= (2 - oP.health/oP.maxHealth)
-			 
-					
-		}
-		else{
-			//alliance members
-			player_danger_score = -5		
-			player_danger_score -= oP.intimidation/5
-			player_danger_score -= player.opinions[oP.id]/20
-			player_danger_score += player.alliance.unity/10
-			
-			if(oP.weapon)
-				player_danger_score -= 10
-			if(oP.offhand)
-				player_danger_score -= 5
-			
-			if(player_danger_score > 0)
-				player_danger_score *= (2 - oP.health/oP.maxHealth)
-			else
-				player_danger_score *= (1 + (oP.health/oP.maxHealth))				
-		}	
-		console.log(oP.name + ' ' +player_danger_score)
-		danger_score += player_danger_score
-	});
-	
-	danger_score *= (1 + getTerrain(x,y).danger/2)
-	
-	return danger_score;
 }
 
 //generates terrain 
@@ -1538,6 +1491,28 @@ function timerClick(val){
 		timerClicks[val] = d.getTime();
 		console.log(val + " started");
 	}
+}
+
+//calculates some stats for a list of numbers
+function list_stats(lst){
+	let sum = 0
+	let avg = 0
+	let sd = 0
+	//sum 
+	lst.forEach(function(item){
+		sum += item;
+	})
+	avg = sum/lst.length
+	//sd 
+	let var_sum = 0
+	lst.forEach(function(item){
+		let variance = Math.pow(item - avg, 2)
+		var_sum+=variance
+	})
+	sd = Math.sqrt(var_sum/lst.length)
+	console.log('sum: '+sum)
+	console.log('avg: '+avg)
+	console.log('sd: '+sd)
 }
 
 var show_msg=true

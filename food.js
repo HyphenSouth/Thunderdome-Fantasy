@@ -58,7 +58,7 @@ class Food extends Offhand{
 					if(health_percent<20){eatLv = 7;}
 					if(health_percent < 10){eatLv = 14;}
 					if(health_percent < 5){eatLv = 19;}
-					this.player.setPlannedAction("eat", eatLv, {'class':EatAction, 'food':this});
+					this.player.setPlannedAction("eat", eatLv, EatAction, {'food':this});
 				}
 				break;
 			// case "eat":
@@ -114,7 +114,7 @@ class StrPotion extends Food{
 		switch(state){
 			case "planAction":
 				if(25 + this.player.inRangeOf.length*5  + this.player.aggroB/20 > roll_range(0,100)){
-					this.player.setPlannedAction("eat", 6, {'class':EatAction, 'food':this});
+					this.player.setPlannedAction("eat", 6, EatAction, {'food':this});
 				}
 				break;
 			default:

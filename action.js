@@ -81,12 +81,17 @@ class RestAction extends Action{
 class MoveAction extends Action{
 	constructor(player, data){		
 		super("move", player, 9999, 1)
+		this.targetX=-1
+		this.targetY=-1
 		//get a coordinate to move to if not currently moving
 		if('targetCoords' in data){
 			this.targetX = data['targetCoords'][0];
 			this.targetY = data['targetCoords'][1];
 			return
 		}
+	}
+	
+	get_move_target(){
 		let newX = 0;
 		let newY = 0;
 		//get new cords to move to
@@ -107,17 +112,22 @@ class MoveAction extends Action{
 		this.targetX = newX;
 		this.targetY = newY;
 		// log_message(this.player.name +" plans to move to "+ newX +" " +newY);
-		
 	}
+	
 	turn_start(){
 		this.action_priority = this.action_priority;
 		this.turn_complete=false;
 	}
 	
 	perform(){
+		if(this.targetX==-1 || this.targetY==-1)
+			this.get_move_target()
+		
+		let moveDist = this.player.moveSpeed * this.player.moveSpeedB
+		moveDist = this.player.apply_all_calcs("moveDistCalc",moveDist,{'targetX':this.targetX, 'targetY':this.targetY})
+		this.player.moveToTarget(this.targetX , this.targetY, moveDist);
 		this.player.lastActionState = "moving";
-		this.player.statusMessage = "on the move";		
-		this.player.moveToTarget(this.targetX , this.targetY);
+		this.player.statusMessage = "on the move";
 		// this.player.apply_all_effects("move");
 	}
 	
@@ -140,33 +150,158 @@ class MoveAction extends Action{
 	}
 }
 
-class FollowAction extends Action{
-	constructor(player, data){		
-		super("follow", player);
-		this.target = data.target;
+class FollowAction extends MoveAction{
+	constructor(player, data){
+		let target = data.target;
+		super(player,{});
+		this.name = "follow"
+		this.turns = 1
+		this.action_priority = 3
+		this.target = target;
 	}
 	
 	perform(){
 		if(!this.target){
 			this.player.statusMessage = "following their instincts"
+			this.player.lastActionState = "following fail"
 			return
-		}		
-		let newX = 0;
-		let newY = 0;
-		newX = this.target.x;
-		newY = this.target.y;
-
-		this.player.statusMessage = "following " + this.target.name;
+		}
+		this.targetX = this.target.x;
+		this.targetY = this.target.y;
+		super.perform()
+		
 		this.target.followers.push(this);
-		
-		this.targetX = newX;
-		this.targetY = newY;
-		
-		// this.plannedTarget.apply_all_effects("followTarget", {"opponent":this});
-		// this.player.apply_all_effects("follow", {"opponent":this.target});
-		
-		this.player.moveToTarget(this.targetX, this.targetY);
+		this.player.statusMessage = "following " + this.target.name;
 		this.player.lastActionState = "following"
+	}
+	
+	turn_end(){
+		//randomly continue following
+		if(this.targetX != this.player.x || this.targetY != this.player.y){
+			if(Math.random()<0.4)
+				this.turns+=1;
+			else
+				this.complete = true;
+			// log_message(this.name + " movement finished");
+		}
+		else{
+			//randomly stop movement
+			
+		}
+	}
+}
+
+class TerrainEscapeAction extends MoveAction{
+	constructor(player, data){		
+		super(player, data);
+		this.name = "terrainEscape"
+		this.turns = 1;
+	}
+	
+	turn_end(){
+		this.complete = true;
+	}
+	get_move_target(){
+		let newX = 500;
+		let newY = 500;
+		let searches = 0
+		do{
+			newX = roll_range(0,1000)
+			newY = roll_range(0,1000)
+			searches++
+		}while(!safeTerrainCheck(newX, newY, 1) &&searches<10)
+			
+		if(searches>10){
+			searches = 0
+			do{
+				newX = roll_range(0,1000)
+			newY = roll_range(0,1000)
+				searches++
+			}while(!safeBoundsCheck(newX, newY) &&searches<10)
+		}
+		if(searches>10){
+			newX = 500
+			newY = 500
+		}
+		this.targetX = newX
+		this.targetY = newY
+	}
+	
+	perform(){		
+		super.perform()
+		this.player.statusMessage = "looks for safer ground";
+		this.player.lastActionState = "terrain escape"
+	}
+}
+var escape_searach_radius = 200
+class PlayerEscapeAction extends MoveAction{
+	constructor(player, data){		
+		super(player, data);
+		this.turns
+		this.name = "playerEscape"
+		this.turns = 1;
+		this.escape_player = ""
+	}
+	get_move_target(){		
+		//find player to escape from
+		let nearby = this.player.nearbyPlayers(75);
+		let highest_threat = 150;
+		let escape_player = ""
+		let tP = this.player;
+		nearby.forEach(function(oP){
+			let player_danger_score = get_player_danger_score(tP,oP)
+			if(player_danger_score>highest_threat){
+				highest_threat = player_danger_score;
+				escape_player = oP;
+			}
+		});
+		log_message(escape_player.name)
+		let dir_range = [0,359]
+		if(escape_player){
+			let player_dir = Math.atan((escape_player.y-this.player.y)/(escape_player.x-this.player.x)) *(180/Math.PI)
+			log_message(player_dir+'player degrees')
+			if(!isNaN(player_dir)){
+				player_dir = player_dir + 180
+				// log_message(player_dir+'escape degrees')
+				dir_range = [player_dir-45, player_dir+45]
+			}			
+		}		
+		let searches = 5
+		let lowest_option = [500,500]
+		let lowest_score = 50000		
+		//choose 5 random locations
+		//the lowest one will be chosen
+		for(let i=0; i<searches; i++){
+			let newDir = roll_range(dir_range[0],dir_range[1])
+			log_message(newDir+'degrees')
+			newDir = newDir * (Math.PI/180);
+			let newDist = roll_range(50, escape_searach_radius)
+			let newCoord = [this.player.x + newDist * Math.sin(newDir), this.player.y + newDist * Math.cos(newDir)]
+			let score = this.player.get_danger_level(50, newCoord)
+			if(score<lowest_score && safeBoundsCheck(newCoord[0],newCoord[1]))
+				lowest_option = newCoord
+		}
+		log_message(lowest_option)
+		this.targetX = lowest_option[0]
+		this.targetY = lowest_option[1]
+		this.escape_player = escape_player
+	}
+	
+	turn_end(){
+		this.complete = true;
+	}
+	
+	perform(){		
+		super.perform()
+		if(this.escape_player){
+			this.player.statusMessage = "runs away from "+this.escape_player.name;
+			this.player.lastActionState = "player escape"
+		}
+		else{
+			this.player.statusMessage = "tries to run away";
+			this.player.lastActionState = "danger escape"			
+		}
+
 	}
 }
 
@@ -316,8 +451,7 @@ class FightAction extends Action{
 			
 		//make sure target is still in range
 		let dist = playerDist(this.player, this.target);
-		if(this.fightRange + this.fightRangeB < dist){
-			this.player.lastAction = "fighting fail";
+		if(this.player.fightRange + this.player.fightRangeB < dist){
 			this.player.statusMessage = "tries to fight "+ this.target.name +" but they escape"
 			this.player.lastActionState = "fighting range fail";
 			return;
@@ -339,10 +473,10 @@ class FightAction extends Action{
 
 class ForageAction extends Action{
 	constructor(player, data){
-		super("forage", player, 2, 6);
+		super("forage", player, 2, 7);
 		this.forage_state=''
 		this.foraged_item=''
-		this.success_prob=[["success",900],["fail",100],["poisoned",1]]
+		this.success_prob=[["success",900],["fail",100],["poisoned",1],["aids",0]]
 	}
 	
 	perform(){
@@ -399,73 +533,21 @@ class ForageAction extends Action{
 					// this.death = "death from poisoned berries";
 					this.player.death = "poisoned by a poisy (poisonous flower)";
 					break;
+				//aids
+				case "aids":
+					this.player.lastActionState = "forage aids";
+					this.player.statusMessage = "forages a dirty aids needle";
+					let eff = this.player.get_status_effect("aids")
+					if(!eff)
+						this.player.inflict_status_effect(new AidsStatus(1, "", "parent"))
+					else{
+						eff.level++;
+						eff.update_data();
+					}
+						
+					break;
 			}
 			// this.player.apply_all_effects("forage");
 		}	
 	}
-		
-	/*
-	//forage
-	action_forage(){
-		//if foraging just started, set current action to foraging and set turns
-		if(this.currentAction.name != "forage"){
-			log_message(this.name + " starts foraging", "foraging", 0);
-			this.currentAction = {};
-			this.currentAction.name = "forage";
-			this.currentAction.turnsLeft = 2;
-		}
-		//lose energy and stamina
-		this.currentAction.turnsLeft--;
-		this.energy -= 5;
-		this.stamina -= 2.5;
-		this.lastAction = "foraging";
-		this.statusMessage = "foraging";
-		//once foraging is done
-		//foraging loot
-		if(this.currentAction.turnsLeft == 0){
-			switch(roll([["success",900],["fail",100],["poisoned",1]])){
-				//if foraging is successful
-				case "success":
-					this.statusMessage = "forage success";
-					this.lastAction = "forage success";
-					//randomly find a weapon
-					let type_prob = [];
-					if(!this.weapon)
-						type_prob.push(["wep", wep_prob])
-					if(!this.offhand)
-						type_prob.push(["off", off_prob])
-					let loot_type=roll(type_prob);
-					let loot = get_random_item(this,loot_type)
-					if(loot){
-						this.equip_item(loot);
-						this.tblDiv.addClass("forage");
-						if(loot_type == 'wep')
-							this.lastAction = "forage weapon";
-						if(loot_type == 'off')
-							this.lastAction = "forage offhand";
-					}
-					//restore health and energy
-					this.energy += roll_range(30,60)
-					this.health += roll_range(5,10);
-					
-					break;
-				//failed forage
-				case "fail":
-					this.lastAction = "forage fail";
-					this.statusMessage = "forage fail";
-					break;
-				//rip
-				case "poisoned":
-					this.health = 0;
-					this.lastAction = "forage death";
-					// this.death = "death from poisoned berries";
-					this.death = "poisoned by a poisy (poisonous flower)";
-					break;
-			}
-			this.apply_all_effects("forage");
-			//clear current action
-			this.resetPlannedAction();
-		}
-	}
-	*/
 }

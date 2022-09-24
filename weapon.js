@@ -307,7 +307,21 @@ class Sniper extends Weapon {
 class ShotgunReloadAction extends Action{
 	constructor(player, data){
 		super("reloadShotgun", player);
-		this.shotgun = data.shotgun
+		this.shotgun = data.shotgun	
+		this.player.fight_back = false;
+	}
+	
+	attacked(oP, fightMsg){		
+		if(this.turn_complete){
+			this.player.fight_back = true;
+			return
+		}
+		super.attacked(oP, fightMsg)
+		this.perform();
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' reloads their shotgun instead of fighting back')
+		this.player.statusMessage = "reloads their shotgun instead of fighting back against "+oP.name;
+		this.player.fight_back = false;
 	}
 	
 	perform(){
@@ -320,7 +334,7 @@ class ShotgunReloadAction extends Action{
 			this.player.statusMessage = "reloads their shotgun";
 			this.player.lastActionState = "reloading"
 			this.shotgun.reload()
-		}			
+		}
 	}
 }
 
@@ -368,7 +382,7 @@ class Shotgun extends Weapon {
 				break;
 			case "planAction":
 				if(this.loaded_shells==0 && Math.random()<0.5)
-					this.player.setPlannedAction("reloadShotgun", 2,{'class':ShotgunReloadAction, 'shotgun':this});
+					this.player.setPlannedAction("reloadShotgun", 22, ShotgunReloadAction, {'shotgun':this});
 					// this.player.setPlannedAction("reloadShotgun", 2);
 				break;
 			/*
@@ -433,12 +447,14 @@ class Shotgun extends Weapon {
 					this.player.fightDmgB *= dmg_bonus;
 					this.loaded_shells--;				
 				}
+				/*
 				else if(counter && Math.random()<0.2){
 					//20% chance of reload instead of fighting back
 					this.reload();
 					this.player.fightDmgB *= 0;
 					this.player.statusMessage = "reloads their shotgun instead of fighting back";
 				}
+				*/
 				else{
 					//no reload
 					this.player.statusMessage = "attacks " + oP.name + " with an empty shotgun";

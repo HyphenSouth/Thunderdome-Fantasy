@@ -171,7 +171,7 @@ class Hinamizawa extends StatusEffect{
 					//only activates with more than 5 players or out of bounds
 					if(this.player.oobTurns>3 || players.length>5){
 						if(5+3*this.player.oobTurns>roll_range(0,100)){
-							this.player.setPlannedAction("itch", 15, {"class":ItchAction})
+							this.player.setPlannedAction("itch", 15, ItchAction)
 						}
 					}
 					//attack follower
@@ -179,7 +179,7 @@ class Hinamizawa extends StatusEffect{
 						let tP = this.player
 						tP.followers.forEach(function(oP){
 							if(tP.inRangeOfPlayer(oP)){
-								tP.setPlannedAction("fight", 8,{"class":FightAction,"target":oP})
+								tP.setPlannedAction("fight", 8, FightAction, {"target":oP})
 								/*
 								if(tP.setPlannedAction("fight", 8)){
 									log_message(tP.name +" attacks follower " + oP.name)

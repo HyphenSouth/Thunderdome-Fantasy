@@ -45,6 +45,7 @@ class StatMod{
 	}
 	
 	effect(state, data={}){}
+	effect_calc(state, x, data={}){return x}
 	
 	//calculating stat bonuses
 	calc_bonuses(){
@@ -76,9 +77,11 @@ class StatMod{
 	//end of action planning phase
 	planAction(data={}){}
 	//start of action phase, before performing
-	doActionBefore(action,data={}){}
+	//args: action
+	doActionBefore(data={}){}
 	//start of action phase
-	doActionAfter(action,data={}){}
+	//args: action
+	doActionAfter(data={}){}
 	//end of turn
 	turnEnd(data={}){}	
 	//upon dying
@@ -89,60 +92,108 @@ class StatMod{
 	
 	/*-----combat effects-----*/
 	//attacking opponent, before damage calc
-	attack(opponent, counter, dmg_type, fightMsg={}, data={}){}
+	//args: opponent, counter, dmg_type, fightMsg={}
+	attack(data={}){}
 	//attacked by opponent, before damage calc
-	defend(opponent, counter, dmg_type, fightMsg={}, data={}){}
+	//args: opponent, counter, dmg_type, fightMsg={}
+	defend(data={}){}
 	//calculating outgoing damage from combat
-	dmgCalcOut(opponent, counter, damage, dmg_type, fightMsg){return damage;}
+	//args: opponent, counter, dmg_type, fightMsg
+	dmgCalcOut(damage, data={}){return damage;}
 	//calculating incoming damage from combat
-	dmgCalcIn(opponent, counter, damage, dmg_type, fightMsg){return damage;}	
+	//args: opponent, counter, dmg_type, fightMsg
+	dmgCalcIn(damage, data={}){return damage;}	
 	//dealing damage to opponent
-	dealDmg(opponent, damage, dmg_type, fightMsg={}, data={}){}
+	//args: opponent, damage, dmg_type, fightMsg={}
+	dealDmg(data={}){}
 	//killing another player
-	win(opponent, data={}){}
+	//args: opponent
+	win(data={}){}
 	//killed by another player
-	lose(opponent, data={}){}
+	//args: opponent
+	lose(data={}){}
 	
 	/*-----damage effects-----*/
 	//taking damage
-	takeDmg(source, data={}){return damage;}
+	//args: source
+	takeDmg(data={}){return damage;}
 	//healing
-	healDmg(source, data={}){return damage;}
+	//args: source
+	healDmg(data={}){return damage;}
 	
 	//new status effect inflicted
-	newStatus(status_eff){return true}
+	//args: status_eff
+	newStatus(){return true}
 	
 	/*-----nearby player effects-----*/
 	//oP seen by the player
-	opAware(op,data={}){}
+	//args: oP
+	opAware(data={}){}
 	//oP in range of the player
-	opInRange(op,data={}){}
+	//args: oP
+	opInRange(data={}){}
 	
 	//effects when checking awareness of oP
-	awareCheck(oP,data={}){}
+	//args: oP
+	awareCheck(data={}){}
 	//effects from oP when the player is checking awareness on them
-	awareCheckOthers(tP,data={}){}
+	//args: tP
+	awareCheckOthers(data={}){}
 	
 	/*-----player calc effects-----*/	
 	//effects when calculating opinion score of oP
-	opinionCalc(oP, score, data={}){return score;}
+	//args: oP
+	opinionCalc(score, data={}){return score;}
 	//effects from oP when the player is calculating opinion score on them
-	opinionCalcOthers(tP, score, data={}){return score;}
+	//args: tP
+	opinionCalcOthers(score, data={}){return score;}
 		
 	//effects when calculating aggro score of oP
-	followCalc(oP, score, data={}){return score;}
+	//args: oP, follow_type
+	followCalc(score, data={}){return score;}
 	//effects from oP when the player is calculating aggro score on them
-	followCalcOthers(tP, score, data={}){return score;}
+	//args: tP, follow_type
+	followCalcOthers(score, data={}){return score;}
 	
 	//effects when calculating aggro score of oP
-	aggroCalc(oP, score, data={}){return score;}
+	//args: oP
+	aggroCalc(score, data={}){return score;}	
 	//effects from oP when the player is calculating aggro score on them
-	aggroCalcOthers(tP, score, data={}){return score;}
+	//args: tP
+	aggroCalcOthers(score, data={}){return score;}
+	
+	//effects when calculating danger levels on oP
+	//args: coords
+	playerDangerCalc(score, data={}){return score;}
+	//effects from oP when the player is calculating danger levels on them
+	//args: tP, coords
+	playerDangerCalcOther(score, data={}){return score;}
+	
+	//effects when calculating area danger levels
+	//args: coords
+	dangerCalc(score, data={}){return score;}
 	
 	//effects when calculating alliance score of oP
-	allyCalc(oP, score, data={}){return score;}
+	//args: oP
+	allyCalc(score, data={}){return score;}
 	//effects from oP when the player is calculating alliance score on them
-	allyCalcOthers(tP, score, data={}){return score;}
+	//args: tP
+	allyCalcOthers(score, data={}){return score;}
+	
+	/*-----alliance effects-----*/	
+	//calculating opinions between alliance member
+	allianceUnityUpdate(score, data={}){return score;}
+	//calculating opinions between alliance member
+	//args:opponent
+	allianceOpinionCalc(score, data={}){return score;}
+	//alliance disbanded
+	allianceDisband(data={}){}
+	//leaving alliance
+	allianceLeave(data={}){}
+	//calculating whether to leave alliance
+	//positive number reduces chances
+	allianceLeaveCalc(x, data={}){return x}
+	
 	
 	
 	//showing in the extra info panel

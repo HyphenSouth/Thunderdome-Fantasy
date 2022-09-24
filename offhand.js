@@ -492,27 +492,29 @@ class Mirror extends Offhand{
 				//oob
 				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
 					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionData = {"class":TeleportAction, "tele_goal":"escape", "mirror":this};
+					this.player.plannedActionClass = TeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
 				}
 				//player/terrain escape
 				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
 					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionData = {"class":TeleportAction, "tele_goal":"escape", "mirror":this};
+					this.player.plannedActionClass = TeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
 				}
 				//low hp after fight
 				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
 					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
-					this.player.setPlannedAction("mirrorTeleportEscape", 6,{"class":TeleportAction, "tele_goal":"escape", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleportEscape", 6, TeleportAction, {"tele_goal":"escape", "mirror":this});
 				}
 				//look for fight				
 				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
 					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
-					this.player.setPlannedAction("mirrorTeleportAttack", 4,{"class":TeleportAction, "tele_goal":"attack", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleportAttack", 4,TeleportAction,{"tele_goal":"attack", "mirror":this});
 				}				
 				// random
 				if(Math.random()<0.1){
 					// this.player.setPlannedAction("mirrorTeleport", 4);
-					this.player.setPlannedAction("mirrorTeleport", 4,{"class":TeleportAction, "tele_goal":"neutral", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleport", 4, TeleportAction, {"tele_goal":"neutral", "mirror":this});
 				}
 				break;
 			/*

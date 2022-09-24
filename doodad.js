@@ -130,7 +130,7 @@ class BombEntity extends Doodad{
 	damage_player(oP){		
 		let	dmg = Math.floor(Math.random() * this.dmg);
 		oP.calc_bonuses();
-		oP.apply_all_effects("defend", {"opponent":this});
+		// oP.apply_all_effects("defend", {"opponent":this});
 		dmg = dmg * oP.dmgReductionB;
 		if(dmg > oP.health)
 			dmg = oP.health;
@@ -459,7 +459,7 @@ class FuckDuck extends MovableEntity{
 	damage_player(oP){		
 		let	dmg = Math.floor(Math.random() * this.dmg);
 		oP.calc_bonuses();
-		oP.apply_all_effects("defend", {"opponent":this});
+		// oP.apply_all_effects("defend", {"opponent":this});
 		dmg = dmg * oP.dmgReductionB;
 		if(dmg > oP.health)
 			dmg = oP.health;
