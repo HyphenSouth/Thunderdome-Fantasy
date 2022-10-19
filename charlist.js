@@ -92,5 +92,81 @@ var charlist_gochiusa = [
 		"img": "https://cdn.myanimelist.net/images/characters/16/294260.jpg"
 	}
 ]
-var charlist = charlist_gochiusa;
+
+var charlist_puchi = [
+	{
+		"name":"Harukasan",
+		"img":"https://cdn.myanimelist.net/images/characters/5/242497.jpg",
+		"attr":["harukasan"],
+		"moral":"C",
+		"personality":"E"
+	},
+	{
+		"name":"Afu",
+		"img":"https://cdn.myanimelist.net/images/characters/16/249335.jpg",
+		"attr":["afu"]
+	},
+	{
+		"name":"Yukipo",
+		"img":"https://cdn.myanimelist.net/images/characters/7/243273.jpg",
+		"attr":["yukipo"]
+	},
+	{
+		"name":"Yayo",
+		"img":"https://cdn.myanimelist.net/images/characters/9/243031.jpg",
+		"attr":["yayo"]
+	},
+	{
+		"name":"Takanya",
+		"img":"https://cdn.discordapp.com/attachments/998843166138572821/1009613528585486397/1584302796574.png",
+		"attr":["takanya"]
+	},
+	{
+		"name":"Miurasan",
+		"img":"https://cdn.myanimelist.net/images/characters/3/244887.jpg",
+		"attr":["miurasan"]
+	},
+	{
+		"name":"Makochi",
+		"img":"https://cdn.myanimelist.net/images/characters/9/243271.jpg",
+		"attr":["makochi"]
+	},
+	{
+		"name":"Smol Shart",
+		"img":"https://cdn.myanimelist.net/images/characters/11/245881.jpg",
+		"attr":["koamimami"]
+	},
+	{
+		"name":"Smol Fart",
+		"img":"https://cdn.myanimelist.net/images/characters/7/245885.jpg",
+		"attr":["koamimami"]
+	},
+	{
+		"name":"Io",
+		"img":"https://cdn.myanimelist.net/images/characters/5/242495.jpg",
+		"attr":["io"]
+	},
+	{
+		"name":"Chihya",
+		"img":"https://cdn.myanimelist.net/images/characters/12/249377.jpg",
+		"attr":["chihya"]
+	},
+	{
+		"name":"Chicchan",
+		"img":"https://cdn.myanimelist.net/images/characters/6/243891.jpg",
+		"attr":["chicchan"]
+	},
+	{
+		"name":"Chibiki",
+		"img":"https://cdn.myanimelist.net/images/characters/9/247897.jpg",
+		"attr":["chibiki"]
+	},
+	{
+		"name":"PiyoPiyo",
+		"img":"https://cdn.myanimelist.net/images/characters/5/245347.jpg",
+		"attr":["piyo"]
+	}
+]
+
+var charlist = charlist_puchi;
 // var charlist = charlist_bkt;

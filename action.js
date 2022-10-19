@@ -3,24 +3,33 @@ class Action{
 		this.name = name;
 		this.player = player;	
 		
-		//if the action is completely finished
-		this.complete = false;
-		
-		//if the action can be interrupted by combat
-		this.combat_interruptable = true;
+		//turns the action will last for
+		this.turns = turns;
 		
 		//if the action is finished for the turn
 		this.turn_complete = false;	
+		//if the action is completely finished
+		this.complete = false;		
 		
-		//used for continuous actions
-		//turns the action will last for
-		this.turns = turns;
-		//priority when planning
-		this.action_priority = action_priority;	
+		//if the action turn can be interrupted by combat
+		this.combat_interruptable = true;
 		//if the action will be over after combat
 		this.combat_cancellable = true;
 		
+		//if the action turn can be interrupted by entities
+		this.entity_interruptable = true;
+		//if the action will be over after entities
+		this.entity_cancellable = true;
+		
+		
+		//priority when planning
+		//used for continuous actions
+		this.action_priority = action_priority;	
+		
+		
 		this.interrupted = false;
+		
+		this.energy_cost = 0;
 	}	
 	
 	//prior to action planning
@@ -44,11 +53,12 @@ class Action{
 	action_successful(){
 		this.turn_complete=true;
 		this.player.apply_all_effects("doActionAfter",{'action':this});
+		this.player.energy -= this.energy_cost;
 		// this.player.finishedAction = true;
 	}
 	
 	//attacked
-	attacked(oP){
+	attacked(oP, fightMsg=[]){
 		if(this.combat_interruptable){
 			if(!this.turn_complete){
 				this.interrupted=true;
@@ -62,8 +72,23 @@ class Action{
 		}
 	}
 	
+	//attacked by entity
+	entity_attacked(oD){
+		if(this.entity_interruptable){
+			if(!this.turn_complete){
+				this.interrupted=true;
+				this.turn_complete=true;
+				// this.player.finishedAction = true;
+				this.player.interrupted = true;
+			}
+		}
+		if(this.entity_cancellable){
+			this.complete = true;
+		}
+	}
+	
 	//end of turn
-	turn_end(){}	
+	turn_end(){}
 }
 
 class RestAction extends Action{
@@ -92,26 +117,12 @@ class MoveAction extends Action{
 	}
 	
 	get_move_target(){
-		let newX = 0;
-		let newY = 0;
-		//get new cords to move to
-		let tries = 0;
-		do {
-			newX = Math.floor(Math.random()*mapSize);
-			newY = Math.floor(Math.random()*mapSize);
-			tries++;
-		} while(!safeTerrainCheck(newX,newY) && tries < 10);
-		//if safe location can't be found, move to center
-		if(tries>=10){
-			log_message(this.player.name + " cant find safe location", 0);
-			newX = mapSize/2
-			newY = mapSize/2
-		}
-		
-		//get a target location to move to
-		this.targetX = newX;
-		this.targetY = newY;
-		// log_message(this.player.name +" plans to move to "+ newX +" " +newY);
+		let terrain_check = 'terrain'
+		if(this.player.ignore_terrain)
+			terrain_check = 'safe'
+		let temp_target = getRandomCoords(terrain_check, 15)
+		this.targetX = temp_target[0];
+		this.targetY = temp_target[1];
 	}
 	
 	turn_start(){
@@ -120,8 +131,9 @@ class MoveAction extends Action{
 	}
 	
 	perform(){
-		if(this.targetX==-1 || this.targetY==-1)
-			this.get_move_target()
+		if(this.targetX==-1 || this.targetY==-1){
+			this.get_move_target();
+		}			
 		
 		let moveDist = this.player.moveSpeed * this.player.moveSpeedB
 		moveDist = this.player.apply_all_calcs("moveDistCalc",moveDist,{'targetX':this.targetX, 'targetY':this.targetY})
@@ -139,7 +151,7 @@ class MoveAction extends Action{
 		}
 		else{
 			//randomly stop movement
-			if(safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
+			if(!this.player.ignore_terrain && safeTerrainCheck(this.x, this.y) && Math.random()<0.05){
 				this.complete = true;
 				// log_message(this.name + " movement finished early");
 			}
@@ -202,26 +214,26 @@ class TerrainEscapeAction extends MoveAction{
 		this.complete = true;
 	}
 	get_move_target(){
-		let newX = 500;
-		let newY = 500;
+		let newX = mapSize/2;
+		let newY = mapSize/2;
 		let searches = 0
 		do{
-			newX = roll_range(0,1000)
-			newY = roll_range(0,1000)
+			newX = roll_range(0,mapSize)
+			newY = roll_range(0,mapSize)
 			searches++
-		}while(!safeTerrainCheck(newX, newY, 1) &&searches<10)
+		}while(!this.player.ignore_terrain && !safeTerrainCheck(newX, newY, 1) &&searches<10)
 			
 		if(searches>10){
 			searches = 0
 			do{
-				newX = roll_range(0,1000)
-			newY = roll_range(0,1000)
+				newX = roll_range(0,mapSize)
+			newY = roll_range(0,mapSize)
 				searches++
 			}while(!safeBoundsCheck(newX, newY) &&searches<10)
 		}
 		if(searches>10){
-			newX = 500
-			newY = 500
+			newX = mapSize/2;
+			newY = mapSize/2;
 		}
 		this.targetX = newX
 		this.targetY = newY
@@ -256,9 +268,10 @@ class PlayerEscapeAction extends MoveAction{
 			}
 		});
 		log_message(escape_player.name)
+		//escape angle
 		let dir_range = [0,359]
 		if(escape_player){
-			let player_dir = Math.atan((escape_player.y-this.player.y)/(escape_player.x-this.player.x)) *(180/Math.PI)
+			let player_dir = entityAngle(this.player, escape_player)
 			log_message(player_dir+'player degrees')
 			if(!isNaN(player_dir)){
 				player_dir = player_dir + 180
@@ -319,13 +332,18 @@ class SleepAction extends Action{
 	}
 	turn_start(){
 		super.turn_start()
+		if(this.complete){
+			this.player.div.find('.charText').removeClass('sleep');
+			this.player.tblDiv.removeClass('sleep');
+			return;			
+		}
 		this.player.unaware=true;
 		this.player.incapacitated=true;
-		this.player.div.find('.charText').removeClass('sleep');
-		this.player.tblDiv.removeClass('sleep');
 	}
 	
 	perform(){
+		this.player.unaware=true;
+		this.player.incapacitated=true;
 		this.player.unaware=true;
 		this.player.incapacitated=true;
 		this.player.health += Math.floor(Math.random() * 2);
@@ -360,7 +378,7 @@ class AllianceAction extends Action{
 		
 		//no target planned
 		if(!this.target){
-			this.player.lastAction = "alliance fail";
+			// this.player.lastAction = "alliance fail";
 			this.player.statusMessage = "has no friends";
 			this.player.lastActionState = "alliance null";			
 			return;
@@ -423,7 +441,7 @@ class AllianceAction extends Action{
 }
 
 class FightAction extends Action{
-	constructor(player, data){		
+	constructor(player, data){
 		super("fight", player);
 		this.target = data.target;
 	}
@@ -434,7 +452,7 @@ class FightAction extends Action{
 		
 		//no target planned
 		if(!this.target){
-			this.player.lastAction = "fighting fail";
+			// this.player.lastAction = "fighting fail";
 			this.player.statusMessage = "fights their inner mind goblin";
 			this.player.lastActionState = "fighting null";
 			return;

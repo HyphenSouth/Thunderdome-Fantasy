@@ -27,7 +27,7 @@ class StatusEffect extends StatMod{
 		
 		if("fightBonus" in this.data){this.fightBonus = this.data["fightBonus"][0]+ this.level * this.data["fightBonus"][1]}
 		if("dmgReductionB" in this.data){this.dmgReductionB = this.data["dmgReductionB"][0]+ this.level * this.data["dmgReductionB"][1]}													   
-		if("moveSpeedB" in this.data){this.moveSpeedB = this.data["moveSpeedB"][0]+ this.level * this.data["moveSpeedB"][1]}		
+		if("moveSpeedB" in this.data){this.moveSpeedB = this.data["moveSpeedB"][0]+ this.level * this.data["moveSpeedB"][1]}	
 	}
 	
 	afflict(player){
@@ -37,7 +37,9 @@ class StatusEffect extends StatMod{
 	stack_effect(eff){
 		if(eff.level >= this.level){
 			this.replace_eff(eff)
+			return true;
 		}
+		return false;
 	}
 	
 	replace_eff(new_eff){
@@ -84,62 +86,12 @@ class StatusEffect extends StatMod{
 	}
 }
 
-class TrapEscapeAction extends Action{
-	constructor(player, data){		
-		super("trap escape", player, 999, 22)
-		this.effect = data.effect
-		this.player.unaware=true;
-		this.player.incapacitated=true;
-		
-		this.combat_interruptable = false;	
-		this.combat_cancellable = false;
-	}
-		
-	perform(){
-		this.turns = 999
-		this.player.div.find('.charName').addClass('trapped');
-		log_message(this.player.name + " escape attempt")
-		this.player.currentAction.name="escape";
-		
-		if (roll_range(0,10) > 8){
-			//escape successful
-			log_message(this.player.name+" escapes");
-			this.player.statusMessage = "escaped a trap";
-			this.player.lastActionState="escaped";
-			// this.player.resetPlannedAction();
-			// this.player.finishedAction = true;
-			this.player.div.find('.charName').removeClass('trapped');
-			this.effect.wear_off();
-			this.turns=0
-		}
-		else{
-			//escape failed
-			this.player.energy -= 10;
-			
-			this.player.take_damage(this.effect.calc_dmg(), this.effect, "none")
-			// this.player.health -= Math.floor(Math.random() * 5);
-			this.player.lastActionState = "trapped";
-			this.player.statusMessage = "tried to escape a trap";
-			this.effect.turns_trapped++;
-			log_message(this.player.name + " fails to escape");
-			if(this.player.health <= 0){
-				this.player.death = this.effect.death_msg;
-				if(this.owner)
-					this.effect.owner.kills++;
-			}
-			// this.player.finishedAction = true;
-		}
-	}
-}	
-
-
 class Trapped extends StatusEffect{
 	constructor(level, owner){
 		super("trapped", level, 2000);
 		this.icon="🕳"
 		this.turns_trapped=0;
 		this.owner=owner;
-		this.level = level;
 		this.death_msg = "died escaping "+ this.owner.name + "'s trap";	
 	}
 	
@@ -303,6 +255,62 @@ class Trapped extends StatusEffect{
 		return html;
 	}	
 }
+
+class TrapEscapeAction extends Action{
+	constructor(player, data){		
+		super("trap escape", player, 999, 22)
+		this.effect = data.effect
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		
+		this.combat_interruptable = false;	
+		this.combat_cancellable = false;
+	}
+	
+	turn_start(){
+		super.turn_start()
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+	}
+	
+	perform(){
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		this.turns = 999
+		this.player.div.find('.charName').addClass('trapped');
+		log_message(this.player.name + " escape attempt")
+		this.player.currentAction.name="escape";
+		
+		if (roll_range(0,10) > 8){
+			//escape successful
+			log_message(this.player.name+" escapes");
+			this.player.statusMessage = "escaped a trap";
+			this.player.lastActionState="escaped";
+			// this.player.resetPlannedAction();
+			// this.player.finishedAction = true;
+			this.player.div.find('.charName').removeClass('trapped');
+			this.effect.wear_off();
+			this.turns=0
+		}
+		else{
+			//escape failed
+			this.player.energy -= 10;
+			
+			this.player.take_damage(this.effect.calc_dmg(), this.effect, "none")
+			// this.player.health -= Math.floor(Math.random() * 5);
+			this.player.lastActionState = "trapped";
+			this.player.statusMessage = "tried to escape a trap";
+			this.effect.turns_trapped++;
+			log_message(this.player.name + " fails to escape");
+			if(this.player.health <= 0){
+				this.player.death = this.effect.death_msg;
+				if(this.effect.owner)
+					this.effect.owner.kills++;
+			}
+			// this.player.finishedAction = true;
+		}
+	}
+}	
 
 class Charm extends StatusEffect{
 	constructor(target, level, aggro=false, duration=1){
@@ -623,9 +631,17 @@ class FrozenAction extends Action{
 		
 		this.combat_interruptable = false;	
 		this.combat_cancellable = false;
-	}	
+	}
+	
+	turn_start(){
+		super.turn_start()
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+	}
 
 	perform(){
+		this.player.unaware=true;
+		this.player.incapacitated=true;
 		this.turns = this.effect.duration;
 		// this.effect.frozenAction();
 		
@@ -739,15 +755,7 @@ class Frozen extends StatusEffect{
 					// this.player.finishedAction = true;					
 				}				
 				break;
-			*/
-			case "newStatus":
-				let eff = data["eff"]
-				//burn reduces duration
-				if(eff.name == "burn"){
-					this.duration -= Math.max(eff.level - Math.round(this.level/2), 1)
-					this.player.remove_status_effect(eff);
-				}
-				break;
+			*/				
 			case "turnEnd":
 				//campfire
 				if(this.player.get_status_effect('comfy')){
@@ -760,7 +768,19 @@ class Frozen extends StatusEffect{
 				break;
 		}
 	}
-	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "newStatus":
+				let eff = data["eff"]
+				//burn reduces duration
+				if(eff.name == "burn"){
+					this.duration -= Math.max(eff.level - Math.round(this.level/2), 1)
+					return false
+				}
+				break;
+		}
+		return x;
+	}
 	stat_html(){
 		let html = "<span><b>Dmg Range:</b>0"+"-"+(2 * this.level)+"</span><br>"
 		if(this.owner instanceof Char){
@@ -806,6 +826,146 @@ class Skulled extends StatusEffect{
 				super.effect(state, data)
 				break;
 		}
+	}
+}
+class Flight extends StatusEffect{
+	constructor(duration){
+		super("flight", 1, duration);
+		this.icon="🐦"
+		this.moveSpeedB = 1.5;
+		this.sightBonus = 24;
+		this.rangeBonus = 24;
+		//actions that allow flying
+		this.flight_actions = [MoveAction, FightAction, AllianceAction]
+		this.new_flight = true;
+		this.dodge_chance = 40;
+		this.fall_chance = 60;
+		this.attack_dodged = false;
+	}
+	afflict(player){
+		this.player=player;
+		this.player.ignore_terrain = true;
+	}
+	stack_effect(eff){
+		this.duration += eff.duration
+	}
+	wear_off(){
+		this.player.ignore_terrain = false;
+		super.wear_off()
+	}
+	
+	dodge(oP, fightMsg){
+		let target = getRandomCoords('terrain')
+		this.player.moveToTarget(target[0] , target[1]);
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' flies out of the way of '+oP.name + "'s attack")
+		this.player.statusMessage = "dodges "+oP.name+" attack";
+		this.player.fight_back = false;
+		this.player.currentAction.turn_complete = true;
+		this.attack_dodged = true;
+	}
+	
+	effect(state, data={}){	
+		let oP='';	
+		switch(state){
+			case "defend":
+				oP = data.opponent;
+				let fightMsg = data.fightMsg;
+				if(roll_range(1,100)<=this.dodge_chance){
+					log_message('fly dodge')
+					this.dodge(data.opponent, data.fightMsg)	
+				}
+				else if(roll_range(1,100)<=this.fall_chance){
+					if(fightMsg.events)
+						fightMsg.events.push(this.player.name + ' knocked out of the sky by '+oP.name)
+					let fall_dmg = roll_range(10,50);
+					// let fall_dmg =100;
+					this.player.take_damage(fall_dmg, oP, 'fall')
+					if(this.player.health<=0){
+						if(fightMsg.events)
+							fightMsg.events.push(this.player.name + ' breaks every bone in their body and dies a slow painful death')
+						this.player.death = "falls to their death"
+						oP.kills++;
+					}
+					else{
+						if(fightMsg.events)
+							fightMsg.events.push(this.player.name + ' hits the ground and takes '+fall_dmg+' damage')
+					}
+					this.player.fight_back = false;
+					this.player.currentAction.turn_complete = true;
+					this.wear_off()
+				}
+				else{
+					if(fightMsg.events)
+						fightMsg.events.push(this.player.name + ' lands')
+					this.wear_off()
+				}
+				break;
+			case "doActionBefore":
+				let action = data.action
+				let flight_continue = false;
+				this.flight_actions.forEach(function(a){
+					if(action instanceof a)
+						flight_continue = true;
+				});
+				if(!flight_continue){
+					this.wear_off();
+				}
+				break;
+			case "doActionAfter":
+				switch(this.player.lastActionState){
+					case "moving":
+						this.player.statusMessage = "flies"
+						if(this.new_flight)
+							this.player.statusMessage = "takes flight"
+						break;						
+					case "following":
+						this.player.statusMessage = "flies after " + data.action.target.name;
+						if(this.new_flight)
+							this.player.statusMessage = "takes flight"
+						break;
+					case "terrain escape":
+					case "player escape":
+						this.player.statusMessage = "flies to safety"
+						if(this.new_flight)
+							this.player.statusMessage = "takes flight"
+						break;
+				}				
+				this.new_flight=false;
+				break;
+			case "fightEnd":
+				oP = data.opponent;
+				if(this.attack_dodged)
+					this.player.statusMessage = "flies out of the way of "+oP.name+" attack";
+				this.attack_dodged = false;
+				this.player.fight_back = true;
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				log_message('fly dmg out')
+				if(this.attack_dodged){
+					x=0;
+				}
+				break;
+			case "dmgCalcIn":
+				log_message('fly dmg in')
+				if(this.attack_dodged){
+					x=0;
+				}		
+				break;
+			case "newStatus":
+				log_message('fly dodge status effect')
+				if(this.attack_dodged)
+					x=false;		
+				break;
+		}
+		return x
 	}
 }
 
@@ -882,19 +1042,26 @@ class Burn extends DotEffect{
 					this.wear_off();
 				}
 				break;
-			case "newStatus":
-				let eff = data["eff"]
-				//burn reduces duration
-				if(eff.name == "frozen"){
-					this.duration -= Math.max(eff.level - Math.round(this.level/3), 1)
-					this.player.remove_status_effect(eff);
-				}
-				break;
 			default:
 				super.effect(state, data);
 				break;
 		}
 	}
+
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "newStatus":
+				let eff = data["eff"]
+				//burn reduces duration
+				if(eff.name == "frozen"){
+					this.duration -= Math.max(eff.level - Math.round(this.level/3), 1)
+					return false;
+				}
+				break;
+		}
+		return x;
+	}
+	
 	stat_html(){
 		let html = "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+(this.dmg_range[1]*this.level)+"</span><br>"
 		html = html+super.stat_html()
@@ -971,7 +1138,7 @@ class Bleed extends DotEffect{
 					if(this.player.health<=0){
 						this.player.death = this.death_msg
 						if(this.owner)
-							this.owner.kills++;					
+							this.owner.kills++;	
 					}
 					this.max_dmg*=1.2;
 				}

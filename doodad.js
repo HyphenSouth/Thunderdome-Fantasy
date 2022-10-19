@@ -23,12 +23,13 @@ class Doodad {
 		//how long doodad can stay out
 		this.duration=30;
 		this.max_triggers = 9999 //maximum triggers per turn
+		this.dead_trigger = false; //whether dead players can trigger
 	}
 	draw(){
 		let doodDiv = $('#doodad_' + this.id);
 		if(!doodDiv.length){
 			$('#doodads').append(
-			"<div id='doodad_" + this.id + "' class='doodad' style='transform:translate(" + (this.x / 1000 * $('#map').width() - iconSize/2) + "px," + (this.y / 1000 *  $('#map').height() - iconSize/2) + "px);'>" + 
+			"<div id='doodad_" + this.id + "' class='doodad' style='transform:translate("+(this.x/1000*$('#map').width()-iconSize/2)+"px,"+(this.y/1000* $('#map').height()-iconSize/2)+"px);'>" + 
 				this.icon + 
 			"</div>");
 			doodDiv = $('#doodad_' + this.id);
@@ -38,10 +39,12 @@ class Doodad {
 			this.div.html(this.icon);
 		}
 	}
+	
 	//look for players in range
 	update(){		
 		if(this.duration<=0){
 			this.expire();
+			return;
 		}
 		else{
 			let tD = this;
@@ -51,14 +54,15 @@ class Doodad {
 				let dist = hypD(tP.x - tD.x, tP.y - tD.y);
 				if(dist <= tD.triggerRange){
 					log_message(tD.name+" "+ tP.name+" in range")	
-					let trig = tD.triggerChance
-					if(tP==tD.owner){
-						trig=tD.ownerTriggerChance
-					}
-					if(trig>=roll_range(0,100)){
+					let trig = tD.triggerChance;
+					if(tP==tD.owner)
+						trig=tD.ownerTriggerChance;
+					if(trig>roll_range(0,100)){
 						// log_message(tP.name +" triggered a "+tD.name);
-						tD.trigger(tP);
-						trigger_cnt++
+						if(!(!this.dead_trigger && tP.health<=0)){
+							tD.trigger(tP);
+							trigger_cnt++
+						}
 					}
 					if(trigger_cnt>=this.max_triggers){
 						break;
@@ -176,7 +180,9 @@ class BombEntity extends Doodad{
 			let dist = hypD(oP.x - tD.x,oP.y - tD.y);
 			if(dist <= tD.explode_range && oP.health>0){
 				tD.damage_player(oP);
-				log_message(oP.name + " hit by bomb");
+				log_message(oP.name + " hit by bomb");				
+				if(oP.currentAction)
+					oP.currentAction.entity_attacked(tD)
 			}
 		});
 		this.active=false;
@@ -243,16 +249,14 @@ class CampfireEntity extends Doodad{
 	}
 	expire(){
 		log_message(this.name+" expires");
-		if(Math.random()<4){
-			let tempFire = new FireEntity(this.x, this.y,"")
-			tempFire.draw()
-			tempFire.duration = roll_range(2,4);
-			doodads.push(tempFire);
-		}
+		let tempFire = new FireEntity(this.x, this.y,"")
+		tempFire.draw()
+		tempFire.duration = roll_range(2,4);
+		doodads.push(tempFire);		
 		this.destroy();
 	}
 	trigger(trigger_player){
-		log_message(trigger_player.name + " triggered campfire entity")
+		// log_message(trigger_player.name + " triggered campfire entity")
 		if(trigger_player==this.owner){
 			trigger_player.inflict_status_effect(new Comfy(4, 2));
 		}
@@ -272,7 +276,7 @@ class MirrorEntity extends Doodad{
 	}
 	
 	trigger(trigger_player){
-		log_message(trigger_player.name + " triggered mirror entity")
+		// log_message(trigger_player.name + " triggered mirror entity")
 		let newX = 0;
 		let newY = 0;
 		//get new cords to move to
@@ -358,8 +362,7 @@ class MovableEntity extends Doodad{
 		
 		//update icons on map
 		let doodadDiv = $('#doodad_' + this.id);
-		doodadDiv.css({transform:"translate(" + targetX + "px," + targetY + "px)"},function(){
-		});
+		doodadDiv.css({transform:"translate(" + targetX + "px," + targetY + "px)"},function(){});
 		log_message(this.name +" moves to (" +this.x +","+ this.y+")", 1);
 	}
 }

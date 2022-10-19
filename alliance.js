@@ -158,7 +158,8 @@ class Alliance{
 		disbanded_alliances.push(this)
 		log_message('alliance '+this.id+' deleted')
 		
-		alliance_names[this.name_id][1] = true;
+		if(this.name_id>=0)
+			alliance_names[this.name_id][1] = true;
 		$("#alliance_" + this.id).addClass("disbanded");
 		$("#alliance_" + this.id).removeClass("ally_active");
 		// $('#alliances .container.ally_active').last().after($("#alliance_" + this.id));

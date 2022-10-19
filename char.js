@@ -133,6 +133,9 @@ class Char {
 		//if the player can fight back when attacked
 		this.fight_back = true;
 		
+		//ignores terrain
+		this.ignore_terrain = false;
+		
 		this.death = "Cast in the name of God, Ye Guilty";
 		this.dead = false;
 	}
@@ -233,7 +236,7 @@ class Char {
 		//apply experience bonuses
 		this.fightDmgB *= Math.pow(this.killExp,this.exp/100);
 		//apply terrain bonuses
-		if(getTerrain(this.x,this.y)){
+		if(!this.ignore_terrain && getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).calc_bonuses(this)
 		}
 
@@ -320,10 +323,12 @@ class Char {
 				return true;
 			}
 		}
-		// else{
-			// this.apply_all_effects("equipItem",{'item':item,'type':'unknown'})
-			// return false;
-		// }
+		else{
+			if(item=='Nothing')
+				return false
+			this.apply_all_effects("equipItem",{'item':item})
+			return false;
+		}
 	}	
 	
 	//unequipping an item
@@ -350,6 +355,12 @@ class Char {
 	
 	//adding status effect
 	inflict_status_effect(status_eff){
+		let apply = true
+		apply = this.apply_all_calcs("newStatus", apply, {"eff": status_eff});
+		if(!apply){
+			log_message(this.name +" cannot be afflicted with " + status_eff.name, 1);
+			return;
+		}
 		if(this.get_status_effect(status_eff.name)){
 			//if player already has the effect
 			this.get_status_effect(status_eff.name).stack_effect(status_eff);
@@ -358,8 +369,7 @@ class Char {
 		else{
 			//add new effect into list
 			this.status_effects.push(status_eff);
-			status_eff.afflict(this);
-			this.apply_all_effects("newStatus", {"eff": status_eff});
+			status_eff.afflict(this);			
 			log_message(this.name +" is afflicted with " + status_eff.name, 1);
 		}
 	}
@@ -556,12 +566,13 @@ class Char {
 		if(nearby.length>0)
 			danger_score = danger_score/Math.min(nearby.length,5)
 		//terrain
-		danger_score += (Math.pow(3,getTerrain(x,y).danger)-1)*12
+		if(!this.ignore_terrain)
+			danger_score += (Math.pow(3,getTerrain(x,y).danger)-1)*12
 		if(!safeBoundsCheck(x,y))
 			danger_score += 100
 		
-		danger_score = this.apply_all_calcs('dangerCalc', danger_score, {'coords':coords})	
-		danger_score -= this.aggroB/10
+		danger_score = this.apply_all_calcs('dangerCalc', danger_score, {'coords':coords})
+		// danger_score -= Math.min(this.aggroB/10, 200)
 		danger_score = Math.round(danger_score)
 		
 		return danger_score;
@@ -724,7 +735,7 @@ class Char {
 		//calculate bonuses
 		this.calc_bonuses();
 		//reset variables
-		this.current_turn_fights = 0
+		this.current_turn_fights = 0;
 		this.unaware = false;
 		this.incapacitated = false;
 		this.fight_back = true;
@@ -797,7 +808,7 @@ class Char {
 		}
 
 		//forage if energy is low
-		if(getTerrain(this.x,this.y).danger==0 && this.danger_score<roll_range(150, 500)){
+		if((this.ignore_terrain || getTerrain(this.x,this.y).danger==0) && this.danger_score<roll_range(150, 500)){
 			//action check update
 			if(this.lastActionState!="foraging" && this.lastActionState != "sleeping"){
 				let energy_percent = (this.energy/this.maxEnergy) *100;
@@ -836,15 +847,14 @@ class Char {
 		}
 		
 		//move away from danger
-		if(getTerrain(this.x,this.y).danger>1){
+		if(!this.ignore_terrain && getTerrain(this.x,this.y).danger>1){
 			// this.setPlannedAction("terrainEscape", 7)
 			this.setPlannedAction("terrainEscape", 7, TerrainEscapeAction)
 			log_message('terrain escape')
 		}
-		if(this.danger_score>roll_range(100, 500)){
+		if(this.danger_score-this.aggroB >roll_range(100, 500)){
 		// if(this.danger_score>roll_range(-1000, -1000)){
-			// this.setPlannedAction("playerEscape", 6)
-			this.setPlannedAction("playerEscape", 60, PlayerEscapeAction)
+			this.setPlannedAction("playerEscape", 6, PlayerEscapeAction)
 			log_message('player escape')
 		}
 		
@@ -931,35 +941,6 @@ class Char {
 			if(this.plannedActionClass){
 				this.currentAction = new this.plannedActionClass(this, this.plannedActionData)
 			}
-			/*
-			switch(this.plannedAction){
-				case "rest":
-					this.currentAction = new RestAction(this)
-					break;
-				case "follow":
-					this.currentAction = new FollowAction(this, this.plannedTarget)
-					break;
-				case "move":
-					this.currentAction = new MoveAction(this,this.plannedActionData)
-					break;				
-				case "sleep":
-					this.currentAction = new SleepAction(this)
-					break;
-				case "ally":
-					this.currentAction = new AllianceAction(this, this.plannedTarget);
-					break;
-				case "fight":
-					this.currentAction = new FightAction(this, this.plannedTarget);
-					break;
-				case "forage":
-					this.currentAction = new ForageAction(this);
-					break;
-				default:
-					this.apply_all_effects("setPlannedAction")
-					break;
-
-			}
-			*/
 		}
 		if(!this.currentAction.name){
 			this.currentAction = new Action(this.plannedAction, this, 0, 0)
@@ -998,10 +979,9 @@ class Char {
 			this.statusMessage = "does nothing"
 		}
 		if(this.currentAction.name)
-			this.currentAction.turn_end()
-		
+			this.currentAction.turn_end()		
 				
-		if(getTerrain(this.x,this.y)){
+		if(!this.ignore_terrain && getTerrain(this.x,this.y)){
 			getTerrain(this.x,this.y).turn_end_effects(this)
 		}
 		if(this.health > 0)
@@ -1033,7 +1013,10 @@ class Char {
 			//console.log(getTerrainType(targetX,targetY));	
 		
 			//swim check
-			if(getTerrainType(targetX,targetY) == "water" && getTerrainType(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && this.lastActionState != "swimming"){
+			if(!this.ignore_terrain && 
+			getTerrainType(targetX,targetY) == "water" && 
+			getTerrainType(this.x + shiftX * 2, this.y + shiftY * 2)  == "water" && 
+			this.lastActionState != "swimming"){
 				// carried away by water
 				let swimChance = roll([["yes",1],["no",50]]);
 				if(swimChance == "no"){
@@ -1041,7 +1024,7 @@ class Char {
 					var redirectDir = roll([[-1,1],[1,1]]);
 					var initialDir = Math.acos(shiftY/(moveDist));
 					var tries = 314;
-					do {					
+					do {
 						redirectTimes++;
 						let newDir = initialDir + redirectDir * redirectTimes * 0.05;
 						shiftX = (moveDist) * Math.sin(newDir);
@@ -1049,7 +1032,7 @@ class Char {
 						targetX = this.x + shiftX;
 						targetY = this.y + shiftY;
 						tries--;
-					} while (getTerrainType(targetX,targetY) == "water" && tries > 0 && safeBoundsCheck(targetX,targetY));
+					} while (!this.ignore_terrain && getTerrainType(targetX,targetY) == "water" && tries > 0 && safeBoundsCheck(targetX,targetY));
 				}
 			}
 		}

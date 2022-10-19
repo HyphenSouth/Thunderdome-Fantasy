@@ -1,3 +1,78 @@
+class PaperMaster extends Attr{
+	constructor(player){
+		super("paper", player);
+		this.has_info = true;
+		this.paper = 50;
+		this.familiar = ''
+	}
+		
+	effect(state, data={}){
+		switch(state){
+			case "planAction":
+				if(this.paper >= 150 && Math.random()>0.3){
+					log_message(this.player.name + ' '+ this.paper);
+					let item_prob = []
+					if(!this.player.weapon)
+						item_prob.push(['wep',5])
+					if(!this.player.offhand)
+						item_prob.push(['off',3])
+					if(!this.player.familiar && paper_familiar_cnt<max_paper_familiar_cnt)
+						item_prob.push(['fam',2])
+					
+					let item_type = roll(item_prob)
+					if(item_type == 'wep')
+						this.player.setPlannedAction("createWeapon", 5, PaperCreateAction, {"creation_type":'wep',"attr":this});
+					if(item_type == 'off')
+						this.player.setPlannedAction("createOffhand", 5, PaperCreateAction, {"creation_type":'off',"attr":this});
+					if(item_type == 'fam')
+						this.player.setPlannedAction("createFamiliar", 5,PaperCreateAction, {"creation_type":'fam',"attr":this});
+				}
+				break;
+			case "turnEnd":
+				// if(this.player.lastActionState == "forage success"){
+					// this.player.statusMessage = 'finds paper'
+					// this.paper += roll_range(40,180)
+				// }
+				if(!this.player.ignore_terrain && getTerrainType(this.player.x,this.player.y)=="water"){
+					this.paper -= 20;
+				}				
+				if(this.player.get_status_effect('burn')){
+					this.paper -= 10;
+				}
+				if(this.paper<0){
+					this.paper = 0
+				}
+				break;
+			case "equipItem":
+				if(data.item == 'paper'){
+					this.player.statusMessage = 'finds paper'
+					this.paper += roll_range(40,180)
+					this.player.lastActionState = 'forage paper'
+				}
+				break;
+		}
+	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				x.push(['paper', 2000])
+				break;
+		}
+		return x
+	}
+	// item_odds(prob,item_type){
+		// prob.push(['Nothing', 2000])
+	// }
+	stat_html(){
+		let html= 
+			"<span><b>📜:</b>"+this.paper+"</span><br>"
+		if(this.familiar){
+			html = html + this.familiar.stat_html();
+		}
+		return html;
+	}
+}
+
 //paper master class
 class PaperCreateAction extends Action{
 	constructor(player, data){
@@ -90,67 +165,6 @@ class PaperCreateAction extends Action{
 	}	
 }
 
-
-class PaperMaster extends Attr{
-	constructor(player){
-		super("paper", player);
-		this.has_info = true;
-		this.paper = 50;
-		this.familiar = ''
-	}
-		
-	effect(state, data={}){
-		switch(state){
-			case "planAction":
-				if(this.paper >= 150 && Math.random()>0.3){
-					log_message(this.player.name + ' '+ this.paper);
-					let item_prob = []
-					if(!this.player.weapon)
-						item_prob.push(['wep',5])
-					if(!this.player.offhand)
-						item_prob.push(['off',3])
-					if(!this.player.familiar && paper_familiar_cnt<max_paper_familiar_cnt)
-						item_prob.push(['fam',2])
-					
-					let item_type = roll(item_prob)
-					if(item_type == 'wep')
-						this.player.setPlannedAction("createWeapon", 5, PaperCreateAction, {"creation_type":'wep',"attr":this});
-					if(item_type == 'off')
-						this.player.setPlannedAction("createOffhand", 5, PaperCreateAction, {"creation_type":'off',"attr":this});
-					if(item_type == 'fam')
-						this.player.setPlannedAction("createFamiliar", 5,PaperCreateAction, {"creation_type":'fam',"attr":this});
-				}
-				break;
-			case "turnEnd":
-				if(this.player.lastActionState == "forage success"){
-					this.player.statusMessage = 'finds paper'
-					this.paper += roll_range(40,180)
-				}
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
-					this.paper -= 20;
-				}				
-				if(this.player.get_status_effect('burn')){
-					this.paper -= 10;
-				}
-				if(this.paper<0){
-					this.paper = 0
-				}
-			break;
-		}
-	}
-	item_odds(prob,item_type){
-		prob.push(['Nothing', 2000])		
-	}
-	stat_html(){
-		let html= 
-			"<span><b>📜:</b>"+this.paper+"</span><br>"
-		if(this.familiar){
-			html = html + this.familiar.stat_html();
-		}
-		return html;
-	}
-}
-
 class PaperBow extends Weapon{
 	constructor() {
 		super("paperBow");
@@ -166,7 +180,7 @@ class PaperBow extends Weapon{
 	effect(state, data={}){
 		switch(state){
 			case "turnEnd":
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
+				if(!this.player.ignore_terrain && getTerrainType(this.player.x,this.player.y)=="water"){
 					this.uses -= 2;
 				}
 				if(this.player.get_status_effect('burn')){
@@ -198,7 +212,7 @@ class PaperSword extends Weapon{
 	effect(state, data={}){
 		switch(state){
 			case "turnEnd":
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
+				if(!this.player.ignore_terrain && getTerrainType(this.player.x,this.player.y)=="water"){
 					this.uses -= 2;
 				}
 				if(this.player.get_status_effect('burn')){
@@ -248,7 +262,7 @@ class PaperShield extends Offhand{
 				this.use()
 				break;
 			case "turnEnd":
-				if(getTerrainType(this.player.x,this.player.y)=="water"){
+				if(!this.player.ignore_terrain && getTerrainType(this.player.x,this.player.y)=="water"){
 					this.power -= 5;
 				}
 				if(this.player.get_status_effect('burn')){
@@ -346,6 +360,8 @@ class PaperBird extends MovableEntity{
 			//inflict bleed
 			trigger_player.inflict_status_effect(new Bleed(Math.max(Math.round(this.power/10), 0),this.owner))
 		}
+		if(trigger_player.currentAction)
+			trigger_player.currentAction.entity_attacked(this)
 		//aoe		
 		if(this.power>=40){
 			let tD = this;

@@ -2,6 +2,8 @@ var off_prob = 2;
 var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",0],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
+	offhandOdds = tP.apply_all_calcs('itemOdds', offhandOdds, {'item_type':'off'})
+	/*
 	tP.attributes.forEach(function(attr){
 		attr.item_odds(offhandOdds, 'off');
 	});
@@ -13,7 +15,7 @@ function get_offhand_odds(tP){
 	}
 	if(tP.weapon){
 		tP.weapon.item_odds(offhandOdds, 'off');
-	}
+	}*/
 	return offhandOdds;
 }
 
@@ -58,7 +60,7 @@ class Offhand extends Item{
 		return true;
 	}
 	unequip(){
-		this.player="";
+		this.destroy();
 		return true;
 	}
 
@@ -314,7 +316,7 @@ class Campfire extends Offhand{
 		let oP="";
 		switch(state){
 			case "endMove":
-				if(getTerrain(this.player.x, this.player.y).danger==0&&(hour >= 20 || hour < 5)){
+				if(getTerrain(this.player.x, this.player.y).danger==0 &&(hour >= 20 || hour < 5)){
 					if(roll([['use',1],['notuse',2]]) == 'use'){
 						pushMessage(this.player, this.player.name + " sets a campfire")
 						this.use();
@@ -328,7 +330,7 @@ class Campfire extends Offhand{
 	}
 }
 
-class TeleportAction extends Action{
+class MirrorTeleportAction extends Action{
 	constructor(player, data){		
 		super("teleport", player)
 		this.tele_goal = data.tele_goal
@@ -492,29 +494,29 @@ class Mirror extends Offhand{
 				//oob
 				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
 					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionClass = TeleportAction
+					this.player.plannedActionClass = MirrorTeleportAction
 					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
 				}
 				//player/terrain escape
 				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
 					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionClass = TeleportAction
+					this.player.plannedActionClass = MirrorTeleportAction
 					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
 				}
 				//low hp after fight
 				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
 					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
-					this.player.setPlannedAction("mirrorTeleportEscape", 6, TeleportAction, {"tele_goal":"escape", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleportEscape", 6, MirrorTeleportAction, {"tele_goal":"escape", "mirror":this});
 				}
 				//look for fight				
 				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
 					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
-					this.player.setPlannedAction("mirrorTeleportAttack", 4,TeleportAction,{"tele_goal":"attack", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleportAttack", 4,MirrorTeleportAction,{"tele_goal":"attack", "mirror":this});
 				}				
 				// random
 				if(Math.random()<0.1){
 					// this.player.setPlannedAction("mirrorTeleport", 4);
-					this.player.setPlannedAction("mirrorTeleport", 4, TeleportAction, {"tele_goal":"neutral", "mirror":this});
+					this.player.setPlannedAction("mirrorTeleport", 4, MirrorTeleportAction, {"tele_goal":"neutral", "mirror":this});
 				}
 				break;
 			/*
@@ -534,3 +536,223 @@ class Mirror extends Offhand{
 		}
 	}
 }
+
+class MeatShield extends Offhand {
+	constructor(hostage, power, max_duration) {
+		super("meat shield");
+		this.hostage = hostage;
+		this.display_name = this.hostage.name;
+		this.power = power;
+		this.max_duration = max_duration;
+		
+		this.icon = "🧍";
+		this.uses = max_duration;
+		this.tradable = false;
+		this.stealable = false;
+	}
+	
+	equip(wielder){
+		super.equip(wielder);
+		this.player.statusMessage = "uses " + this.hostage.name + " as a meat shield"
+		this.hostage.inflict_status_effect(new MeatShieldEff(this.power, this.max_duration, this, this.player))
+		return true;
+	}
+	unequip(){
+		// if(this.hostage){
+			// if(this.hostage.get_status_effect("meat shield")){
+				// let temp_hostage = this.hostage;
+				// this.hostage = "";
+				// temp_hostage.get_status_effect("meat shield").wear_off();
+			// }
+		// }
+		this.hostage = "";
+		this.destroy();
+		return true;
+	}
+	effect(state, data={}){
+		let oP="";
+		switch(state){		
+			case "surroundingCheck":
+				if(this.player.follow_target==this.hostage)
+					this.player.follow_target = "";
+				if(this.player.fight_target==this.hostage)
+					this.player.fight_target = "";
+				if(this.player.ally_target==this.hostage)
+					this.player.ally_target = "";			
+				break;
+			case "turnEnd":
+				if(!this.hostage)
+					this.unequip();
+				else if(this.hostage.health<=0)
+					this.unequip();
+				break;			
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "playerDangerCalc":
+				if(data.opponent==this.hostage)
+					x=-500;
+				break;
+			case "dmgCalcIn":
+				if(this.hostage.health<=0){
+					this.unequip();
+					return x;
+				}
+				let shield_dmg = x * 0.75;
+				data.fightMsg.events.push(this.hostage.name + " takes "+ roundDec(shield_dmg)+ " for " + this.player.name);
+				this.hostage.take_damage(shield_dmg, data.opponent, data.dmg_type, data.fightMsg);
+				if(this.hostage.health<=0){
+					this.hostage.death = "killed by " + data.opponent.name;
+					data.opponent.kills++;
+					this.unequip();					
+				}
+				x = x * 0.25;
+				break;
+		}
+		return x
+	}	
+}
+
+class MeatShieldEff extends StatusEffect{
+	constructor(level, duration, item, owner){
+		super("meat shield", level, duration);
+		this.icon = "🧍";
+		this.item = item;
+		this.owner = owner;
+	}
+	
+	afflict(player){	
+		super.afflict(player)
+		this.player.unaware=true;
+		this.player.incapacitated=true;	
+		// let player_action_complete = this.player.currentAction.turn_complete
+
+		this.player.currentAction = new MeatShieldAction(this.player, {'effect':this})
+		this.player.currentAction.turn_complete = true
+		this.player.statusMessage = "becomes " + this.owner.name + "'s meat shield"
+	}	
+
+	//cannot be stacked
+	stack_effect(new_eff){
+		return false;
+	}	
+	wear_off(){		
+		this.player.unaware=false;
+		this.player.incapacitated=false;
+		if(this.item){
+			this.item.unequip();
+			this.item = "";
+		}
+		super.wear_off();
+	}
+	
+	effect(state, data={}){
+		let oP="";
+		switch(state){
+			case "turnStart":
+				if(this.owner.dead){
+					if(this.player)
+						this.wear_off();
+					break;
+				}
+				if(this.item.hostage!=this.player){
+					if(this.player)
+						this.wear_off();
+					break;
+				}
+				super.effect("turnStart", data);
+				break;
+			case "planAction":
+				// if(this.player.lastAction="trapped"){
+				if(this.player.currentAction.name!='meat shield')
+					this.player.setPlannedAction('meat shield', 50, MeatShieldAction, {'effect':this});
+				break;
+			case "death":
+				this.item.unequip()
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+		
+	stat_html(){
+		let html = "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
+		return html;
+	}
+	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "followCalcOthers":
+			case "aggroCalcOthers":
+			case "allyCalcOthers":
+				return -500;
+				break;
+		}
+		return x
+	}
+}
+
+class MeatShieldAction extends Action{
+	constructor(player, data){		
+		super("meat shield", player, 999, 50)
+		this.effect = data.effect;
+		this.owner = this.effect.owner;
+		this.item = this.effect.item;
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		this.combat_interruptable = false;	
+		this.combat_cancellable = false;
+	}
+	
+	turn_start(){
+		if(this.owner.dead){
+			if(this.effect.player)
+				this.effect.wear_off();
+			this.turns=0;
+			this.complete = true;
+			return;
+		}
+		if(this.item.hostage!=this.player){
+			if(this.effect.player)
+				this.effect.wear_off();
+			this.turns=0;
+			this.complete = true;
+			return;
+		}
+		super.turn_start()
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+	}
+	
+	perform(){
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		this.turns = 999
+
+		this.player.currentAction.name="meat shield";
+		
+		if (roll_range(0,50) > 29+this.effect.level*2){
+			//escape successful
+			log_message(this.player.name+" escapes");
+			this.player.statusMessage = "escapes from " + this.owner.name;
+			this.player.lastActionState="meat shield escaped";
+			// this.player.finishedAction = true;
+			this.effect.wear_off();
+			this.turns=0;
+		}
+		else{
+			this.player.lastActionState = "meat shield";
+			this.player.statusMessage = "forced to be " + this.owner.name + "'s meat shield";
+		}
+	}
+
+	turn_end(){
+		this.player.moveToCoords(this.owner.x, this.owner.y)
+	}
+}	

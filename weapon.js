@@ -19,7 +19,8 @@ function get_weapon_odds(tP){
 		weaponOdds.push(["spicy",1]);
 		// weaponOdds.push(["spicy",5000]);
 	}
-	
+	weaponOdds = tP.apply_all_calcs('itemOdds', weaponOdds, {'item_type':'wep'})
+	/*
 	tP.attributes.forEach(function(attr){
 		attr.item_odds(weaponOdds, 'wep');
 	});
@@ -33,6 +34,7 @@ function get_weapon_odds(tP){
 		tP.weapon.item_odds(weaponOdds, 'wep');
 	}
 	log_message(weaponOdds)
+	*/
 	return weaponOdds;
 }
 /*
@@ -487,6 +489,8 @@ class Nanasatsu extends Weapon {
 		this.display_name="SEX SWORD";
 		this.kills=0;
 		this.prev_owners=0;
+		this.tradable = false;
+		this.stealable = false;
 	}
 	equip(wielder){
 		super.equip(wielder);
@@ -610,6 +614,8 @@ class Spicy extends Weapon {
 	constructor() {
 		super("spicy");
 		this.display_name = ("ol' Spicy Shinkai Makai");
+		this.tradable = true;
+		this.stealable = false;
 	}
 	equip(wielder){
 		super.equip(wielder);
@@ -628,9 +634,9 @@ class Spicy extends Weapon {
 			case "turnStart":
 				//light user on fire
 				if(Math.random()>0.95){
-					let f = new Burn(1,2,"")
-					f.death_msg = "couldn't handle the ol' spicy shinkai makai"
-					this.player.inflict_status_effect(f)
+					let b = new Burn(1,2,"")
+					b.death_msg = "couldn't handle the ol' spicy shinkai makai"
+					this.player.inflict_status_effect(b)
 				}
 				break;
 			case "attack":
@@ -639,26 +645,40 @@ class Spicy extends Weapon {
 				let tP_fire = new Burn(2,1,"")
 				tP_fire.death_msg = "couldn't handle the ol' spicy shinkai makai"
 				this.player.inflict_status_effect(tP_fire)
+				/*				
 				//set opponent on fire
 				let oP_fire = new Burn(5,3,this.player)
 				oP.inflict_status_effect(oP_fire)
-				
+				*/
 				this.player.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
-				break;
-			case "newStatus":
-				//charm immunity
-				let eff = data["eff"]
-				if(eff.name == "charm"){
-					this.player.remove_status_effect(eff);
-					log_message(this.player.name +" cannot be charmed")
-				}
-				break;
+				break;			
 			default:
 				super.effect(state, data);
 				break;
 		}
 	}
 	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				let oP=data['opponent'];
+				//set opponent on fire
+				let oP_fire = new Burn(5,3,this.player)
+				oP.inflict_status_effect(oP_fire)
+				break;
+			case "newStatus":
+				//charm immunity
+				let eff = data["eff"]
+				if(eff.name == "charm"){
+					return false
+					// this.player.remove_status_effect(eff);
+					log_message(this.player.name +" cannot be charmed")
+				}
+				break;
+		}
+		return x;
+	}
+
 	show_info(){
 		let item_info = 
 		"<div class='info'>"+
@@ -749,6 +769,7 @@ class Flamethrower extends Weapon{
 				// super.effect("attack", data);
 				oP = data['opponent']
 				this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
+				/*
 				//set opponent on fire
 				let oP_fire = new Burn(3,5,this.player)
 				oP.inflict_status_effect(oP_fire)
@@ -772,6 +793,7 @@ class Flamethrower extends Weapon{
 					ground_fire.draw();
 					doodads.push(ground_fire)
 				}
+				*/
 				this.use();
 				break;
 			default:
@@ -779,6 +801,38 @@ class Flamethrower extends Weapon{
 				break;
 		}
 	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				let oP = data['opponent']
+				//set opponent on fire
+				let oP_fire = new Burn(3,5,this.player)
+				oP.inflict_status_effect(oP_fire)
+				
+				//aoe fire
+				let aoe_radius = Math.min(playerDist(this.player, oP), this.rangeBonus);
+				//get nearby opponents
+				let nearby_lst = oP.nearbyPlayers(aoe_radius);
+				let temp_wep = this;
+				nearby_lst.forEach(function(unfortunate_victim,index){
+					//cannot hit wielder
+					if(unfortunate_victim != temp_wep.player && Math.random()<0.8){
+						log_message("stray fire " + unfortunate_victim.name);
+						let aoe_fire = new Burn(1,2,temp_wep.player)
+						unfortunate_victim.inflict_status_effect(aoe_fire)
+					}
+				});	
+				//set ground on fire
+				if(getTerrainType(oP.x, oP.y) !="water" && Math.random()<0.5){
+					let ground_fire = new FireEntity(oP.x, oP.y,this.player);
+					ground_fire.draw();
+					doodads.push(ground_fire)
+				}
+				break;
+		}
+		return x
+	}
+	
 	stat_html(){
 		let html = 	super.stat_html()+
 		"<span class='desc'>"+
@@ -874,6 +928,7 @@ class Ancient extends Weapon{
 				this.player.fightDmgB *= this.dmg_data[spell[0]]
 
 				this.last_spell = spell
+				/*
 				//spell effects
 				switch(spell[0]){
 					case 'smoke':
@@ -938,7 +993,7 @@ class Ancient extends Weapon{
 						}
 					}
 				}
-				
+				*/
 				this.player.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
 				this.uses = this.uses-cost
 				this.use();
@@ -960,6 +1015,81 @@ class Ancient extends Weapon{
 				break;
 		}
 	}
+	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				let oP=data['opponent'];
+				//spell effects
+				switch(this.last_spell[0]){
+					case 'smoke':
+						oP.inflict_status_effect(new Smoke(4, 5, this.player))
+						break;
+					case 'shadow':
+						let temp_blind = new StatusEffect('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.player)
+						temp_blind.icon = "👁️"
+						oP.inflict_status_effect(temp_blind)
+						break;
+					case 'ice':
+						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.player))
+						break;
+				}
+				//aoe attack
+				if(this.last_spell[1]=='barrage'){
+					this.player.fightDmgB *= this.aoe_dmg
+					let hits = 0;
+					let nearby_lst = oP.nearbyPlayers(this.aoe_radius);
+					for(let i=0; i<nearby_lst.length; i++){
+						let dmg = 0
+						let aoe_target = nearby_lst[i]
+						if(aoe_target!=this.player && aoe_target.health >0 && Math.random()<0.6){
+							switch(this.last_spell[0]){
+								case 'smoke':
+									dmg = roll_range(1, 5)
+									oP.inflict_status_effect(new Smoke(2, 5, this.player))
+									break;
+								case 'shadow':
+									dmg = roll_range(1, 10)
+									let temp_blind = new StatusEffect('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.player)
+									temp_blind.icon = "👁️"
+									aoe_target.inflict_status_effect(temp_blind)
+									break;
+								case 'blood':
+									dmg = roll_range(1, 8)
+									log_message(this.player.name + " BLOOD aoe attack")
+									this.player.health += Math.pow(dmg,0.66);
+									break;
+								case 'ice':
+									dmg = roll_range(1, 15)		
+									aoe_target.inflict_status_effect(new Frozen(1,roll_range(1,2), this.player))
+									break;
+							}
+							aoe_target.take_damage(dmg, this.player, 'magic')
+							//on hit
+							if(aoe_target.health <=0){
+								aoe_target.death="killed by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1];
+								pushMessage(aoe_target, "killed by  "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]);
+								this.player.kills++;
+							}
+							else{
+								aoe_target.statusMessage = "hit by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]
+								pushMessage(aoe_target, "hit by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]);
+							}
+							// aoe_target.finishedAction = true;
+							// aoe_target.resetPlannedAction();
+							aoe_target.currentAction.turn_complete = true;
+							hits++;
+						}
+						if(hits>=8){
+							break;
+						}
+					}
+				}
+				break;
+		}
+		return x;
+	}
+	
 	//blood barrage breaks if aoe also targets the target
 	show_info(){
 		let item_info = 
@@ -1084,8 +1214,6 @@ class Cross extends Weapon {
 		return html;
 	}
 }
-
-
 
 
 

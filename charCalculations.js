@@ -378,8 +378,7 @@ function get_player_danger_score(tP, oP){
 	if(!tP.inAlliance(oP)){	
 		player_danger_score = 5	
 		player_danger_score += oP.intimidation - tP.intimidation/2
-		player_danger_score -= (tP.opinions[oP.id])/5
-		
+				
 		if(oP.weapon)
 			player_danger_score += 20
 		if(oP.offhand)
@@ -397,15 +396,16 @@ function get_player_danger_score(tP, oP){
 		else{
 			player_danger_score *= (2 - oP.health/oP.maxHealth)	
 			player_danger_score *= (1 + (tP.health/tP.maxHealth))
-		}				
+		}
 		
+		player_danger_score *= Math.max(1-(tP.opinions[oP.id]/100), 0.01)		
 	}
 	else{
 		//alliance members
 		player_danger_score = -20		
 		player_danger_score -= oP.intimidation/5
 		player_danger_score -= tP.opinions[oP.id]/10
-		player_danger_score += tP.alliance.unity/10
+		player_danger_score -= tP.alliance.unity/10
 		
 		if(oP.weapon)
 			player_danger_score -= 10
@@ -503,6 +503,8 @@ function fight_target(tP,oP){
 	let fightMsg = {'fight':true, 'attacker': tP, 'defender': oP, 'events':[]}
 	events.push(fightMsg);
 	
+	tP.apply_all_effects("fightStart",{"opponent":oP, "attacker":true, 'fightMsg':fightMsg});
+	oP.apply_all_effects("fightStart",{"opponent":tP, "attacker":false, 'fightMsg':fightMsg});
 	
 	//fight opponent
 	attack(tP,oP, false, fightMsg);
@@ -517,7 +519,7 @@ function fight_target(tP,oP){
 	
 	tP.lastActionState = "fighting"	
 	if(oP.currentAction)
-		oP.currentAction.attacked(tP,fightMsg);	
+		oP.currentAction.attacked(tP,fightMsg);
 	oP.lastActionState = "attacked";	
 	// tP.resetPlannedAction();
 	//tP kills oP
@@ -649,7 +651,8 @@ function fight_target(tP,oP){
 	else{
 		oP.opinions[tP.id] -= 60;
 	}
-
+	tP.apply_all_effects("fightEnd",{"opponent":oP, "attacker":true, 'fightMsg':fightMsg});
+	oP.apply_all_effects("fightEnd",{"opponent":tP, "attacker":false, 'fightMsg':fightMsg});
 	log_message(tP.name +' vs '+oP.name)
 	// log_message(tP.opponents)
 	// log_message(oP.opponents)

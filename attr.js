@@ -368,10 +368,12 @@ class Meido extends Attr{
 				break;
 			case "followCalc":
 				let follow_type = data.follow_type;
-				if(follow_type=='aggro')
-					x-=100;
-				else if(follow_type=="def")
+				if(oP.has_attr('meido')){
+					if(follow_type=='aggro')
+						x-=100;
+					else if(follow_type=="def")
 					x+=100;
+				}
 				break;
 			case "aggroCalc":
 				oP=data.opponent;
@@ -655,11 +657,11 @@ class Band extends Attr{
 		// this.guitar_dmg = 1.2;
 		this.has_info=true;
 	}	
-	item_odds(prob, item_type, data={}){
-		if(item_type=='wep'){
-			prob.push(["guitar",150])
-		}
-	}
+	// item_odds(prob, item_type, data={}){
+		// if(item_type=='wep'){
+			// prob.push(["guitar",150])
+		// }
+	// }
 	effect(state, data={}){
 		switch(state){
 			case "doActionAfter":
@@ -682,6 +684,16 @@ class Band extends Attr{
 			*/
 		}
 	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='wep'){
+					x.push(["guitar",150]);
+				}
+				break;
+		}
+		return x
+	}
 	stat_html(){
 		let html= super.stat_html()+
 		// "<span><b>Bonus Guitar Damage:</b>"+this.guitar_dmg+"</span><br>"+
@@ -698,12 +710,12 @@ class Kurt extends Band{
 		this.name = "kurt"
 		this.display_name="Kurt"
 	}
-	item_odds(prob, item_type, data={}){
-		if(item_type=='wep'){
-			prob.push(["guitar",500]);
-			prob.push(["shotgun", 600]);
-		}
-	}
+	// item_odds(prob, item_type, data={}){
+		// if(item_type=='wep'){
+			// prob.push(["guitar",500]);
+			// prob.push(["shotgun", 600]);
+		// }
+	// }
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
@@ -714,8 +726,67 @@ class Kurt extends Band{
 				
 				super.effect(state,data);
 				break;
+			default:
+				super.effect(state,data)
+				break;
 		}
 	}
+	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='wep'){
+					x=[["guitar",500],["shotgun", 600]]
+				}
+				break;
+		}
+		return x
+	}
+}
+
+
+
+class FunnyWagon extends Attr{
+	constructor(player){
+		super("wagon", player);
+		// this.has_info=true;
+		this.moveSpeedB = 2;
+		this.start_point = [];
+	}	
+
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.start_point = [];
+				break;
+			case "doActionBefore":
+				if(data.action instanceof MoveAction)
+					this.start_point = [this.player.x, this.player.y]
+				break;
+			case "doActionAfter":
+				if(data.action instanceof MoveAction){
+					let move_dist = hypD(this.player.x - this.start_point[0], this.player.y - this.start_point[1])
+					log_message('FUNNY '+move_dist)
+					if(move_dist>30){
+						let move_line = new Line({"p1":this.start_point,"p2":[this.player.x, this.player.y]})
+						let fire_count = 1 + move_dist/15
+						for(let i=0; i<fire_count; i++){
+							let rand_x = roll_range(this.start_point[0], this.player.x);
+							let rand_y = move_line.getY(rand_x)
+							let tempFire = new FireEntity(rand_x, rand_y, this.player);
+							tempFire.draw()
+							tempFire.duration = 2;
+							doodads.push(tempFire);	
+						}
+					}
+				}
+				break;
+			default:
+				super.effect(state,data)
+				break;
+		}
+	}
+	
 }
 
 

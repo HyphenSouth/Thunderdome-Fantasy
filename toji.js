@@ -48,7 +48,6 @@ class Toji extends Attr{
 	}
 	
 	effect(state, data={}){		
-		
 		switch(state){
 			case "turnStart":
 				if(this.on_cooldown){
@@ -128,12 +127,11 @@ class Toji extends Attr{
 				if(!this.powered)
 					return
 				log_message('toji defend')
-				this.attack_dodged = false;
-				this.player.fight_back = true;
 				if(this.power<TOJI_DODGE_COST){
 					this.power-=1;
 					return
-				}	
+				}
+				//dodge based on hp left
 				let dodge_chance = 60;
 				dodge_chance *= (1.5-(this.player.health/this.player.maxHealth))
 				if(data.counter)
@@ -143,26 +141,35 @@ class Toji extends Attr{
 					this.dodge(data.opponent, data.fightMsg)	
 				}								
 				break;
+			case "fightEnd":
+				if(this.attack_dodged)
+					this.player.statusMessage = "dodges "+oP.name+" attack";
+				this.attack_dodged = false;
+				this.player.fight_back = true;
+				break;
 		}
 		if(this.powered && this.power<=0)
 			this.power_down()
 	}
 	
-	effect_calc(state, x, data={}){		
+	effect_calc(state, x, data={}){
 		switch(state){
 			case "dmgCalcOut":
 				log_message('toji dmg out')
 				if(this.attack_dodged){
-					log_message('dodged')
 					x=0;
 				}
 				break;
 			case "dmgCalcIn":
 				log_message('toji dmg in')
 				if(this.attack_dodged){
-					log_message('dodged')
 					x=0;
 				}		
+				break;
+			case "newStatus":
+				log_message('toji dodge status effect')
+				if(this.attack_dodged)
+					x=false;		
 				break;
 			case "moveDistCalc":
 				if(!this.powered)
@@ -188,30 +195,8 @@ class Toji extends Attr{
 		return x
 	}
 	
-	get_move_target(){
-		let newX = 0;
-		let newY = 0;
-		//get new cords to move to
-		let tries = 0;
-		do {
-			newX = Math.floor(Math.random()*mapSize);
-			newY = Math.floor(Math.random()*mapSize);
-			tries++;
-		} while(!safeTerrainCheck(newX,newY) && tries < 10);
-		//if safe location can't be found, move to center
-		if(tries>=10){
-			log_message(this.player.name + " cant find safe location", 0);
-			newX = mapSize/2
-			newY = mapSize/2
-		}
-		
-		//get a target location to move to
-		return [newX,newY]
-		// log_message(this.player.name +" plans to move to "+ newX +" " +newY);
-	}
-	
 	dodge(oP, fightMsg){
-		let target = this.get_move_target()
+		let target = getRandomCoords('terrain')
 		this.player.moveToTarget(target[0] , target[1], TOJI_DASH_DIST);
 		if(fightMsg.events)
 			fightMsg.events.push(this.player.name + ' dashes away from '+oP.name + "'s attack")
@@ -245,13 +230,13 @@ class TojiPowerupAction extends Action{
 		super("toji powerup", player)
 		this.attr = data.attr;
 	}	
-	attacked(oP, fightMsg){		
-		if(this.turn_complete){
-			this.player.fight_back = true;
-			return
-		}
-		super.attacked(oP, fightMsg)
-	}
+	// attacked(oP, fightMsg){		
+		// if(this.turn_complete){
+			// this.player.fight_back = true;
+			// return
+		// }
+		// super.attacked(oP, fightMsg)
+	// }
 	perform(){
 		// this.attr.powerup()
 		this.attr.powered = true;

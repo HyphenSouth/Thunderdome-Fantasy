@@ -36,6 +36,17 @@ var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var event_length = 130	//max amount of events displayed
 var page_num = 0;
 
+var error_count = 0;
+window.onerror = function(error) {
+	error_count++;    
+	$('#error').css({'display':"block"});
+	$('#error').text(error_count);
+};
+function errorClick(){
+	error_count=0;
+	$('#error').css({'display':"none"});
+}
+
 $( document ).ready(function(){
 	//load files
 	document.getElementById('load_file').addEventListener('change', function() {
@@ -415,7 +426,24 @@ function startGame(){
 		});
 	});
 	//something for drawing probably
+	startScripts();
 	setInterval(timer,interval);
+}
+
+function startScripts(){
+	// globalAggro=5000;
+	// createDangerZone(50);
+	// playerStatic[0].health=0;
+	// playerStatic[3].health=0;
+	// playerStatic[4].health=0;
+	// playerStatic[5].health=0;
+	// playerStatic[6].health=0;
+	// playerStatic[7].health=0;
+	// playerStatic[8].health=0;
+	// playerStatic[9].health=0;
+	// playerStatic[10].health=0;
+	// playerStatic[12].health=0;
+	// playerStatic[13].health=0;
 }
 
 //something for progressing turns
@@ -638,6 +666,31 @@ function inBoundsCheck(x, y){
 	}
 	return valid;	
 	*/
+}
+
+//get random coordinates in the map
+function getRandomCoords(check_type='', tries=10){
+	let newX = 0;
+	let newY = 0;
+	checker = inBoundsCheck
+	if(check_type=='safe')
+		checker = safeBoundsCheck
+	if(check_type=='terrain')
+		checker = safeTerrainCheck
+	//get new cords to move to
+	do {
+		newX = Math.floor(Math.random()*mapSize);
+		newY = Math.floor(Math.random()*mapSize);
+		tries--;
+	} while(!checker(newX,newY) && tries >0);
+	//if safe location can't be found, move to center
+	if(tries<=0){
+		newX = mapSize/2
+		newY = mapSize/2
+	}
+	
+	//get a target location to move to
+	return [newX,newY]
 }
 
 //puts terrain above players
@@ -1233,22 +1286,6 @@ function updateAlliances(){
 	});	
 }
 
-//remove value from an array
-function arrayRemove(arr, value) { 
-	return arr.filter(function(ele){ return ele != value; });
-}
-
-//a^2+b^2=c^2
-var hyp_count = 0
-function hypD(x,y,hyp=true){
-	hyp_count++;
-	if (hyp){
-		return Math.sqrt(Math.pow(x,2)+Math.pow(y,2));
-	} else {
-		return Math.sqrt(Math.pow(x,2)-Math.pow(y,2));
-	}
-}
-
 var playerDistTable = []
 function updatePlayerDists(p1){
 	playerStatic.forEach(function(p2){
@@ -1414,12 +1451,6 @@ function rollSpecialP(tempName){
 	} else {
 		return "Good";
 	}
-	
-}
-
-function roundDec(x, places=2){
-	let mul = Math.pow(10, places)
-	return Math.round(x*mul)/mul
 }
 
 function rollSpecialH(tempName){
@@ -1430,95 +1461,4 @@ function rollSpecialH(tempName){
 	// }
 	return 100;
 	
-}
-//roll an int between min and max (inclusive)
-function roll_range(min, max){
-	return Math.floor(Math.random() * (max+1-min)) + min
-}
-
-// weighted roll
-function roll(options){
-	let total_weight=0;
-	// log_message(options);
-	options.forEach(function(choice,index){
-		if(choice[1]>0){
-			total_weight = total_weight + Math.round(choice[1])
-		}
-	});
-	let roll_choice = roll_range(1,total_weight)
-	// log_message(roll_choice)
-	for(let i=0; i<options.length; i++){
-		let choice = options[i]
-		if(choice[1]>=roll_choice){
-			// log_message('returning ' + choice[0])
-			return choice[0]
-		}
-		else{
-			roll_choice = roll_choice - choice[1];
-		}
-	}
-	// log_message('returning nothing')
-	return '';
-}
-function roll_probs(options){
-	let total_weight=0;
-	options.forEach(function(choice,index){
-		if(choice[1]>0){
-			total_weight = total_weight + Math.round(choice[1])
-		}
-	});
-	let probs = []
-	// log_message(roll_choice)
-	options.forEach(function(choice,index){
-		let prob = 0
-		if(choice[1]>0){
-			prob = (Math.round(choice[1])/total_weight)*100
-		}
-		probs.push([choice[0], roundDec(prob)])
-	});
-	
-	// log_message('returning nothing')
-	return probs;
-}
-
-
-function timerClick(val){
-	var d = new Date();
-	if(timerClicks[val]) {
-		console.log(val + " - " + (d.getTime() - timerClicks[val]));
-		timerClicks[val] = "";
-	} else {
-		timerClicks[val] = d.getTime();
-		console.log(val + " started");
-	}
-}
-
-//calculates some stats for a list of numbers
-function list_stats(lst){
-	let sum = 0
-	let avg = 0
-	let sd = 0
-	//sum 
-	lst.forEach(function(item){
-		sum += item;
-	})
-	avg = sum/lst.length
-	//sd 
-	let var_sum = 0
-	lst.forEach(function(item){
-		let variance = Math.pow(item - avg, 2)
-		var_sum+=variance
-	})
-	sd = Math.sqrt(var_sum/lst.length)
-	console.log('sum: '+sum)
-	console.log('avg: '+avg)
-	console.log('sd: '+sd)
-}
-
-var show_msg=true
-var show_level=0;
-function log_message(msg, msg_level=0){
-	if(show_msg==true && msg_level>=show_level){
-		console.log(msg);
-	}	
 }
