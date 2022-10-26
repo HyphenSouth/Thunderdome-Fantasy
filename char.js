@@ -20,7 +20,7 @@ class Char {
 		
 		//_______________character condition_______________
 		//health
-		this.maxHealth = rollSpecialH(this.personality);
+		this.maxHealth = 100;
 		this.health = this.maxHealth;
 		//energy
 		this.maxEnergy = 100;
@@ -852,7 +852,7 @@ class Char {
 			this.setPlannedAction("terrainEscape", 7, TerrainEscapeAction)
 			log_message('terrain escape')
 		}
-		if(this.danger_score-this.aggroB >roll_range(100, 500)){
+		if((this.danger_score - this.aggroB + this.peaceB/2) > roll_range(100+ Math.max((this.lastFight - 30 ) * 10, 0), 500) ){
 		// if(this.danger_score>roll_range(-1000, -1000)){
 			this.setPlannedAction("playerEscape", 6, PlayerEscapeAction)
 			log_message('player escape')

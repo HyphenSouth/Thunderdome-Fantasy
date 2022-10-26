@@ -2,20 +2,9 @@ var off_prob = 2;
 var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",0],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
+	if(!doll)
+		offhandOdds.push(["doll",5]);
 	offhandOdds = tP.apply_all_calcs('itemOdds', offhandOdds, {'item_type':'off'})
-	/*
-	tP.attributes.forEach(function(attr){
-		attr.item_odds(offhandOdds, 'off');
-	});
-	tP.status_effects.forEach(function(eff){
-		eff.item_odds(offhandOdds, 'off');
-	});		
-	if(tP.offhand){
-		tP.offhand.item_odds(offhandOdds, 'off');
-	}
-	if(tP.weapon){
-		tP.weapon.item_odds(offhandOdds, 'off');
-	}*/
 	return offhandOdds;
 }
 
@@ -137,7 +126,7 @@ class Bomb extends Offhand {
 				}				
 				break;
 			case "endMove":
-				if(roll([['use',5],['notuse',100]]) == 'use'){
+				if(roll([['use',10],['notuse',100]]) == 'use'){
 					log_message(this.player.name + " plants a bomb");
 					pushMessage(this.player, this.player.name + " plants a bomb")
 					this.use();
@@ -329,6 +318,62 @@ class Campfire extends Offhand{
 		}
 	}
 }
+class Mirror extends Offhand{
+	constructor() {
+		super("mirror");
+		this.display_name = "Scrying Mirror"
+		//tele target
+		this.target=""
+		this.broken=false;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "defend":
+				if(this.broken == false && Math.random()<0.8){
+					let oP=data["opponent"];
+					pushMessage(this.player, oP.name + " breaks "+this.player.name+"'s scrying mirror");
+					this.icon = setItemIcon("./icons/mirror_broken1.png");
+					let tempMirror = new MirrorEntity(this.player.x, this.player.y,this.player);
+					tempMirror.draw();
+					doodads.push(tempMirror);
+				}				
+				break;
+			case "planAction":
+				//oob
+				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
+					this.player.plannedAction = "mirrorTeleportEscape"
+					this.player.plannedActionClass = MirrorTeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
+				}
+				//player/terrain escape
+				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
+					this.player.plannedAction = "mirrorTeleportEscape"
+					this.player.plannedActionClass = MirrorTeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
+				}
+				//low hp after fight
+				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
+					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
+					this.player.setPlannedAction("mirrorTeleportEscape", 6, MirrorTeleportAction, {"tele_goal":"escape", "mirror":this});
+				}
+				//look for fight				
+				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
+					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
+					this.player.setPlannedAction("mirrorTeleportAttack", 4,MirrorTeleportAction,{"tele_goal":"attack", "mirror":this});
+				}				
+				// random
+				if(Math.random()<0.1){
+					// this.player.setPlannedAction("mirrorTeleport", 4);
+					this.player.setPlannedAction("mirrorTeleport", 4, MirrorTeleportAction, {"tele_goal":"neutral", "mirror":this});
+				}
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+}
 
 class MirrorTeleportAction extends Action{
 	constructor(player, data){		
@@ -469,73 +514,6 @@ class MirrorTeleportAction extends Action{
 	}
 }
 
-class Mirror extends Offhand{
-	constructor() {
-		super("mirror");
-		this.display_name = "Scrying Mirror"
-		//tele target
-		this.target=""
-		this.broken=false;
-	}
-	
-	effect(state, data={}){
-		switch(state){
-			case "defend":
-				if(this.broken == false && Math.random()<0.8){
-					let oP=data["opponent"];
-					pushMessage(this.player, oP.name + " breaks "+this.player.name+"'s scrying mirror");
-					this.icon = setItemIcon("./icons/mirror_broken1.png");
-					let tempMirror = new MirrorEntity(this.player.x, this.player.y,this.player);
-					tempMirror.draw();
-					doodads.push(tempMirror);
-				}				
-				break;
-			case "planAction":
-				//oob
-				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
-					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionClass = MirrorTeleportAction
-					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
-				}
-				//player/terrain escape
-				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
-					this.player.plannedAction = "mirrorTeleportEscape"
-					this.player.plannedActionClass = MirrorTeleportAction
-					this.player.plannedActionData = {"tele_goal":"escape", "mirror":this};
-				}
-				//low hp after fight
-				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
-					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
-					this.player.setPlannedAction("mirrorTeleportEscape", 6, MirrorTeleportAction, {"tele_goal":"escape", "mirror":this});
-				}
-				//look for fight				
-				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
-					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
-					this.player.setPlannedAction("mirrorTeleportAttack", 4,MirrorTeleportAction,{"tele_goal":"attack", "mirror":this});
-				}				
-				// random
-				if(Math.random()<0.1){
-					// this.player.setPlannedAction("mirrorTeleport", 4);
-					this.player.setPlannedAction("mirrorTeleport", 4, MirrorTeleportAction, {"tele_goal":"neutral", "mirror":this});
-				}
-				break;
-			/*
-			case "mirrorTeleport":
-				this.teleport();
-				break;				
-			case "mirrorTeleportEscape":
-				this.teleport("escape");
-				break;				
-			case "mirrorTeleportAttack":
-				this.teleport("attack");
-				break;
-			*/
-			default:
-				super.effect(state, data)
-				break;
-		}
-	}
-}
 
 class MeatShield extends Offhand {
 	constructor(hostage, power, max_duration) {
@@ -565,7 +543,15 @@ class MeatShield extends Offhand {
 				// temp_hostage.get_status_effect("meat shield").wear_off();
 			// }
 		// }
-		this.hostage = "";
+		if(this.hostage){
+			let temp_h = this.hostage;
+			this.hostage = "";
+			let eff = temp_h.get_status_effect("meat shield")
+			if(eff){
+				eff.item = "";
+				eff.wear_off();
+			}
+		}
 		this.destroy();
 		return true;
 	}
@@ -641,20 +627,24 @@ class MeatShieldEff extends StatusEffect{
 	stack_effect(new_eff){
 		return false;
 	}	
-	wear_off(){		
-		this.player.unaware=false;
-		this.player.incapacitated=false;
+	wear_off(){
 		if(this.item){
-			this.item.unequip();
-			this.item = "";
+			this.item.unequip();	
+			this.item = "";		
 		}
-		super.wear_off();
+		if(this.player){
+			this.player.unaware=false;
+			this.player.incapacitated=false;
+			this.player.currentAction.complete = true;
+			super.wear_off();
+		}
 	}
 	
 	effect(state, data={}){
 		let oP="";
 		switch(state){
 			case "turnStart":
+				let tP = this.player
 				if(this.owner.dead){
 					if(this.player)
 						this.wear_off();
@@ -666,6 +656,8 @@ class MeatShieldEff extends StatusEffect{
 					break;
 				}
 				super.effect("turnStart", data);
+				if(this.player!=tP)
+					tP.resetPlannedAction();
 				break;
 			case "planAction":
 				// if(this.player.lastAction="trapped"){
@@ -704,6 +696,7 @@ class MeatShieldAction extends Action{
 		this.effect = data.effect;
 		this.owner = this.effect.owner;
 		this.item = this.effect.item;
+		
 		this.player.unaware=true;
 		this.player.incapacitated=true;
 		this.combat_interruptable = false;	
@@ -736,14 +729,20 @@ class MeatShieldAction extends Action{
 		this.turns = 999
 
 		this.player.currentAction.name="meat shield";
-		
-		if (roll_range(0,50) > 29+this.effect.level*2){
+		let escape_chance = 29+this.effect.level*2;
+		if(this.owner.unaware)
+			escape_chance -= 10
+		if(this.owner.incapacitated)
+			escape_chance -= 20
+		if (roll_range(0,50) > escape_chance){
 			//escape successful
 			log_message(this.player.name+" escapes");
 			this.player.statusMessage = "escapes from " + this.owner.name;
 			this.player.lastActionState="meat shield escaped";
 			// this.player.finishedAction = true;
 			this.effect.wear_off();
+			this.complete=true;
+			this.turn_complete=true;
 			this.turns=0;
 		}
 		else{
@@ -756,3 +755,6 @@ class MeatShieldAction extends Action{
 		this.player.moveToCoords(this.owner.x, this.owner.y)
 	}
 }	
+
+var doll=true;
+class Doll extends Offhand{}

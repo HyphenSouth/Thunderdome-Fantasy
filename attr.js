@@ -367,6 +367,7 @@ class Meido extends Attr{
 				}
 				break;
 			case "followCalc":
+				oP=data.opponent;
 				let follow_type = data.follow_type;
 				if(oP.has_attr('meido')){
 					if(follow_type=='aggro')
@@ -561,107 +562,12 @@ class AidsAttr extends Attr{
 	}
 }
 
-class AidsStatus extends StatusEffect{
-	constructor(level, source="", patient_zero=""){
-		super("aids", level, 9999, {'dmgReductionB':[1,0.02]});
-		this.icon = "🎗️";
-		this.source = source;
-		this.patient_zero = patient_zero;
-		if(patient_zero=="parent")
-			this.patient_zero = this;
-		this.infections = 0;
-		this.original_max_health = 0;
-		this.infected_time = 0;
-	}
-	afflict(player){
-		this.player=player;
-		this.original_max_health = player.maxHealth;
-		if(this.source)
-			this.source.infections++;
-		if(this.patient_zero && this.patient_zero!=this)
-			this.patient_zero.infections++;
-	}
-	
-	stack_effect(eff){
-		if(eff.level > this.level){
-			this.level++;
-			this.update_data();
-		}		
-	}
-	effect(state, data={}){
-		switch(state){
-			case "turnStart":
-				this.infected_time++;
-				if(this.level>5){
-					if(roll_range(0,this.level+10)>14){
-						this.player.health-=roll_range(1,this.level/2)
-						if(this.player.maxHealth>5 && roll_range(0,this.level+100)>104){
-							this.player.maxHealth-=1;
-						}
-						if(this.player.health<=0){
-							this.player.death = "died of aids"
-						}
-					}
-				}
-				if(this.level<8){
-					if(this.infected_time%40==0){
-						this.level++;
-						this.update_data();
-					}
-				}
-				else{
-					if(this.infected_time%60==0){
-						this.level++;
-						this.update_data();
-					}
-				}
-				
-				break;
-			case "defend":
-				if(!data.opponent.get_status_effect("aids"))
-					data.opponent.inflict_status_effect(new AidsStatus(1, this, this.patient_zero))
-				else
-					data.opponent.inflict_status_effect(new AidsStatus(this.level, this, this.patient_zero))
-				break;
-		}
-	}
-	show_info(){
-		let status_info=
-		"<div class='info'>"+
-			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
-			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
-			"<span><b>Infection Duration:</b>"+this.infected_time+"</span><br>"+
-			"<span><b>Level:</b>"+this.level+"</span><br>"+
-			this.stat_html()+
-		"</div>"
-		
-		$('#extra_info_container').html(status_info);
-	}
-	stat_html(){
-		let html= super.stat_html()+
-			"<span><b>Infections:</b>"+this.infections+"</span><br>"
-			
-		if(this.source)
-			html+="<span><b>Infected by:</b>"+this.source.player.name+"</span><br>"
-		if(this.patient_zero && this.patient_zero!=this){
-			html+="<span><b>Patient Zero:</b>"+this.patient_zero.player.name+"</span><br>"
-		}
-		return html;
-	}
-	
-}
-
 class Band extends Attr{
 	constructor(player){
 		super("band", player);
 		// this.guitar_dmg = 1.2;
 		this.has_info=true;
 	}	
-	// item_odds(prob, item_type, data={}){
-		// if(item_type=='wep'){
-			// prob.push(["guitar",150])
-		// }
-	// }
 	effect(state, data={}){
 		switch(state){
 			case "doActionAfter":
@@ -752,12 +658,16 @@ class FunnyWagon extends Attr{
 		// this.has_info=true;
 		this.moveSpeedB = 2;
 		this.start_point = [];
-	}	
-
+		this.original_name = this.player.name;
+		this.original_img = this.player.img
+		this.fire_img = "https://cdn.discordapp.com/attachments/998843166138572821/1034708217441288222/WANYUUDOU_FIRE2.png"
+	}
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
 				this.start_point = [];
+				this.player.change_img(this.original_img)
+				this.player.change_name(this.original_name)
 				break;
 			case "doActionBefore":
 				if(data.action instanceof MoveAction)
@@ -774,10 +684,12 @@ class FunnyWagon extends Attr{
 							let rand_x = roll_range(this.start_point[0], this.player.x);
 							let rand_y = move_line.getY(rand_x)
 							let tempFire = new FireEntity(rand_x, rand_y, this.player);
-							tempFire.draw()
+							tempFire.draw();
 							tempFire.duration = 2;
 							doodads.push(tempFire);	
 						}
+						this.player.change_img(this.fire_img);
+						this.player.change_name("🔥" + this.original_name + "🔥");
 					}
 				}
 				break;
@@ -786,8 +698,187 @@ class FunnyWagon extends Attr{
 				break;
 		}
 	}
+}
+
+class Elfen extends Attr{
+	constructor(player){
+		super("elfen", player);
+		// this.has_info=true;
+		this.rangeBonus = 30;
+		this.base_chop_chance = 40;
+		this.max_reduction = 5
+	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				if(x<=0)
+					return x
+				this.chop_limb(data.opponent, data.fightMsg)				
+				break;
+			case "dmgCalcIn":
+				let reduction = roll_range(0,this.max_reduction);
+				if(reduction>0){
+					if(reduction <= x)
+						x = x - reduction;
+					else{
+						reduction = x;
+						x=0;						
+					}
+					data.fightMsg.events.push(this.player.name + "'s arms block "+ reduction +" damage");
+				}				
+		}
+		return x;
+	}
+	chop_limb(oP, fightMsg){
+		//CHOPPEM
+		let eff = oP.get_status_effect('chopped')
+		let chop_chance = this.base_chop_chance/5;
+		if(eff)
+			chop_chance = Math.min(chop_chance + eff.last_chopped*2, this.base_chop_chance);
+		else
+			chop_chance = this.base_chop_chance;
+		let limb = roll([['left arm',1],['right arm',1],['left leg',1],['right leg',1]]);
+		if(roll_range(0,99)<chop_chance){
+			oP.inflict_status_effect(new Chopped(limb))
+			fightMsg.events.push(this.player.name + " chops off " + oP.name + "'s " + limb);
+			this.player.statusMessage = "chops off " + oP.name + "'s " + limb;
+			oP.statusMessage = "has thier " + limb + " chopped off by " + this.player.name;		
+		}	
+	}
 	
 }
+
+class Lucy extends Elfen{
+	constructor(player){
+		super(player);
+		this.name = "lucy"
+		this.display_name = "Schizo"
+		this.has_info = true;
+		// this.has_info=true;
+		this.base_chop_chance = 80;		
+		this.lucy_img = 'https://static.tvtropes.org/pmwiki/pub/images/elfen_lied___lucy_by_d_jien_5870.jpg';
+		this.nyuu_img = 'https://cdn.myanimelist.net/images/characters/13/329265.jpg';
+		this.ded = 'https://cdn.discordapp.com/attachments/998843166138572821/1034301527420063825/unknown.png';
+		
+		this.lucy_mode = true;
+		this.fightBonus = 1.5;
+		this.rangeBonus = 20;
+		this.aggroBonus = 50;
+		this.peaceBonus = 0;
+		
+		this.lucy_meter = 80;
+	}
+	mode_switch(){
+		//switch to nyuu
+		if(this.lucy_mode){
+			this.lucy_mode = false
+			this.rangeBonus = 0;
+			this.aggroBonus = 0;
+			this.peaceBonus = 50;
+			this.fightBonus = 0.75;
+			this.player.change_name('Nyuu')
+			this.player.change_img(this.nyuu_img )	
+		}
+		//switch to lucy
+		else{
+			this.lucy_mode = true;
+			this.fightBonus = 1.5;
+			this.rangeBonus = 20;
+			this.aggroBonus = 50;
+			this.peaceBonus = 0;
+			this.player.change_name('Lucy')
+			this.player.change_img(this.lucy_img )
+		}
+		this.lucy_meter=0;
+	}
+	
+	effect(state, data={}){
+		switch(state){			
+			case "turnStart":
+				this.lucy_meter += 1;
+				if(this.lucy_meter>=100)
+					this.mode_switch();
+				break;
+			case "takeDmg":
+				if(this.lucy_mode)
+					this.lucy_meter += data.damage * 0.5;
+				else
+					this.lucy_meter += data.damage * 1.2;
+				break;
+			case "dealDmg":
+				if(this.lucy_mode)
+					this.lucy_meter += data.damage * 0.01;
+				else
+					this.lucy_meter += data.damage * 0.5;
+				break;
+			case "death":
+				this.player.change_img(this.ded);
+				break;
+			default:
+				super.effect(state,data)
+				break;
+		}
+	}
+	
+	effect_calc(state, x, data={}){
+		if(!this.lucy_mode)
+			return x;
+		else
+			return super.effect_calc(state, x, data);
+		return x;
+	}
+	stat_html(){
+		let html= super.stat_html()
+		if(this.lucy_mode){
+			html+= "<span><b>Lucy:</b>"+ Math.round(100 - this.lucy_meter) +"%</span><br>"
+		}
+		else{
+			html+= "<span><b>Lucy:</b>"+ Math.round(this.lucy_meter) +"%</span><br>"
+		}
+
+		return html;
+	}
+}
+
+class Witch extends Attr{
+	constructor(player){
+		super("witch", player);
+	}	
+
+	effect(state, data={}){		
+		switch(state){
+			case "doActionBefore":
+				if(!this.player.weapon)
+					return;
+				if(this.player.weapon.name != 'rake')
+					return;
+				if(!this.flying && (this.player.currentAction instanceof MoveAction)){
+					if(Math.random()<0.6){						
+						this.player.inflict_status_effect(new Flight(3, this));
+					}
+				}					
+				break;
+		}
+	}
+	
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='wep'){
+					x.push(["rake",20]);
+				}
+				break;
+		}
+		return x
+	}
+}
+
+
+
+
+
+
+
 
 
 

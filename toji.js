@@ -143,7 +143,7 @@ class Toji extends Attr{
 				break;
 			case "fightEnd":
 				if(this.attack_dodged)
-					this.player.statusMessage = "dodges "+oP.name+" attack";
+					this.player.statusMessage = "dodges "+data.opponent.name+" attack";
 				this.attack_dodged = false;
 				this.player.fight_back = true;
 				break;

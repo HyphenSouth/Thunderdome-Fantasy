@@ -13,6 +13,8 @@ class StatusEffect extends StatMod{
 				
 		//base amount, level amount
 		this.data = data
+		this.stack_type = '';
+		this.lv_cap = 10;
 		
 		this.update_data()
 	}
@@ -35,10 +37,37 @@ class StatusEffect extends StatMod{
 	}
 	
 	stack_effect(eff){
-		if(eff.level >= this.level){
-			this.replace_eff(eff)
-			return true;
+		switch(this.stack_type){
+			case 'lvl':
+				this.level += Math.max(Math.round(eff.level/2), 1);
+				this.level = Math.min(this.lv_cap, this.level);
+				this.update_data();
+				return true;
+				break;
+			case 'duration':
+				this.duration += Math.max(Math.round(eff.duration/2), 1);
+				return true;
+				break;
+			case 'unstackable':
+				return false;
+				break;
+			case 'lvlreplace':
+				if(eff.level >= this.level){
+					this.replace_eff(eff)
+					return true;
+				}
+				return false;
+				break;
+			default:
+			case 'lvlduration':
+				this.duration += Math.max(Math.round(eff.duration/2), 1);
+				this.level += Math.max(Math.round(eff.level/2), 1);
+				this.level = Math.min(this.lv_cap, this.level);
+				this.update_data();
+				return true;
+				break;
 		}
+		
 		return false;
 	}
 	
@@ -47,7 +76,8 @@ class StatusEffect extends StatMod{
 		this.display_name=new_eff.display_name;
 		this.icon=new_eff.icon;
 		this.duration=new_eff.duration;
-		this.level=new_eff.level;
+		this.level=new_eff.level;		
+		this.level = Math.min(this.lv_cap, this.level);
 		this.data=new_eff.data;
 		this.update_data()
 	}
@@ -696,30 +726,7 @@ class Frozen extends StatusEffect{
 	calc_dmg(){
 		return roll_range(0, 2 * this.level);
 	}
-	/*
-	frozenAction(){
-		if(this.duration<=0){
-			this.player.statusMessage = "thaws out";
-			// this.player.resetPlannedAction();
-			// this.player.finishedAction = true;	
-			this.player.lastActionState ="thaw";
-			this.wear_off();
-		}
-		else{
-			//take damage
-			this.player.take_damage(roll_range(0, 2 * this.level), this, 'ice');
-			if(this.player.health<=0){
-				this.player.death = this.death_msg
-				if(this.owner)
-					this.owner.kills++;
-			}
-			this.player.lastActionState ="frozen";
-			this.player.statusMessage = "frozen in ice";
-			// this.player.resetPlannedAction();
-			// this.player.finishedAction = true;					
-		}
-	}
-	*/
+
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
@@ -734,28 +741,7 @@ class Frozen extends StatusEffect{
 				// this.player.awareOf=[];
 				// this.player.inRangeOf=[];
 				break;
-			/*
-			case "frozen":
-				if(this.duration<=0){
-					this.player.statusMessage = "thaws out";
-					this.player.resetPlannedAction();
-					// this.player.finishedAction = true;	
-					this.wear_off();
-				}
-				else{
-					//take damage
-					this.player.take_damage(roll_range(0, 2 * this.level), this, 'ice');
-					if(this.player.health<=0){
-						this.player.death = this.death_msg
-						if(this.owner)
-							this.owner.kills++;
-					}
-					this.player.statusMessage = "frozen in ice";
-					this.player.resetPlannedAction();
-					// this.player.finishedAction = true;					
-				}				
-				break;
-			*/				
+				
 			case "turnEnd":
 				//campfire
 				if(this.player.get_status_effect('comfy')){
@@ -901,6 +887,7 @@ class Flight extends StatusEffect{
 					this.wear_off()
 				}
 				break;
+			//check for flight action
 			case "doActionBefore":
 				let action = data.action
 				let flight_continue = false;
@@ -922,13 +909,13 @@ class Flight extends StatusEffect{
 					case "following":
 						this.player.statusMessage = "flies after " + data.action.target.name;
 						if(this.new_flight)
-							this.player.statusMessage = "takes flight"
+							this.player.statusMessage = "takes flight after " + data.action.target.name;
 						break;
 					case "terrain escape":
 					case "player escape":
 						this.player.statusMessage = "flies to safety"
 						if(this.new_flight)
-							this.player.statusMessage = "takes flight"
+							this.player.statusMessage = "takes flight to safety"
 						break;
 				}				
 				this.new_flight=false;
@@ -969,6 +956,341 @@ class Flight extends StatusEffect{
 	}
 }
 
+class AidsStatus extends StatusEffect{
+	constructor(level, source="", patient_zero=""){
+		super("aids", level, 9999, {'dmgReductionB':[1,0.02]});
+		this.icon = "🎗️";
+		this.source = source;
+		this.patient_zero = patient_zero;
+		if(patient_zero=="parent")
+			this.patient_zero = this;
+		this.infections = 0;
+		this.original_max_health = 0;
+		this.infected_time = 0;
+	}
+	afflict(player){
+		this.player=player;
+		this.original_max_health = player.maxHealth;
+		if(this.source)
+			this.source.infections++;
+		if(this.patient_zero && this.patient_zero!=this)
+			this.patient_zero.infections++;
+	}
+	
+	stack_effect(eff){
+		if(eff.level > this.level){
+			this.level++;
+			this.update_data();
+		}		
+	}
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.infected_time++;
+				if(this.level>5){
+					if(roll_range(0,this.level+10)>14){
+						this.player.health-=roll_range(1,this.level/2)
+						if(this.player.maxHealth>5 && roll_range(0,this.level+100)>104){
+							this.player.maxHealth-=1;
+						}
+						if(this.player.health<=0){
+							this.player.death = "died of aids"
+						}
+					}
+				}
+				if(this.level<8){
+					if(this.infected_time%40==0){
+						this.level++;
+						this.update_data();
+					}
+				}
+				else{
+					if(this.infected_time%60==0){
+						this.level++;
+						this.update_data();
+					}
+				}				
+				break;
+			case "defend":
+				if(!data.opponent.get_status_effect("aids"))
+					data.opponent.inflict_status_effect(new AidsStatus(1, this, this.patient_zero))
+				else
+					data.opponent.inflict_status_effect(new AidsStatus(this.level, this, this.patient_zero))
+				break;
+		}
+	}
+	
+	show_info(){
+		let status_info=
+		"<div class='info'>"+
+			"<b style='font-size:18px'>"+this.icon+" "+this.display_name+"</b><br>"+
+			"<span style='font-size:12px'>"+this.player.name+"</span><br>"+
+			"<span><b>Infection Duration:</b>"+this.infected_time+"</span><br>"+
+			"<span><b>Level:</b>"+this.level+"</span><br>"+
+			this.stat_html()+
+		"</div>"
+		
+		$('#extra_info_container').html(status_info);
+	}
+	
+	stat_html(){
+		let html= super.stat_html()+
+			"<span><b>Infections:</b>"+this.infections+"</span><br>"			
+		if(this.source)
+			html+="<span><b>Infected by:</b>"+this.source.player.name+"</span><br>"
+		if(this.patient_zero && this.patient_zero!=this){
+			html+="<span><b>Patient Zero:</b>"+this.patient_zero.player.name+"</span><br>"
+		}
+		return html;
+	}
+}
+
+class Chopped extends StatusEffect{
+	constructor(limb='random'){
+		super("chopped", 1, 9999);
+		this.limbs = {
+			'left arm':{'health':100,'chopped': false},
+			'right arm':{'health':100,'chopped': false},
+			'left leg':{'health':100,'chopped': false},
+			'right leg':{'health':100,'chopped': false}
+		}
+		this.limb_names = ['left arm','right arm','left leg','right leg']
+		
+		if(!(limb in this.limbs)){
+			limb = roll([['left arm',1],['right arm',1],['left leg',1],['right leg',1]]);
+		}
+		this.next_limb = limb;
+		this.icon = "🔪";
+		this.arms_chopped = 0;
+		this.legs_chopped = 0;
+	}
+	
+	afflict(player){
+		this.player=player;
+		this.chop(this.next_limb)
+		this.next_limb = '';
+	}
+	
+	chop(limb){
+		if(!this.limbs[limb].chopped){
+			if(limb == 'left arm' || limb == 'right arm'){
+				this.arms_chopped++;
+			}
+			else if(limb == 'left leg' || limb == 'right leg'){
+				this.legs_chopped++;
+			}
+		}
+		this.limbs[limb].health = 0;
+		this.limbs[limb].chopped = true;
+		this.update_chop_effects();
+		
+		this.last_chopped = 0;		
+	}
+	/*
+		1 arm: 
+			x0.6 dmg
+			no offhand
+		2 arms: 
+			x0.4 dmg
+			x1.2 dmg taken
+			-15 range
+			no items
+		1 leg:
+			x0.6 move speed
+		2 legs:
+			x0.4 move speed	
+			
+		1 arm 2 legs: 
+			x0.6 dmg
+			no offhand
+			x0.3 move speed
+		2 arms 1 leg: 
+			x0.3 dmg
+			x0.6 move speed
+			-15 range
+			x1.3 dmg taken
+			no items
+		2 arms 2 legs: 
+			x0.1 dmg
+			x0.1 move speed
+			x1.4 dmg taken
+			-20 range
+			no items
+	*/
+	update_chop_effects(){
+		if(this.arms_chopped==2 && this.legs_chopped==2){
+			this.fightBonus = 0.1;
+			this.moveSpeedB = 0.1;
+			this.dmgReductionB = 1.4;
+			this.rangeBonus = -20;
+		}
+		else if(this.arms_chopped==1 && this.legs_chopped==2){
+			this.fightBonus = 0.6;
+			this.moveSpeedB = 0.3;
+			this.dmgReductionB = 1.1;		
+		}
+		else if(this.arms_chopped==2 && this.legs_chopped==1){
+			this.fightBonus = 0.3;
+			this.moveSpeedB = 0.6;
+			this.dmgReductionB = 1.3;
+			this.rangeBonus = -15;			
+		}
+		else if(this.arms_chopped==2){
+			this.fightBonus = 0.4;
+			this.dmgReductionB = 1.2;
+			this.rangeBonus = -15;		
+		}
+		else if(this.legs_chopped==2){
+			this.moveSpeedB = 0.4;		
+		}
+		else if(this.arms_chopped==1){
+			this.fightBonus = 0.6;			
+		}
+		else if(this.legs_chopped==1){
+			this.fightBonus = 0.6;			
+		}
+		
+		if(this.arms_chopped>0){
+			if(this.player.offhand)
+				this.player.unequip_item("off")
+		}
+		if(this.arms_chopped>1){
+			if(this.player.weapon)
+				this.player.unequip_item("wep")
+		}		
+	}
+	
+	stack_effect(eff){
+		this.chop(eff.next_limb);
+	}
+	effect(state, data={}){
+		let tP = this.player;
+		switch(state){
+			case "turnStart":
+				if(this.arms_chopped>0){
+					if(this.player.offhand)
+						this.player.unequip_item("off")
+				}
+				if(this.arms_chopped>1){
+					if(this.player.weapon)
+						this.player.unequip_item("wep")
+				}	
+				let limbs = this.limbs;
+				let healed = true;
+				let tE = this;
+				this.limb_names.forEach(function(limb){
+					if(limbs[limb].chopped){
+						limbs[limb].health+=roll_range(2,6);
+						if(tP.lastActionState == 'sleeping' || tP.lastActionState == 'resting'){
+							limbs[limb].health+=3;
+						}					
+						if(limbs[limb].health>=100){
+							limbs[limb].health=100;
+							limbs[limb].chopped=false;
+							if(limb == 'left arm' || limb == 'right arm'){
+								tE.arms_chopped--;
+							}
+							else if(limb == 'left leg' || limb == 'right leg'){
+								tE.legs_chopped--;
+							}
+							tE.update_chop_effects();
+						}
+						else{
+							healed = false;
+						}
+					}
+				});
+				if(healed)
+					this.wear_off();
+				break;
+			case "win":
+				if(this.arms_chopped>0){
+					if(this.player.offhand)
+						this.player.unequip_item("off")
+				}
+				if(this.arms_chopped>1){
+					if(this.player.weapon)
+						this.player.unequip_item("wep")
+				}
+				break;
+			case "doActionAfter":
+				if(this.arms_chopped>0){
+					if(this.player.offhand)
+						this.player.unequip_item("off")
+				}
+				if(this.arms_chopped>1){
+					if(this.player.weapon)
+						this.player.unequip_item("wep")
+				}	
+				if(this.player.get_status_effect('flight'))
+					return;
+				if(this.legs_chopped<1)
+					return;
+				switch(this.player.lastActionState){
+					case "moving":
+						if(this.legs_chopped==1){
+							this.player.statusMessage = "hops"
+						}
+						else if(this.legs_chopped==2){
+							if(this.arms_chopped==2){
+								this.player.statusMessage = "flops on the ground";
+							}
+							else{
+								this.player.statusMessage = "crawls on the ground";								
+							}
+						}
+						break;						
+					case "following":
+						if(this.legs_chopped==1){
+							this.player.statusMessage = "hops after " + data.action.target.name;
+						}
+						else if(this.legs_chopped==2){
+							if(this.arms_chopped==2){
+								this.player.statusMessage = "flops towards "  + data.action.target.name;;
+							}
+							else{
+								this.player.statusMessage = "crawls towards " + data.action.target.name;;								
+							}
+						}
+						break;
+					case "terrain escape":
+					case "player escape":
+						if(this.legs_chopped==1){
+							this.player.statusMessage = "hops to safety";
+						}
+						else if(this.legs_chopped==2){
+							if(this.arms_chopped==2){
+								this.player.statusMessage = "tries to flop to safety";
+							}
+							else{
+								this.player.statusMessage = "crawls to safety";								
+							}
+						}
+						break;
+				}				
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	stat_html(){
+		let html = ""
+		let limbs = this.limbs;
+		this.limb_names.forEach(function(limb){
+			if(limbs[limb].chopped){
+				let n = limb;
+				n = n.charAt(0).toUpperCase() + n.slice(1)
+				html += "<span><b>"+ n + ":</b>"+ limbs[limb].health +"%</span><br>"
+			}
+		});
+		html = html + super.stat_html();
+		return html;
+	}
+}
+
+class Cursed extends StatusEffect{}
+
 //class for dot effects
 class DotEffect extends StatusEffect{
 	constructor(name, level, duration, owner, dmg_type, death_msg, data){
@@ -977,10 +1299,12 @@ class DotEffect extends StatusEffect{
 		this.dmg_type = dmg_type
 		this.death_msg = death_msg
 		this.dmg_turn = "turnStart"
+		this.dmg_range = [1,1]
 	}
 	calc_dmg(){
-		return 1;
+		return roll_range(this.dmg_range[0], (this.level/2)+this.dmg_range[1]);
 	}
+		
 	effect(state, data={}){
 		switch(state){
 			case this.dmg_turn:
@@ -1004,6 +1328,7 @@ class DotEffect extends StatusEffect{
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}
+		html += "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>";
 		html = html + super.stat_html()
 		return html;
 	}
@@ -1025,6 +1350,8 @@ class Burn extends DotEffect{
 		//replace weaker burn
 		if(eff.level >= this.level){
 			this.replace_eff(eff)
+			this.owner = eff.owner;
+			this.death_msg = eff.death_msg;
 			// this.duration = eff.duration 
 			// this.level = eff.level 
 			// this.owner = eff.owner
@@ -1088,6 +1415,7 @@ class Smoke extends DotEffect{
 			this.duration = eff.duration; 
 			this.level = eff.level;
 			this.owner = eff.owner;
+			this.death_msg = eff.death_msg;
 		}
 		//increase dot
 		if(eff.level < this.level){
@@ -1124,6 +1452,7 @@ class Bleed extends DotEffect{
 		this.level += eff.level;
 		if(eff.level >= this.level){
 			this.owner = eff.owner;
+			this.death_msg = eff.death_msg;
 		}
 	}
 	
@@ -1173,7 +1502,43 @@ class Bleed extends DotEffect{
 	}	
 }
 class Poison extends DotEffect{
+	constructor(level, duration, owner){
+		super("poison", level, duration, owner, "poison", "poisoned to death");
+		this.icon="☣️";
+		this.max_dmg = this.level*this.duration+2;
+	}
 	
+	calc_dmg(){
+		return roll_range(0, this.max_dmg);
+	}
+	
+	stack_effect(eff){
+		if(eff.level > this.level){
+			this.owner = eff.owner;
+			this.level += Math.round(eff.level/2);
+			this.max_dmg += eff.level/2;
+			this.duration += eff.duration;
+			this.death_msg = eff.death_msg;
+		}
+		else if(eff.level < this.level){
+			this.duration += Math.round(eff.duration/4);			
+		}
+		else{
+			this.max_dmg += eff.level/3;
+			this.duration += Math.round(eff.duration/4);
+		}
+	}
+	effect(state, data={}){
+		switch(state){
+			case 'turnStart':
+				this.max_dmg = Math.max(2, this.max_dmg-0.5)
+				super.effect(state, data);
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
 }
 
 

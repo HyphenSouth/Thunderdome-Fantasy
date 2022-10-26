@@ -1,4 +1,10 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5],["onigiri",10]]
+
+function get_food_odds(tP){
+	let foodOdds = defaultFoodOdds.slice();
+	foodOdds = tP.apply_all_calcs('itemOdds', foodOdds, {'item_type':'food'})
+	return foodOdds;
+}
 
 class EatAction extends Action{
 	constructor(player, data){		
@@ -14,7 +20,7 @@ class EatAction extends Action{
 class Food extends Offhand{
 	constructor(name) {
 		super(name);
-		this.uses=1;	
+		this.uses=1;
 		this.heal = 0;
 		this.energy_heal = 0;
 		

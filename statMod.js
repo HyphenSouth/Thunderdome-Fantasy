@@ -271,10 +271,15 @@ function get_random_item(tP, item_type){
 		log_message(odds)
 		return create_offhand(roll(odds))
 	}
+	if(item_type=='food'){
+		odds = get_food_odds(tP)
+		log_message(odds)
+		return create_food(roll(odds))
+	}
 	return '';
 }
 
-function create_weapon(weapon_name){
+function create_weapon(weapon_name, player=''){
 	if(weapon_name in weapon_data){
 		if('class' in weapon_data[weapon_name]){
 			return new weapon_data[weapon_name]['class']()			
@@ -286,7 +291,7 @@ function create_weapon(weapon_name){
 	return weapon_name;
 }
 
-function create_offhand(offhand_name){
+function create_offhand(offhand_name, player=''){
 	if(offhand_name in offhand_data){
 		if('class' in offhand_data[offhand_name]){
 			return new offhand_data[offhand_name]['class']()			
@@ -296,14 +301,19 @@ function create_offhand(offhand_name){
 		}
 	}
 	if(offhand_name=='food'){
-		let foodOdds = defaultFoodOdds.slice();
+		let foodOdds = [];
+		if(player)
+			foodOdds = get_food_odds(tP);
+		else
+			foodOdds = defaultFoodOdds.slice();
+		log_message(foodOdds)		
 		let food_name = roll(foodOdds)
 		return create_food(food_name);
 	}
 	return offhand_name;
 }
 
-function create_food(food_name){
+function create_food(food_name, player=''){
 	if(food_name in food_data){
 		if('class' in food_data[food_name]){
 			return new food_data[food_name]['class']()			

@@ -123,7 +123,7 @@ class Gremlin extends MovableEntity{
 	}
 	
 	move(){
-		this.moveToTarget(this.owner.x + roll_range(-20,20), this.owner.y + roll_range(-20,20));		
+		this.moveToTarget(this.owner.x + roll_range(-20,20), this.owner.y + roll_range(-20,20));
 	}
 	
 	update(){
@@ -155,7 +155,30 @@ class Chihya extends Attr{
 	constructor(player){
 		super("chihya", player);
 		this.has_info = true;
-		this.booba_dmg = 2
+		this.booba_dmg = 2;
+		this.rangeBonus = 25;
+	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "dmgCalcOut":
+				if(x<=0)
+					break;
+				if(this.meter<this.max_meter)
+					break;
+				let eff_data = {
+					"rangeBonus":[10, 0],
+					"fightBonus":[0.8, -0.05],
+					"moveSpeedB":[0.6, -0.05],
+				}
+				// (name, level, duration, owner, dmg_type, death_msg, data)
+				let temp_eff = new DotEffect("tangled", 1, roll_range(2,4), this.player, "hair", "suffocated by " + this.player.name +"'s hair", eff_data);
+				temp_eff.icon = "💇"
+				temp_eff.stack_type = "lvlduration";
+				log_message(data)
+				data.opponent.inflict_status_effect(temp_eff);				
+				break;
+		}
+		return x;
 	}
 }
 
@@ -825,7 +848,7 @@ class Koamimami extends Attr{
 	stat_html(){
 		let html= super.stat_html()+
 			"<span><b>Twin:</b>"+this.partner.name+"</span><br>"+
-			"<span>"+this.partner.health + '/'+ this.partner.maxHealth + "</span><br>"
+			"<span>"+Math.round(this.partner.health) + '/'+ this.partner.maxHealth + "</span><br>"
 		if(this.revive)
 			html += "<span><b>REVIVED</b></span><br>"
 		if(this.merge)
@@ -871,8 +894,8 @@ class KoamimamiLifeSwapAction extends Action{
 		}
 		
 		let hp_diff = this.player.health - this.partner.health
-		let gift_hp = roll_range(hp_diff*0.1, hp_diff*0.4)
-		gift_hp = Math.max(gift_hp, this.player.health - this.player.maxHealth*0.2)
+		let gift_hp = roll_range(Math.round(hp_diff*0.1), Math.round(hp_diff*0.4))
+		gift_hp = Math.min(gift_hp, this.player.maxHealth*0.8)
 		gift_hp = Math.min(gift_hp, this.partner.maxHealth - this.partner.health)
 		log_message(this.player.name + ' hp gift ' + gift_hp)
 		
@@ -904,16 +927,16 @@ class KoamimamiFusionAction extends Action{
 	}
 }
 
-
 //has a super meter
 //performs a suplex when full
 SUPLEX_RANGE = 50;
 THROW_RANGE = 25;
+MAKOCHI_THROW_DIST = 200;
 class Makochi extends Attr{	
 	constructor(player){
 		super("makochi", player);
 		this.has_info = true;
-		this.meter = 100;
+		this.meter = 50;
 		this.max_meter = 100;
 		this.special = '';
 		this.fightBonus = 1.1;
@@ -941,25 +964,50 @@ class Makochi extends Attr{
 		if(target.health<=0){
 			target.death = "suplexed to death by " + this.player.name;
 		}
-		// this.meter=0;
+		this.meter=0;
 	}
 	
 	throw_attack(target, fightMsg){
 		if(playerDist(this.player, target)>THROW_RANGE)
 			return
-		let dmg = roll_range(15,45);
+		let dmg = roll_range(25,60);
 		target.take_damage(dmg, this.player, "unarmed", fightMsg)
 		fightMsg.events.push(this.player.name + " throws "+ target.name +" for "+ roundDec(dmg)+ " damage" );
-		let start_point = [target.x, target.y]
 		
+		let end_x = 0;
+		let end_y = 0;
+		let rand_angle = 0;
+		let tries = 5;
+		do {
+			rand_angle = roll_range(0,359);
+			end_x = Math.cos(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + target.x;
+			end_y = Math.sin(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + target.y;
+			tries--;
+		} while (tries > 0 && !inBoundsCheck(end_x + target.x,end_y + target.y));
+		target.moveToCoords(end_x, end_y)
 		
+		let tP= this.player;
+		players.forEach(function(oP){
+			if(oP==target)
+				return
+			if(playerDist(target, oP)<50){
+				oP.take_damage(roll_range(1,10), tP, "unarmed");
+				oP.currentAction.turn_complete = true;
+				oP.statusMessage = "hit by a flying " + target.name;
+				pushMessage(oP, oP.name + " hit by a flying " + target.name)
+				if(oP.health<=0){
+					tP.kills++;
+					oP.death = "killed by a flying " + target.name;
+				}
+			}
+		});
 		
-		this.player.statusMessage = "suplexs " + target.name;
-		target.statusMessage = "suplexed and crippled by " + this.player.name;
+		this.player.statusMessage = "throws " + target.name;
+		target.statusMessage = "thrown  by " + this.player.name;
 		if(target.health<=0){
-			target.death = "suplexed to death by " + this.player.name;
+			target.death = "thrown to death by " + this.player.name;
 		}
-		// this.meter=0;
+		this.meter=0;
 	}
 	
 	effect(state, data={}){	
@@ -978,7 +1026,9 @@ class Makochi extends Attr{
 				if(this.meter>=this.max_meter){
 					let special_attack = [['',2]]
 					if(playerDist(this.player, data.opponent)<=SUPLEX_RANGE)
-						special_attack.push(['suplex',5]);
+						special_attack.push(['suplex',4]);
+					if(playerDist(this.player, data.opponent)<=THROW_RANGE)
+						special_attack.push(['throw',8]);
 					this.special = roll(special_attack);
 				}
 				break;
@@ -989,12 +1039,16 @@ class Makochi extends Attr{
 			case "dmgCalcOut":
 				if(!this.special)
 					break;
+				if(x<=0)
+					break;
 				if(this.meter<this.max_meter)
 					break;
 				if(x<=0)
 					break;
 				if(this.special=='suplex')
 					this.suplex_attack(data.opponent, data.fightMsg)
+				else if(this.special=='throw')
+					this.throw_attack(data.opponent, data.fightMsg)
 				break;
 		}
 		return x;
@@ -1020,7 +1074,6 @@ class Makochi extends Attr{
 	}
 }
 
-
 //can create trap entities
 class Yukipo extends Attr{	
 	constructor(player){
@@ -1037,7 +1090,7 @@ class Yukipo extends Attr{
 			case "planAction":
 				if(this.holes.length>=this.max_holes)
 					return;
-				if(roll([['dig', 10 + this.last_hole * 10],['notdig',80 + this.holes.length * 4]]) == 'dig'){
+				if(roll([['dig', 10 + this.last_hole * 11],['notdig',80 + this.holes.length * 4]]) == 'dig'){
 					this.player.setPlannedAction("dig", 3, YukipoDigAction,{'attr':this})
 				}
 				this.last_hole++;
@@ -1184,7 +1237,7 @@ class PuchiCommandAction extends Action{
 			return;
 		}
 
-		if((this.player.intimidation + roll_range(0,30)) < (this.target.intimidation + roll_range(0,30))){
+		if((this.player.intimidation + roll_range(0,30)) < (this.target.intimidation + roll_range(0,50))){
 			this.player.statusMessage = "orders " + this.target.name +" to kill themself but they refuse";
 			this.player.lastActionState = "chicchan command fail";
 			return
@@ -1249,7 +1302,80 @@ class Miurasan extends Attr{
 	constructor(player){
 		super("miurasan", player);
 		this.has_info = true;
-	}	
+		this.last_tele = 50;
+		this.total_teles = 0;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.last_tele++;
+				break;
+			case "planAction":
+				if(this.last_tele<roll_range(1,this.total_teles*2))
+					return;
+				//oob
+				if(!safeBoundsCheck(this.player.x, this.player.y) && this.player.plannedAction=="move"){
+					this.player.plannedAction = "miuraTeleportEscape"
+					this.player.plannedActionClass = MiurasanTeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "attr":this};
+				}
+				//player/terrain escape
+				if(this.player.plannedAction=="playerEscape" || this.player.plannedAction=="terrainEscape"){
+					this.player.plannedAction = "miuraTeleportEscape"
+					this.player.plannedActionClass = MiurasanTeleportAction
+					this.player.plannedActionData = {"tele_goal":"escape", "attr":this};
+				}
+				//low hp after fight
+				if(this.player.lastActionState =="fighting" || this.player.lastActionState=="attacked" || this.player.health < roll_range(20,40)){
+					// this.player.setPlannedAction("mirrorTeleportEscape", 6);
+					this.player.setPlannedAction("miuraTeleportEscape", 6, MiurasanTeleportAction, {"tele_goal":"escape", "attr":this});
+				}
+				//look for fight				
+				if((this.player.aggroB - this.player.peaceB)+this.player.lastFight*2 > roll_range(100,400)){
+					// this.player.setPlannedAction("mirrorTeleportAttack", 4); 
+					this.player.setPlannedAction("miuraTeleportAttack", 4,MiurasanTeleportAction,{"tele_goal":"attack", "attr":this});
+				}				
+				// random
+				if(Math.random()<0.1){
+					// this.player.setPlannedAction("mirrorTeleport", 4);
+					this.player.setPlannedAction("miuraTeleport", 4, MiurasanTeleportAction, {"tele_goal":"neutral", "attr":this});
+				}
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+}
+class MiurasanTeleportAction extends MirrorTeleportAction{
+	constructor(player, data){		
+		super(player,data);
+		this.name = "miura teleport";
+		this.attr = data.attr
+	}
+	
+	perform(){
+		//choose target
+		if(!this.target){
+			this.target = this.choose_dest()
+		}	
+		//teleport
+		this.player.statusMessage = "teleports"
+		if(this.tele_goal=="escape"){
+			log_message(this.player.name +" tele escape")
+			this.player.statusMessage = "teleports to safer ground"
+		}
+		else if(this.tele_goal=="attack"){
+			log_message(this.player.name +" tele attack")
+			this.player.statusMessage = "teleports to " + this.tele_target.name
+		}
+		this.player.lastActionState = "miura teleport"			
+		
+		this.player.moveToCoords(this.target[0], this.target[1]);
+		this.attr.last_tele = 0;
+		this.attr.total_teles++;
+	}
 }
 
 //extra healing from food
@@ -1258,6 +1384,57 @@ class Afu extends Attr{
 	constructor(player){
 		super("afu", player);
 		this.has_info = true;
+	}
+	
+	effect(state, data={}){		
+		switch(state){
+			case "doActionAfter":
+				if(data.action instanceof EatAction){
+					let eff_lv = 1;
+					if(data.action.food.name=='onigiri'){
+						eff_lv = 2;
+					}
+					let eff_data = {
+						"fightBonus":[1,0.075],
+						"dmgReductionB":[1,-0.05],
+						"moveSpeedB":[1.1,0.1],
+						"sightBonus":[10,4],
+						// "rangeBonus":[0,5],
+						"intimidationBonus":[20,0],
+						"aggroBonus":[50,0],
+					}
+					let temp_eff = new StatusEffect("well fed", eff_lv, roll_range(5,6+eff_lv), eff_data)
+					temp_eff.icon = "😋"
+					this.player.inflict_status_effect(temp_eff)
+				}
+				break;
+			case "healDmg":
+				if(data.dmg_type=='food'){
+					this.player.health += 10;
+					this.player.energy += 5;
+				}
+				break;
+			case "planAction":
+				if(!this.player.offhand)
+					if(roll_range(0,99)<30)
+						this.player.setPlannedAction('forage', 5, ForageAction);
+				if(this.player.offhand instanceof Food)
+					if(roll_range(0,99)<50)
+						this.player.setPlannedAction("eat", 9, EatAction, {'food':this.player.offhand});
+				
+				break;
+		}
+	}
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='off')
+					x.push(['food',800])
+				else if(data.item_type=='food')					
+					x.push(['onigiri',100])
+				break;
+		}
+		return x
 	}
 }
 
@@ -1270,16 +1447,195 @@ class Takanya extends PaperMaster{
 	}	
 }
 
+
+var critter_data = {
+	"crocodile":{
+		"icon":"🐊",
+		"triggerChance":70,
+		"triggerRange":40,
+		"max_triggers":5,
+		"duration":40,
+		"moveSpeed":30,
+		"dmg":[5,15],
+		"atkMsg":"bitten by a crocodile",
+		"killMsg":"torn to shreds by a crocodile",
+	},
+	"monkey":{
+		"icon":"🐒",
+		"triggerChance":90,
+		"triggerRange":40,
+		"max_triggers":5,
+		"duration":50,
+		"moveSpeed":40,
+		"dmg":[3,10],
+		"atkMsg":"raped by monke",
+		"killMsg":"raped to death by monke",
+	},
+	"snake":{
+		"icon":"🐍",
+		"triggerChance":30,
+		"triggerRange":60,
+		"max_triggers":2,
+		"duration":25,
+		"moveSpeed":30,
+		"dmg":[5,10],
+		"atkMsg":"bitten by a snake",
+		"killMsg":"swallowed by a snake",
+	},	
+	"elephant":{
+		"icon":"🐘",
+		"triggerChance":50,
+		"triggerRange":25,
+		"max_triggers":3,
+		"duration":20,
+		"moveSpeed":20,
+		"dmg":[10,30],
+		"atkMsg":"stepped on by an elephant",
+		"killMsg":"crushed by an elephant",
+	},	
+}
 //summons critters with various effects
 class Chibiki extends Attr{	
 	constructor(player){
 		super("chibiki", player);
 		this.has_info = true;
-		this.critter_summoned = false
 		this.critter = '';
+		this.last_summon = 50;
+	}
+	
+	effect(state, data={}){	
+		switch(state){
+			case "turnStart":
+				this.last_summon++;
+				break;
+			case "planAction":
+				if(this.critter)
+					return;
+				let r = roll_range(0,5+this.last_summon)
+				if(r>20)
+					this.player.setPlannedAction("chibiki summon", 7, ChibikiSummonAction,{'attr':this})
+				log_message('chibiki prob '+r)
+				break;	
+			case "turnEnd":
+				if(this.critter)
+					this.critter.move();
+				break;
+			case "death":
+				if(this.critter)
+					this.critter.destroy();
+				break;
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()
+		if(this.critter){
+			html+="<span><b>Critter:</b>"+this.critter.icon+"</span><br>"+
+				"<span><b>Duration:</b>"+this.critter.duration+"</span><br>"
+		}
+		return html;
 	}
 }
-class Critter extends Doodad{}
+
+class ChibikiSummonAction extends Action{
+	constructor(player, data){		
+		super("chibiki summon", player);
+		this.attr = data.attr
+	}
+	perform(){
+		let critter_type = roll([['crocodile',4],['monkey',3],['snake',4],['elephant',3],])
+		let tempCritter = new Critter(critter_type, this.player.x + roll_range(-20,20), this.player.y + roll_range(-20,20),this.player, this.attr);
+		tempCritter.draw();
+		doodads.push(tempCritter);
+		this.attr.critter = tempCritter;
+		
+		this.player.statusMessage = "summons a " + critter_type;
+		this.attr.last_summon = 0;
+		log_message(this.player)
+
+	}
+}
+class Critter extends MovableEntity{
+	constructor(critter_type, x, y, owner, attr){
+		super(critter_type,x,y,owner);
+		this.attr = attr
+				
+		this.icon = critter_data[critter_type].icon
+		
+		this.ownerTriggerChance = -10;
+		this.dead_trigger = false;
+		
+		this.triggerChance = critter_data[critter_type].triggerChance;
+		this.triggerRange = critter_data[critter_type].triggerRange;
+		this.max_triggers = critter_data[critter_type].max_triggers;
+		
+		this.duration = critter_data[critter_type].duration;
+		this.moveSpeed = critter_data[critter_type].moveSpeed; 
+		this.dmg = critter_data[critter_type].dmg; 
+		
+		this.atkMsg = critter_data[critter_type].atkMsg; 
+		this.killMsg = critter_data[critter_type].killMsg;
+	}
+	trigger(tP){
+		let dmg = roll_range(this.dmg[0],this.dmg[1])		
+		if(dmg>tP.health)
+			dmg = tP.health;
+		log_message(this.name + " attacks " + tP.name + " for " + dmg)
+		tP.take_damage(dmg, this, 'unarmed')
+		if(tP.currentAction.name)
+			tP.currentAction.entity_attacked(this)
+		pushMessage(tP, this.atkMsg + ' for '+ dmg+' damage');
+		let eff_data = {}
+		let temp_eff = "";
+		switch(this.name){
+			case "crocodile":
+				temp_eff = new Bleed(1,this.owner);
+				break;
+			case "snake":
+				temp_eff = new Poison(1, 5, this.owner);
+				break;
+			case "monkey":
+				if(roll_range(0,99)<30)
+					temp_eff = new AidsStatus(1, "", "parent");
+				break;
+			case "elephant":
+				eff_data = {
+					"fightBonus":[0.8,-0.02], 
+					"rangeBonus":[-20,0], 
+					"moveSpeedB":[0.6,-0.05], 
+					"dmgReductionB":[1,0.01]
+				};
+				temp_eff = new StatusEffect("broken bones", roll_range(1,4), roll_range(2,6), eff_data)
+				temp_eff.icon = "🦴"
+				
+				break;
+		}
+		if(temp_eff)
+			tP.inflict_status_effect(temp_eff);
+		if(tP.health<=0){
+			tP.death = this.killMsg;
+			this.owner.kills++;
+		}
+		this.duration-=5;
+		if(this.duration<=0)
+			this.expire();
+	}
+	
+	move(){
+		this.moveToTarget(this.owner.x + roll_range(-20,20), this.owner.y + roll_range(-20,20));		
+	}
+	
+	update(){
+		if(this.owner.health<=0){
+			this.destroy;
+			return;
+		}
+		super.update();		
+	}
+	destroy(){
+		this.attr.critter = "";
+		super.destroy();
+	}
+}
 
 //flies and can dodge attacks
 class Piyo extends Attr{
@@ -1287,6 +1643,7 @@ class Piyo extends Attr{
 		super("piyo", player);		
 		this.flying = false;
 	}
+	
 	effect(state, data={}){		
 		switch(state){
 			case "doActionBefore":
@@ -1298,7 +1655,6 @@ class Piyo extends Attr{
 				break;
 		}
 	}
-
 }
 class PiyoFlight extends Flight{
 	constructor(duration, attr){

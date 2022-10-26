@@ -20,21 +20,6 @@ function get_weapon_odds(tP){
 		// weaponOdds.push(["spicy",5000]);
 	}
 	weaponOdds = tP.apply_all_calcs('itemOdds', weaponOdds, {'item_type':'wep'})
-	/*
-	tP.attributes.forEach(function(attr){
-		attr.item_odds(weaponOdds, 'wep');
-	});
-	tP.status_effects.forEach(function(eff){
-		eff.item_odds(weaponOdds, 'wep');
-	});		
-	if(tP.offhand){
-		tP.offhand.item_odds(weaponOdds, 'wep');
-	}
-	if(tP.weapon){
-		tP.weapon.item_odds(weaponOdds, 'wep');
-	}
-	log_message(weaponOdds)
-	*/
 	return weaponOdds;
 }
 /*
@@ -1164,7 +1149,7 @@ class Cross extends Weapon {
 		super("cross");
 		this.base_dmg = 1.1
 		this.trigger_dmg = 3
-		this.trigger_types = ['undead','homo','demon','vtubing']
+		this.trigger_types = ['undead','homo','demon','vtubing','furry']
 	}
 	effect(state, data={}){
 		let oP=''

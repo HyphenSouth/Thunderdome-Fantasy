@@ -28,6 +28,9 @@ var attr_data = {
 	"chibiki": Chibiki,
 	"piyo": Piyo,
 	"wagon": FunnyWagon,
+	"elfen": Elfen,
+	"lucy": Lucy,
+	"witch": Witch,
 }
 
 //weapon
@@ -249,5 +252,10 @@ var food_data = {
 		"heal": 1,
 		"energy_heal": 5,
 		"class": PurpleSweet			
+	},
+	"onigiri" : {
+		"icon":"🍙",
+		"uses": [3,7],
+		"heal": 5		
 	}
 }

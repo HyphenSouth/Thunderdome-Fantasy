@@ -165,7 +165,14 @@ var charlist_puchi = [
 		"name":"PiyoPiyo",
 		"img":"https://cdn.myanimelist.net/images/characters/5/245347.jpg",
 		"attr":["piyo"]
-	}
+	},	
+	{
+		"name":"Lucy",
+		"img":"https://static.tvtropes.org/pmwiki/pub/images/elfen_lied___lucy_by_d_jien_5870.jpg",
+		"attr":["lucy"]
+	},
+	
+	
 ]
 
 var charlist = charlist_puchi;

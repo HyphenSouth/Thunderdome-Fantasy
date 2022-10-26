@@ -243,7 +243,7 @@ function saveResults(filename = ''){
 	let a = document.createElement('a');
 	a.download = filename+".csv";
 	a.href = window.URL.createObjectURL(blob);
-	// a.click();	
+	a.click();
 }
 
 //save players
@@ -911,8 +911,6 @@ function deselect_alliance(){
 	selected_alliance_id = -1;
 }
 
-
-
 //toggle the info being displayed
 function infoDisplay(){
 	//switch from status to events
@@ -1303,13 +1301,6 @@ function updatePlayerDists(p1){
 }
 //calculate distance between 2 players
 function playerDist(p1, p2){
-	// let dist = 0;
-	// let x1 = p1.x;
-	// let y1 = p1.y;
-	// let x2 = p2.x;
-	// let y2 = p2.y;
-	// dist = hypD(x2-x1, y2-y1);	
-	// return dist;
 	return playerDistTable[p1.id][p2.id]
 }
 //gets all players within a distance of a point
@@ -1436,29 +1427,4 @@ function generateRiver(river,recursive){
 		currX += dirArr[dir][0]*25;
 		currY += dirArr[dir][1]*25;			
 	}
-}
-
-function rollSpecialP(tempName){
-	let tempArr = [
-	"Andou",
-	"Parn",
-	"Lin Setsu A",
-	"Tsukasa",
-	"Teppei",
-	];
-	if (tempArr.includes(tempName)){
-		return "Evil";
-	} else {
-		return "Good";
-	}
-}
-
-function rollSpecialH(tempName){
-	// if (tempName == 'Evil'){
-		// return 250;
-	// } else {
-		// return 100;
-	// }
-	return 100;
-	
 }

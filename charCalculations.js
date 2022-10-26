@@ -380,9 +380,9 @@ function get_player_danger_score(tP, oP){
 		player_danger_score += oP.intimidation - tP.intimidation/2
 				
 		if(oP.weapon)
-			player_danger_score += 20
-		if(oP.offhand)
 			player_danger_score += 10
+		if(oP.offhand)
+			player_danger_score += 5
 		
 		if(tP.opinions[oP.id]>250)
 			player_danger_score-=30
@@ -397,8 +397,7 @@ function get_player_danger_score(tP, oP){
 			player_danger_score *= (2 - oP.health/oP.maxHealth)	
 			player_danger_score *= (1 + (tP.health/tP.maxHealth))
 		}
-		
-		player_danger_score *= Math.max(1-(tP.opinions[oP.id]/100), 0.01)		
+		player_danger_score += 10 * Math.max(1-(tP.opinions[oP.id]/100), 0.01)		
 	}
 	else{
 		//alliance members

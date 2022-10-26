@@ -57,8 +57,9 @@ class Doodad {
 					let trig = tD.triggerChance;
 					if(tP==tD.owner)
 						trig=tD.ownerTriggerChance;
-					if(trig>roll_range(0,100)){
+					if(trig>roll_range(0,99)){
 						// log_message(tP.name +" triggered a "+tD.name);
+						//check if alive
 						if(!(!this.dead_trigger && tP.health<=0)){
 							tD.trigger(tP);
 							trigger_cnt++
@@ -69,27 +70,6 @@ class Doodad {
 					}
 				}
 			}
-			/*
-			players.forEach(function(tP,index){
-				let trigger_cnt = 0
-				let dist = hypD(tP.x - tD.x, tP.y - tD.y);
-				if(dist <= tD.triggerRange){
-					log_message(tD.name+" "+ tP.name+" in range")	
-					let trig = tD.triggerChance
-					if(tP==tD.owner){
-						trig=tD.ownerTriggerChance
-					}
-					if(trig>=roll_range(0,100)){
-						// log_message(tP.name +" triggered a "+tD.name);
-						tD.trigger(tP);
-						trigger_cnt++
-					}
-					if(trigger_cnt>=max_triggers){
-						return
-					}
-				}
-			});
-			*/
 		}
 		this.duration--;
 	}

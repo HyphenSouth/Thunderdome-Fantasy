@@ -546,10 +546,15 @@ class ForageAction extends Action{
 					break;
 				//rip
 				case "poisoned":
-					this.player.health = 0;
-					this.player.lastActionState = "forage death";
+					// this.player.health = 0;
+					// this.player.lastActionState = "forage death";
 					// this.death = "death from poisoned berries";
-					this.player.death = "poisoned by a poisy (poisonous flower)";
+					// this.player.death = "poisoned by a poisy (poisonous flower)";
+					this.player.lastActionState = "forage poison";
+					let temp_eff = new Poison(8, 6, this.owner);
+					temp_eff.death_msg = "poisoned to death by a poisy (poisonous flower)";
+					this.player.inflict_status_effect(temp_eff);
+					this.player.statusMessage = "forages a poisy (poisonous flower)";
 					break;
 				//aids
 				case "aids":
