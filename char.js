@@ -1,5 +1,6 @@
 class Char {
 	constructor(name,img,x,y, moral, personal){
+		this.controlled = false;
 		//_______________general data_______________
 		this.name = name;
 		this.img = img;
@@ -766,7 +767,6 @@ class Char {
 				
 		this.checkSurroundingPlayers();				
 		this.opinionUpdate();
-		this.planAction()
 	}
 	
 	//plan the next action
@@ -942,15 +942,15 @@ class Char {
 				this.currentAction = new this.plannedActionClass(this, this.plannedActionData)
 			}
 		}
-		if(!this.currentAction.name){
-			this.currentAction = new Action(this.plannedAction, this, 0, 0)
-		}
 	}
 	
 	//perform action
 	//called by action in main
 	doAction(){
 		// this.finishedAction = false;
+		if(!this.currentAction.name){
+			this.currentAction = new Action(this.plannedAction, this, 0, 0)
+		}
 		//perform planned action
 		if(this.health > 0 && !this.currentAction.turn_complete)
 			this.apply_all_effects("doActionBefore",{'action':this.currentAction});
@@ -1049,6 +1049,7 @@ class Char {
 		this.y = targetY;
 		targetX = targetX / mapSize * $('#map').width() - iconSize/2;
 		targetY = targetY / mapSize * $('#map').height() - iconSize/2;
+
 		
 		//update icons on map
 		let charDiv = $('#char_' + this.id);
@@ -1346,7 +1347,6 @@ class Char {
 		let extra_info = 
 		"<div class='info' style='font-size:12px'>"+
 			"<b style='font-size:18px'>"+this.name+"</b><br>"
-			
 		if(this.rival)
 			extra_info += "<b style='font-size:14px'>Rival: "+this.rival.name+"</b><br>"
 		else

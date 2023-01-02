@@ -166,10 +166,15 @@ var charlist_puchi = [
 		"img":"https://cdn.myanimelist.net/images/characters/5/245347.jpg",
 		"attr":["piyo"]
 	},	
+	// {
+		// "name":"Lucy",
+		// "img":"https://static.tvtropes.org/pmwiki/pub/images/elfen_lied___lucy_by_d_jien_5870.jpg",
+		// "attr":["lucy"]
+	// },	
 	{
-		"name":"Lucy",
-		"img":"https://static.tvtropes.org/pmwiki/pub/images/elfen_lied___lucy_by_d_jien_5870.jpg",
-		"attr":["lucy"]
+		"name":"Producer",
+		"img":"https://c.tenor.com/i9amW8b9cLgAAAAC/dancing-letter-letter.gif",
+		"attr":["control"]
 	},
 	
 	

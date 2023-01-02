@@ -1,5 +1,5 @@
 var players = []; 			//list of players used for the game
-var playerStatic = []; 	//static list of players
+var playerStatic = []; 		//static list of players
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
 var doodads = [];			//list of items
@@ -11,7 +11,7 @@ var terrain = [];			//2d array for terrain objects
 var riverSpawns = [];		//rivers?
 var mapSize = 1000;			//diameter of the map. 
 
-var interval = 1500;		//something for animation?
+var interval = 1500;		//time between turns
 var initDone = false;		//if initialization of the game is done
 var playing = false;		//if the game is auto playing
 var day = 0;				//the day
@@ -47,7 +47,7 @@ function errorClick(){
 	$('#error').css({'display':"none"});
 }
 
-$( document ).ready(function(){
+$(document).ready(function(){
 	//load files
 	document.getElementById('load_file').addEventListener('change', function() {
 		var fr=new FileReader();
@@ -70,7 +70,36 @@ $( document ).ready(function(){
 	})
 	Init();
 });
-
+//element coords : ingame cords
+var mapXratio = 1;
+var mapYratio = 1;
+//margins
+var marginLeft = 0;
+var marginTop = 0;
+//converts element coordinates to game coordinates
+function elementToGameCoords(coords){
+	x = coords[0] - marginLeft;
+	x = x/mapXratio;	
+	y = coords[1] - marginTop;
+	y = y/mapYratio;
+	return [x,y]
+}
+//converts game coordinates to element coordinates
+function gameToElementCoords(x,y){
+	x = coords[0] * mapXratio;
+	x = x + marginLeft;
+	y = coords[0] * mapYratio;
+	y = y + marginTop;
+	return [x,y]
+}
+function getMapClickPosition(e) {
+    // xPosition = e.clientX / mapXratio;
+    // yPosition = e.clientY / mapYratio;
+	xPosition = e.clientX;
+    yPosition = e.clientY;
+	
+	// console.log(elementToGameCoords([xPosition, yPosition]))
+}
 //initialize the start screen
 function Init(){
 	//calculate some sizes
@@ -105,6 +134,11 @@ function Init(){
 			$('#cnt_players').append(createPlayerLine());
 		}
 	});
+	mapXratio = $('#map').width()/mapSize;
+	mapYratio = $('#map').height()/mapSize;
+	marginTop = parseInt($('#map').css('margin-top').replace('px',''))
+	marginLeft = parseInt($('#map').css('margin-left').replace('px',''))
+	$('#map')[0].addEventListener("click", getMapClickPosition, false);
 }
 
 //clears all players
@@ -184,7 +218,6 @@ function loadPlayersJson(players_obj){
 		$('#cnt_players').append(createPlayerLine(player_data.name, player_data.img, attr_txt, moral_txt, personalities_txt));
 
 	});
-
 }
 
 function createPlayerLine(name='', img='', attr='', moral='Random', personality='Random'){
@@ -382,7 +415,12 @@ function startGame(){
 				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
 			else
 				personality = charlist[i][4]
-			tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
+			if(attr_lst.indexOf('control')>=0 && maxControl>controlledPlayers.length){
+				tempChar = new ControlledChar(charlist[i][0],charlist[i][1],x,y, moral, personality);
+				controlledPlayers.push(tempChar);
+			}				
+			else
+				tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
 			attr_lst.forEach(function(attr){
 				if(attr != ""){
 					tempChar.attributes.push(create_attr(attr, tempChar));
@@ -425,8 +463,9 @@ function startGame(){
 			}
 		});
 	});
-	//something for drawing probably
+	console.log('loading complete')
 	startScripts();
+	//set up auto play
 	setInterval(timer,interval);
 }
 
@@ -444,17 +483,7 @@ function startScripts(){
 	// playerStatic[10].health=0;
 	// playerStatic[12].health=0;
 	// playerStatic[13].health=0;
-}
-
-//something for progressing turns
-function timer(){
-	if(playing){
-		turn();
-	}
-}
-//toggle autoplay
-function auto(){
-	playing = !playing;
+	// test()
 }
 
 //keyboard inputs
@@ -473,58 +502,62 @@ document.addEventListener('keydown', (e) => {
 	}
 });
 
-
 //progress turn for each player
 function turn(){
-	hyp_count = 0
+	if(!dayComplete){
+		console.log('turn not ready yet');
+		return
+	}
+	dayComplete = false;
 	log_message('======= start of turn '+day+' '+hour+' =======');
-	/*
-	let numReady = 0;// number of players that are ready
-	players.forEach(function(chara,index){
-		//check if the player has finished its actions for the turn
-		if(chara.finishedAction)
-			numReady++;
-	});*/
 	//if all players are ready
-	// if(numReady == players.length){
-		//change bg color based on time of day
-		switch(hour){
-			case 7:
-			case 20:
-				$('#map').css('background','rgb(0,110,0)');
-				break;
-			case 6:
-			case 21:
-				$('#map').css('background','rgb(0,80,0)');
-				break;
-			case 8:
-				$('#map').css('background','rgb(0,128,0)');
-				break;
-			case 22:
-				$('#map').css('background','rgb(0,60,0)');
-				break;
+	//change bg color based on time of day
+	switch(hour){
+		case 7:
+		case 20:
+			$('#map').css('background','rgb(0,110,0)');
+			break;
+		case 6:
+		case 21:
+			$('#map').css('background','rgb(0,80,0)');
+			break;
+		case 8:
+			$('#map').css('background','rgb(0,128,0)');
+			break;
+		case 22:
+			$('#map').css('background','rgb(0,60,0)');
+			break;
+	}
+	//randomize the player list
+	players.sort(() => Math.random() - 0.5);
+	
+	// players.forEach(chara => chara.plannedAction = "");
+	// players.forEach(chara => chara.finishedAction = false);
+	//turn start
+	for(i=0; i<players.length; i++){
+		players[i].turnStart();		
+	}	
+	//plan actions
+	for(i=0; i<players.length; i++){
+		await players[i].planAction();		
+	}
+	
+	if(controlledPlayers.length>0){
+		controlledPlayers.sort(() => Math.random() - 0.5);
+		for(i=0; i<controlledPlayers.length; i++){
+			if(!controlledPlayers[i].autoplay && controlledPlayers[i].health>0)
+				await controlledPlayers[i].doAction();
 		}
-		//randomize the player list
-		players.sort(() => Math.random() - 0.5);
-		// players.forEach(chara => chara.plannedAction = "");
-		// players.forEach(chara => chara.finishedAction = false);
-		//plan an action for each player
-		players.forEach(function(chara,index){
-			chara.turnStart();
-		});
-	// }
-	log_message(hyp_count)
-	hyp_count = 0
-	actionPhase()
-}
-//some sort of action
-function actionPhase(){
+	}
+	
 	log_message("======= performing actions =======");
 	//perform actions for each player
-	players.forEach(function(chara,index){
-		chara.doAction();
-	});
-	
+	for(i=0; i<players.length; i++){
+		if(!players[i].controlled || players[i].autoplay){
+			await players[i].doAction();
+		}
+	}
+
 	players.forEach(function(chara,index){
 		chara.turnEnd();
 	});
@@ -560,10 +593,11 @@ function actionPhase(){
 	$('#ded_cnt').text("Dead: " + (total_players-players.length)+"/"+total_players);
 	//update the info tables
 	updateTable();
-	log_message('======= end of turn '+day+' '+hour+'=======');
-	log_message(hyp_count)
+	log_message('======= end of turn '+day+' '+(hour - 1)+'=======');
 	log_message("   ")
+	dayComplete = true;
 }
+var dayComplete = true;
 
 function allianceUpdate(){
 	alliances.forEach(function(tA,index){
@@ -575,6 +609,17 @@ function doodadUpdate(){
 	doodads.forEach(function(tD,index){
 		tD.update();		//check doodads
 	});
+}
+
+//something for progressing turns
+function timer(){
+	if(playing){
+		turn();
+	}
+}
+//toggle autoplay
+function auto(){
+	playing = !playing;
 }
 
 //terrain layers is the thickness of terrain to be turned into danger zones
