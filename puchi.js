@@ -112,7 +112,7 @@ class Gremlin extends MovableEntity{
 		this.owner.health += 0.1;
 		if(tP.currentAction.name)
 			tP.currentAction.entity_attacked(this)
-		pushMessage(tP, tP.name+' attacked by '+this.name+' for '+ dmg+' damage');
+		pushMessage(tP, tP.name+' attacked by '+this.name+' for '+ roundDec(dmg) +' damage');
 		if(tP.health<=0){
 			tP.death = "consumed by " + this.name;
 			this.owner.kills++;
@@ -352,7 +352,7 @@ class DekoBeamEntity extends Doodad{
 				}				
 			}
 			if(oP.currentAction)
-					oP.currentAction.entity_attacked(tD)
+				oP.currentAction.entity_attacked(tD)
 			oP.statusMessage = "hit by "+ tD.owner.name +"'s deko beam"
 			pushMessage(oP, oP.name + " hit by "+ tD.owner.name +"'s deko beam");
 			if(oP.health<=0){
@@ -1457,7 +1457,7 @@ var critter_data = {
 		"duration":40,
 		"moveSpeed":30,
 		"dmg":[5,15],
-		"atkMsg":"bitten by a crocodile",
+		"atkMsg":" bitten by a crocodile",
 		"killMsg":"torn to shreds by a crocodile",
 	},
 	"monkey":{
@@ -1468,7 +1468,7 @@ var critter_data = {
 		"duration":50,
 		"moveSpeed":40,
 		"dmg":[3,10],
-		"atkMsg":"raped by monke",
+		"atkMsg":" raped by monke",
 		"killMsg":"raped to death by monke",
 	},
 	"snake":{
@@ -1479,7 +1479,7 @@ var critter_data = {
 		"duration":25,
 		"moveSpeed":30,
 		"dmg":[5,10],
-		"atkMsg":"bitten by a snake",
+		"atkMsg":" bitten by a snake",
 		"killMsg":"swallowed by a snake",
 	},	
 	"elephant":{
@@ -1490,7 +1490,7 @@ var critter_data = {
 		"duration":20,
 		"moveSpeed":20,
 		"dmg":[10,30],
-		"atkMsg":"stepped on by an elephant",
+		"atkMsg":" stepped on by an elephant",
 		"killMsg":"crushed by an elephant",
 	},	
 }
@@ -1583,7 +1583,7 @@ class Critter extends MovableEntity{
 		tP.take_damage(dmg, this, 'unarmed')
 		if(tP.currentAction.name)
 			tP.currentAction.entity_attacked(this)
-		pushMessage(tP, this.atkMsg + ' for '+ dmg+' damage');
+		pushMessage(tP, tP.name + this.atkMsg + ' for '+ dmg+' damage');
 		let eff_data = {}
 		let temp_eff = "";
 		switch(this.name){

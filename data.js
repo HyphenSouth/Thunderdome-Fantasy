@@ -208,6 +208,12 @@ var offhand_data = {
 		"uses" : 1,
 		"class": Mirror		
 	},
+	"doll" : {
+		"icon" : "./icons/doll.png",
+		"icon_type" : "img",
+		"uses" : 1,
+		"class": Doll		
+	},
 }
 
 //food

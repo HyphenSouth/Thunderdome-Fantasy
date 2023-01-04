@@ -124,7 +124,8 @@ class Char {
 		this.offhand = "";
 
 		this.alliance = "";
-		this.opinions = [];	
+		this.opinions = [];
+		
 		//unused					
 		this.recentlySeen = [];
 		this.goal = "";
@@ -139,6 +140,9 @@ class Char {
 		
 		this.death = "Cast in the name of God, Ye Guilty";
 		this.dead = false;
+		
+		this.div_classes = [];
+		this.tblDiv_classes = [];
 	}
 
 	//other players
@@ -930,11 +934,12 @@ class Char {
 		//removing red fighting border
 		this.div.removeClass("fighting");
 		this.tblDiv.removeClass("fighting");
+		
 		this.tblDiv.removeClass("forage");
 		this.tblDiv.removeClass("allyEvent");
-		this.div.find('.charText').removeClass('sleep');
-		this.tblDiv.removeClass('sleep');
 		
+		this.div.find('.charText').removeClass('sleep');
+		this.tblDiv.removeClass('sleep');		
 				
 		//set action
 		if(!this.currentAction.name){

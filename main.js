@@ -119,7 +119,10 @@ function Init(){
 	}
 	// $('#danger').css('visibility', 'visible');
 	$('#danger').height($('#map').height()-10)
-	$('#danger').width($('#map').width()-10)
+	$('#danger').width($('#map').width()-10)	
+	
+	$('#effects').height($('#map').height());
+	$('#effects').width($('#map').width());
 
 	$('#cnt_players').html("");
 	// loadPlayersTxt(chartext);
@@ -144,7 +147,7 @@ function Init(){
 //clears all players
 function resetPlayers(){
 	//add a single row into the player table
-	$('#cnt_players').html(player_line);
+	$('#cnt_players').html(createPlayerLine());
 }
 
 //load players from csv
@@ -415,12 +418,16 @@ function startGame(){
 				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
 			else
 				personality = charlist[i][4]
+			//controlled players
+			/*
 			if(attr_lst.indexOf('control')>=0 && maxControl>controlledPlayers.length){
 				tempChar = new ControlledChar(charlist[i][0],charlist[i][1],x,y, moral, personality);
 				controlledPlayers.push(tempChar);
 			}				
 			else
 				tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
+			*/
+			tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
 			attr_lst.forEach(function(attr){
 				if(attr != ""){
 					tempChar.attributes.push(create_attr(attr, tempChar));
@@ -483,7 +490,9 @@ function startScripts(){
 	// playerStatic[10].health=0;
 	// playerStatic[12].health=0;
 	// playerStatic[13].health=0;
-	// test()
+	// $('#effects').append(
+		// "<img id='ai_img' src='icons/ai.png' style='opacity:0.4; position:absolute; bottom:0px; transform: scale(0.3) translate(-120%, 130%); '></img>"
+	// )
 }
 
 //keyboard inputs
@@ -539,9 +548,9 @@ function turn(){
 	}	
 	//plan actions
 	for(i=0; i<players.length; i++){
-		await players[i].planAction();		
+		players[i].planAction();		
 	}
-	
+	/*
 	if(controlledPlayers.length>0){
 		controlledPlayers.sort(() => Math.random() - 0.5);
 		for(i=0; i<controlledPlayers.length; i++){
@@ -549,12 +558,12 @@ function turn(){
 				await controlledPlayers[i].doAction();
 		}
 	}
-	
+	*/
 	log_message("======= performing actions =======");
 	//perform actions for each player
 	for(i=0; i<players.length; i++){
 		if(!players[i].controlled || players[i].autoplay){
-			await players[i].doAction();
+			players[i].doAction();
 		}
 	}
 
@@ -983,25 +992,9 @@ function infoDisplay(){
 			updateStatusTable()
 			break;
 	}
-	/*
-	// if($('#table').css('display')=='block'){
-	if(page_num==0){
-		$('#table').css('display','none');
-		$('#alliances').css('display','none');
-		$('#messages').css('display','block');
-		page_num = 1
-	} 
-	//switch from events to status
-	else {
-		$('#table').css('display','block');
-		$('#messages').css('display','none');
-		page_num = 0
-	}
-	*/
 }
 
-var dayColors = ["#282828","#474747"];
-var currentDayColor=0;
+
 //update the info tables
 function updateTable(){
 	//list status
@@ -1041,135 +1034,22 @@ function updateTable(){
 		$("#char_" + chara.id + " .charEff").html(icon_status_text);
 		
 	});
-	/*
-	players.forEach(function(chara,index){
-		//prepare player data
-		//character icons
-		$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-		$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-		
-		//weapon
-		let wep_text=""
-		if(chara.weapon){
-			wep_text+=chara.weapon.icon;
-		}
-		if(chara.offhand){
-			wep_text+=chara.offhand.icon;
-		}
-		$("#char_" + chara.id + " .charWeap").html(wep_text);
-		//status effect
-		let status_text=""				//side bar
-		let icon_status_text = "";		//char icon
-		let icon_count=0;
-		chara.status_effects.forEach(function(eff,index){		
-			status_text+=eff.icon;
-			if(icon_count<4){
-				if(eff.icon){
-					icon_status_text=icon_status_text+eff.icon;
-					icon_count++;
-				}	
-			}
-		});
-		$("#char_" + chara.id + " .charEff").html(icon_status_text);
-		
-		//info bar
-		$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
-		$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-		//action
-		$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
-		//kills
-		$("#tbl_" + chara.id + " .kills").text(chara.kills);
-		$("#tbl_" + chara.id + " .weapon").html(wep_text);			
-		$("#tbl_" + chara.id + " .effects").html(status_text);
-		// log_message(chara.name +" status txt " + status_text);
-	});
-	*/
-	/*
-	dedPlayers.forEach(function(chara,index){
-		$("#tbl_" + chara.id + " .kills").text(chara.kills);
-		let wep_text=""
-		if(chara.weapon){
-			wep_text+=chara.weapon.icon;
-		}
-		if(chara.offhand){
-			wep_text+=chara.offhand.icon;
-		}
-		$("#tbl_" + chara.id + " .weapon").html(wep_text);
-	});
-	*/
+
 	if(page_num == 0)
 		updateStatusTable()
 	// if(page_num == 1)
 		// updateEvents()	
 	if(page_num == 2)
 		updateAlliances()
+	
+	//turn existing messages transparent
+	$('#messages td').css('opacity','0.3');
+	$('#eventFeed').empty()
 	updateEvents()
+	
 	doodads.forEach(function(tD,index){
 		tD.draw()
 	});
-	/*
-	//turn existing messages transparent
-	$('#messages td').css('opacity','0.3');
-	
-	//add new event messages
-	events.forEach(function(msg,index){
-		// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
-		//bg based on time
-		// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
-		let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
-		if(!msg.fight){
-			let chara = msg.chara;
-			let message = msg.message;
-			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
-		}
-		else{
-			let attacker = msg.attacker;
-			let defender = msg.defender;
-			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><div>"+
-				"<div style='float:left;max-width:120px;text-align:left;'>\
-					<img style='width:90px; height:90px;' src='" + attacker.img + "'></img>"+
-					// <span style='display:inline-block'>"+attacker.name+"</span>
-				"</div>"+
-			// "<span>attacks</span>"+
-				"<div style='float:right;max-width:120px;text-align:right;'>\
-					<img style='width:90px; height:90px;' style='float:right;' src='" + defender.img + "'></img>"+
-					// <span style='display:inline-block'>"+defender.name+"</span>
-				"</div>\
-			</div>"+
-			"<div style='font-size:16px;display:inline-block'>"
-			msg.events.forEach(function(event_msg){
-				event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
-			});
-			event_html = event_html+"</div></td>";
-		}
-		event_html = event_html + "</tr>";
-		$('#eventMsg tbody').prepend(event_html);
-	});
-	
-	// remove excess messages
-	if($('#eventMsg tbody').children().length>event_length){
-		let remove_amount = $('#eventMsg tbody').children().length-event_length
-
-		for(let i=0; i<remove_amount; i++){
-			// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
-			$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
-			
-		}
-	}
-	if(events.length>0){
-		currentDayColor = (currentDayColor+1)%dayColors.length;
-	}
-	
-	//list deaths
-	dedPlayers.forEach(function(chara,index){
-		if(!chara.diedMessage){
-			$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + chara.img + "'></img>" + chara.death + "</td>>");
-			chara.diedMessage = "Done";
-		}
-	});
-	
-	events=[];
-	*/
 }
 
 function updateStatusTable(){
@@ -1213,21 +1093,20 @@ function updateStatusTable(){
 		$("#tbl_" + chara.id + " .weapon").html(inv_text);
 	});	
 }
-
-function updateEvents(){
-	//turn existing messages transparent
-	$('#messages td').css('opacity','0.3');
-	
+var dayColors = ["#282828","#474747"];
+var currentDayColor=0;
+function updateEvents(){	
 	//add new event messages
+	let fight_count = 0;	//fight counter
 	events.forEach(function(msg,index){
-		// let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td><td style='background-color:"+ dayColors[currentDayColor]+";'>"
 		//bg based on time
-		// let event_html = "<tr style='background-color:"+ dayColors[currentDayColor]+";'><td>Day " + day + " " + hour + ":00</td>"
-		let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>"
+		let event_html = "<tr><td style='background-color:"+ dayColors[currentDayColor]+";'>Day " + day + " " + hour + ":00</td>";
+		let feed_html = "";
 		if(!msg.fight){
 			let chara = msg.chara;
 			let message = msg.message;
 			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
+			feed_html = "<span style='color:white'>" + message + "</span><br>";	
 		}
 		else{
 			let attacker = msg.attacker;
@@ -1246,21 +1125,24 @@ function updateEvents(){
 			"<div style='font-size:16px;display:inline-block'>"
 			msg.events.forEach(function(event_msg){
 				event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
+			
 			});
 			event_html = event_html+"</div></td>";
+			// feed_html = "<span style='color:red'>⚔️" + attacker.name + " fights " + defender.name + "</span><br>";
+			fight_count++;
 		}
 		event_html = event_html + "</tr>";
 		$('#eventMsg tbody').prepend(event_html);
+		$('#eventFeed').prepend(feed_html);
 	});
-	
+	// if(fight_count>0)
+		// $('#eventFeed').prepend("<span style='color:white'>" + fight_count+" fights</span><br>");
 	// remove excess messages
 	if($('#eventMsg tbody').children().length>event_length){
 		let remove_amount = $('#eventMsg tbody').children().length-event_length
-
 		for(let i=0; i<remove_amount; i++){
 			// log_message($('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1])
 			$('#eventMsg tbody').children()[$('#eventMsg tbody').children().length-1].remove()
-			
 		}
 	}
 	if(events.length>0){
@@ -1290,8 +1172,7 @@ function updateAlliances(){
 			if(alli.members.indexOf(member)<0){
 				$("#alliance_"+alli.id+"_char_" + member.id).remove()
 				return
-			}
-			
+			}			
 			if($("#alliance_"+alli.id+"_char_" + member.id).length){
 				//prepare player data
 				//weapon

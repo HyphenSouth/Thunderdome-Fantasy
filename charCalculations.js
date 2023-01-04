@@ -425,7 +425,6 @@ function get_player_danger_score(tP, oP){
 	// console.log(oP.name + ' ' +player_danger_score)
 }
 
-
 function doodadCheck(tP){
 	doodads.forEach(function(tD,index){
 		let dist = hypD(tP.x - tD.x, tP.y - tD.y);
@@ -439,6 +438,7 @@ function doodadCheck(tP){
 		}
 	});
 }
+
 //calculate damage
 function rollDmg(tP, oP){
 	if(tP.fightDmgB<0){

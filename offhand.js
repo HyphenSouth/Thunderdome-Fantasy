@@ -2,7 +2,7 @@ var off_prob = 2;
 var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",0],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
-	if(!doll)
+	if(!doll && tP.get_status_effect("hellbound")=="")
 		offhandOdds.push(["doll",5]);
 	offhandOdds = tP.apply_all_calcs('itemOdds', offhandOdds, {'item_type':'off'})
 	return offhandOdds;
@@ -756,5 +756,152 @@ class MeatShieldAction extends Action{
 	}
 }	
 
-var doll=true;
-class Doll extends Offhand{}
+var doll=false;
+var AIDIV = "<img id='ai_img' src='icons/ai.png' style='opacity:0.4; position:absolute; bottom:0px; transform: scale(0.3) translate(-120%, 130%); '></img>"
+class Doll extends Offhand{
+	constructor() {
+		super("doll");
+		this.target = "";
+		this.tradable = false;
+		this.stealable = false;
+		this.turns = 0;
+	}
+	
+	equip(wielder){
+		super.equip(wielder);
+		this.target = this.choose_target();
+		doll = true;
+		//set ai
+		$('#effects').append(AIDIV);
+		return true;
+	}
+	
+	choose_target(){
+		let tP = this.player;
+		let chosen = "";
+		let chosen_score = 50000;
+		players.forEach(function(oP){
+			if(oP==tP)
+				return
+			let oP_score = tP.opinions[oP.id]
+			if(oP==tP.rival)
+				oP_score -= 50
+			if(oP_score < chosen_score){
+				chosen_score = oP_score;
+				chosen = oP;
+			}			
+		});
+		return chosen;
+	}	
+	
+	effect(state, data={}){
+		let oP="";
+		switch(state){			
+			case "turnStart":
+				if(!this.target){
+					this.destroy();
+					return;
+				}
+				if(this.target.dead){
+					this.destroy();
+				}
+				this.turns+=1;
+				break;
+			case "defend":
+				oP = data.opponent;
+				if(oP == this.target)
+					this.use();
+				break;
+			case "turnEnd":
+				if(this.turns>=3){
+					let decision = this.decision()
+					if(decision == "pull"){
+						this.use();
+					}
+					else if (decision == "discard"){
+						this.discard();
+					}
+				}
+				break;
+			case "death":
+				this.destroy();				
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}	
+	
+	decision(){
+		let pull_chance = 30;
+		let no_pull_chance = 100;
+		let discard_chance = 5;
+		return roll([["pull", pull_chance], ["no pull", no_pull_chance],["discard", discard_chance]])
+	}
+	
+	use(){
+		if(this.target){
+			// this.player.lastActionState = "doll pull";
+			this.player.statusMessage = "sends " + this.target.name + " to hell";
+			pushMessage(this.player, this.player.name + " sends " + this.target.name + " to hell");
+			this.player.kills++;
+			this.player.inflict_status_effect(new HellBound())
+			this.target.health = 0;
+			this.target.death = "gives death a try";
+		}
+		this.uses = 0;
+		this.destroy();
+	}
+	
+	discard(){
+		pushMessage(this.player, this.player.name + " gives up on revenge");
+		this.uses = 0;
+		this.destroy();
+	}					
+
+	destroy(){ 
+		super.destroy();
+		doll=false;
+		//remove ai
+		$('#ai_img').remove();
+	}
+	
+	stat_html(){
+		let html = 	
+		"<span><b>Target:</b>" + this.target.name + "</span><br>" + 
+		super.stat_html()+		
+		"<span class='desc'>" +
+			"Ippen" +
+		"</span>"		
+		return html;
+	}		
+}
+
+class HellBound extends StatusEffect{
+	constructor(){
+		super("hellbound", 666, 200000);
+		this.icon = setEffIcon("icons/hell.png")
+		this.intimidationBonus = 30;
+		this.dmgReductionB = 1.05
+	}
+	
+	effect(state, data={}){
+		let oP="";
+		switch(state){			
+			case "death":
+				this.player.death = this.player.death + " and goes to hell"
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	stat_html(){
+		let html = 	super.stat_html()+		
+		"<span class='desc'>"+
+			"Curses come home to roost"+
+		"</span>"		
+		return html;
+	}	
+}

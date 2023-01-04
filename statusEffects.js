@@ -795,12 +795,12 @@ class Skulled extends StatusEffect{
 			case "lose":
 				let oP = data['opponent']
 				let tP = this.player
-				if(tP.offhand){
+				if(tP.offhand && tP.offhand.stealable){
 					let temp_off = tP.offhand
 					tP.unequip_item("off");
 					oP.equip_item(temp_off)
 				}
-				if(tP.weapon){
+				if(tP.weapon && tP.weapon.stealable){
 					let temp_wep = tP.weapon
 					tP.unequip_item("wep");
 					oP.equip_item(temp_wep)
@@ -1289,7 +1289,6 @@ class Chopped extends StatusEffect{
 	}
 }
 
-class Cursed extends StatusEffect{}
 
 //class for dot effects
 class DotEffect extends StatusEffect{

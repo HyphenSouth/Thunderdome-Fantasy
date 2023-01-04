@@ -43,8 +43,6 @@ function get_weapon_odds(tP){
 
 */
 
-
-
 //class to hold data for items
 class Weapon extends Item{
 	constructor(name){
@@ -291,40 +289,6 @@ class Sniper extends Weapon {
 	}
 }
 
-class ShotgunReloadAction extends Action{
-	constructor(player, data){
-		super("reloadShotgun", player);
-		this.shotgun = data.shotgun	
-		this.player.fight_back = false;
-	}
-	
-	attacked(oP, fightMsg){		
-		if(this.turn_complete){
-			this.player.fight_back = true;
-			return
-		}
-		super.attacked(oP, fightMsg)
-		this.perform();
-		if(fightMsg.events)
-			fightMsg.events.push(this.player.name + ' reloads their shotgun instead of fighting back')
-		this.player.statusMessage = "reloads their shotgun instead of fighting back against "+oP.name;
-		this.player.fight_back = false;
-	}
-	
-	perform(){
-		if(this.shotgun.player != this.player){
-			this.player.statusMessage = "lost the shotgun they want to reload";
-			this.player.lastActionState = "reloading fail"
-		}
-		else{
-			log_message(this.player.name + " reloads");
-			this.player.statusMessage = "reloads their shotgun";
-			this.player.lastActionState = "reloading"
-			this.shotgun.reload()
-		}
-	}
-}
-
 //2 shells loaded at a time
 //takes time to reload
 //damage based on distance
@@ -416,12 +380,12 @@ class Shotgun extends Weapon {
 								//on hit
 								if(unfortunate_victim.health <=0){
 									unfortunate_victim.death="killed by a stray pellet from "+temp_wep.player.name+"'s shotgun";
-									pushMessage(unfortunate_victim, "killed by a stray pellet from "+temp_wep.player.name+"'s shotgun");
+									pushMessage(unfortunate_victim, unfortunate_victim.name + " killed by a stray pellet from "+temp_wep.player.name+"'s shotgun");
 									temp_wep.player.kills++;
 								}
 								else{
 									unfortunate_victim.statusMessage="hit by a stray pellet from "+temp_wep.player.name+"'s shotgun";
-									pushMessage(unfortunate_victim, "hit by a stray pellet from "+temp_wep.player.name+"'s shotgun");
+									pushMessage(unfortunate_victim, unfortunate_victim.name + " hit by a stray pellet from "+temp_wep.player.name+"'s shotgun");
 								}
 								
 								// unfortunate_victim.finishedAction = true;
@@ -465,6 +429,41 @@ class Shotgun extends Weapon {
 			"<span>Capable of collateral damage</span>"+
 		"</span>"
 		return html;
+	}
+}
+
+class ShotgunReloadAction extends Action{
+	constructor(player, data){
+		super("reloadShotgun", player);
+		this.shotgun = data.shotgun	
+		this.player.fight_back = false;
+	}
+	
+	attacked(oP, fightMsg){
+		//allow fighting back if the shotgun has been reloaded
+		if(this.turn_complete){
+			this.player.fight_back = true;
+			return
+		}
+		super.attacked(oP, fightMsg)
+		this.perform();
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' reloads their shotgun instead of fighting back')
+		this.player.statusMessage = "reloads their shotgun instead of fighting back against "+oP.name;
+		this.player.fight_back = false;
+	}
+	
+	perform(){
+		if(this.shotgun.player != this.player){
+			this.player.statusMessage = "lost the shotgun they want to reload";
+			this.player.lastActionState = "reloading fail"
+		}
+		else{
+			log_message(this.player.name + " reloads");
+			this.player.statusMessage = "reloads their shotgun";
+			this.player.lastActionState = "reloading"
+			this.shotgun.reload()
+		}
 	}
 }
 
@@ -1058,7 +1057,7 @@ class Ancient extends Weapon{
 							}
 							else{
 								aoe_target.statusMessage = "hit by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]
-								pushMessage(aoe_target, "hit by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]);
+								pushMessage(aoe_target, aoe_target.name + " hit by "+this.player.name+"'s "+ this.last_spell[0] + " " + this.last_spell[1]);
 							}
 							// aoe_target.finishedAction = true;
 							// aoe_target.resetPlannedAction();

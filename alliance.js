@@ -1,10 +1,11 @@
 var alliances = []
 var disbanded_alliances = []
 var allianceStatic = []
+
 var alliance_radius = 75;
 var alliance_id = 0;
 var base_unity = 200;
-var max_alliance_size = 6;
+var max_alliance_size = 3;
 var expected_alliance_opinion = 150
 var alliance_names = [
 	["Goat",true],

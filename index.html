@@ -33,8 +33,11 @@
 </head>
 <body>
 	<!-- map -->
-	<div id='map' xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs">
-		<div id='error' style='color:red; position:fixed; display:none;' onclick='errorClick()'></div>
+	<div id='effects' style='position:fixed; z-index:3;	margin:20px;'></div>
+	
+	<div id='error' style='color:red; position:fixed; display:none; top:10px; left:10px;' onclick='errorClick()'></div>
+	<div id='map' xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs">		
+		<div id='eventFeed' style='position:absolute; z-index:1; display:block; top:-15px; right:0px; text-align:right;'></div>
 		<div id='terrain'></div>
 		<div id='doodads'></div>
 		<div id='players'></div>
