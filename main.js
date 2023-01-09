@@ -493,6 +493,8 @@ function startScripts(){
 	// $('#effects').append(
 		// "<img id='ai_img' src='icons/ai.png' style='opacity:0.4; position:absolute; bottom:0px; transform: scale(0.3) translate(-120%, 130%); '></img>"
 	// )
+	globalAggro=5000;
+	createDangerZone(500);
 }
 
 //keyboard inputs
@@ -739,8 +741,8 @@ function getRandomCoords(check_type='', tries=10){
 	} while(!checker(newX,newY) && tries >0);
 	//if safe location can't be found, move to center
 	if(tries<=0){
-		newX = mapSize/2
-		newY = mapSize/2
+		newX = mapSize/2 + roll_range(-25,25);
+		newY = mapSize/2 + roll_range(-25,25);
 	}
 	
 	//get a target location to move to
@@ -1021,7 +1023,7 @@ function updateTable(){
 		}
 		$("#char_" + chara.id + " .charWeap").html(inv_text);
 		//status effect
-		let icon_status_text = "";		//char icon
+		let icon_status_text = "";	//char icon
 		let icon_count=0;
 		chara.status_effects.forEach(function(eff,index){		
 			if(icon_count<4){

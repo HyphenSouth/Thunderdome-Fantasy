@@ -937,19 +937,23 @@ class Makochi extends Attr{
 		super("makochi", player);
 		this.has_info = true;
 		this.meter = 50;
-		this.max_meter = 100;
+		this.max_meter = 0;
 		this.special = '';
 		this.fightBonus = 1.1;
 	}
 	
+	//breaks bones
 	suplex_attack(target, fightMsg){
 		if(playerDist(this.player, target)>SUPLEX_RANGE)
 			return
+		
 		let dmg = roll_range(10,50);
+		
 		target.take_damage(dmg, this.player, "unarmed", fightMsg)
-		fightMsg.events.push(this.player.name + " suplexs "+ target.name +" for "+ roundDec(dmg)+ " damage" );
+		fightMsg.events.push(this.player.name + " suplexs "+ target.name +" for "+ roundDec(dmg) + " damage" );
+		
 		let bones_broken = Math.round(roll_range(0,dmg+15)/5)+1
-		bones_broken = Math.min(10, bones_broken);
+		bones_broken = Math.min(10, bones_broken);		
 		if(bones_broken==1)
 			fightMsg.events.push(this.player.name + " breaks "+ bones_broken + " bone in " +target.name + "'s body");
 		else
@@ -967,13 +971,15 @@ class Makochi extends Attr{
 		this.meter=0;
 	}
 	
+	//throws target
 	throw_attack(target, fightMsg){
 		if(playerDist(this.player, target)>THROW_RANGE)
 			return
 		let dmg = roll_range(25,60);
 		target.take_damage(dmg, this.player, "unarmed", fightMsg)
-		fightMsg.events.push(this.player.name + " throws "+ target.name +" for "+ roundDec(dmg)+ " damage" );
+		fightMsg.events.push(this.player.name + " throws "+ target.name +" for "+ roundDec(dmg) + " damage" );
 		
+		//throw target in random direction
 		let end_x = 0;
 		let end_y = 0;
 		let rand_angle = 0;
@@ -986,6 +992,7 @@ class Makochi extends Attr{
 		} while (tries > 0 && !inBoundsCheck(end_x + target.x,end_y + target.y));
 		target.moveToCoords(end_x, end_y)
 		
+		//aoe
 		let tP= this.player;
 		players.forEach(function(oP){
 			if(oP==target)
@@ -993,11 +1000,11 @@ class Makochi extends Attr{
 			if(playerDist(target, oP)<50){
 				oP.take_damage(roll_range(1,10), tP, "unarmed");
 				oP.currentAction.turn_complete = true;
-				oP.statusMessage = "hit by a flying " + target.name;
-				pushMessage(oP, oP.name + " hit by a flying " + target.name)
+				oP.statusMessage = "hit by a thrown " + target.name;
+				pushMessage(oP, oP.name + " hit by a thrown " + target.name)
 				if(oP.health<=0){
 					tP.kills++;
-					oP.death = "killed by a flying " + target.name;
+					oP.death = "killed by a thrown " + target.name;
 				}
 			}
 		});
@@ -1024,16 +1031,21 @@ class Makochi extends Attr{
 				break;
 			case "fightStart":
 				if(this.meter>=this.max_meter){
+					/*
 					let special_attack = [['',2]]
 					if(playerDist(this.player, data.opponent)<=SUPLEX_RANGE)
 						special_attack.push(['suplex',4]);
 					if(playerDist(this.player, data.opponent)<=THROW_RANGE)
 						special_attack.push(['throw',8]);
 					this.special = roll(special_attack);
+					*/
+					// this.player.attack_action = new MakochiSuplexAttack(this.player, this);
+					this.player.attack_action = new MakochiThrowAttack(this.player, this);
 				}
 				break;
 		}
 	}
+	/*
 	effect_calc(state, x, data={}){
 		switch(state){
 			case "dmgCalcOut":
@@ -1053,7 +1065,7 @@ class Makochi extends Attr{
 		}
 		return x;
 	}
-	
+	*/
 	stat_html(){
 		let html= super.stat_html()
 		
@@ -1071,6 +1083,125 @@ class Makochi extends Attr{
 		html+="</div>"
 		
 		return html;
+	}
+}
+
+class MakochiThrowAttack extends CombatAction{
+	constructor(player, attr){
+		super("makochi throw", player, true, 5);
+		this.display_name = "command grab"
+		this.player = player;
+		this.attr = attr;
+	}
+	
+	execution_fail(action, attacker, defender, counter, fightMsg){
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' whiffs their command grab');
+		this.attr.meter=0;
+	}
+	
+	fight_target(attacker, defender, counter, fightMsg){
+		if(playerDist(attacker, defender)>THROW_RANGE){
+			fightMsg.events.push(attacker.name + " tries to grab " + defender.name + " but they get away" );
+			attacker.statusMessage = "tries to grab " + defender.name + " but they get away";
+			return
+		}
+		
+		let dmg = roll_range(25, 50);
+		defender.take_damage(dmg, attacker, "unarmed", fightMsg)
+		fightMsg.events.push(attacker.name + " throws "+ defender.name +" for "+ roundDec(dmg) + " damage" );
+		
+		//throw target in random direction
+		let end_x = 0;
+		let end_y = 0;
+		let rand_angle = 0;
+		let tries = 5;
+		do {
+			rand_angle = roll_range(0,359);
+			end_x = Math.cos(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + defender.x;
+			end_y = Math.sin(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + defender.y;
+			tries--;
+		} while (tries > 0 && !inBoundsCheck(end_x + defender.x,end_y + defender.y));
+		defender.moveToCoords(end_x, end_y)
+		
+		//aoe
+		let tP= attacker;
+		players.forEach(function(oP){
+			if(oP==defender)
+				return
+			if(playerDist(defender, oP)<50){
+				oP.take_damage(roll_range(1,10), tP, "unarmed");
+				oP.currentAction.turn_complete = true;
+				oP.statusMessage = "hit by a thrown " + defender.name;
+				pushMessage(oP, oP.name + " hit by a thrown " + defender.name)
+				if(oP.health<=0){
+					tP.kills++;
+					oP.death = "killed by a thrown " + defender.name;
+				}
+			}
+		});
+		
+		attacker.statusMessage = "throws " + defender.name;
+		defender.statusMessage = "thrown  by " + attacker.name;
+		if(defender.health<=0){
+			defender.death = "thrown to death by " + attacker.name;
+		}
+		this.meter=0;	
+	}
+	
+	kill(attacker, defender, counter, fightMsg){
+		defender.death = "thrown to death by " + attacker.name;
+		attacker.statusMessage = "throws " + defender.name + " to death";
+	}
+}
+
+class MakochiSuplexAttack extends CombatAction{
+	constructor(player, attr){
+		super("makochi suplex", player, true, 5);
+		this.display_name = "suplex"
+		this.player = player;
+		this.attr = attr;
+	}
+	
+	execution_fail(action, attacker, defender, counter, fightMsg){
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' whiffs their suplex');
+		this.attr.meter=0;
+	}
+	
+	fight_target(attacker, defender, counter, fightMsg){
+		if(playerDist(attacker, defender)>SUPLEX_RANGE){
+			fightMsg.events.push(attacker.name + " tries to suplex " + defender.name + " but they get away" );
+			attacker.statusMessage = "tries to suplex " + defender.name + " but they get away";
+			return
+		}
+		
+		let dmg = roll_range(10, 40);
+		
+		defender.take_damage(dmg, attacker, "unarmed", fightMsg)
+		fightMsg.events.push(attacker.name + " suplexs "+ defender.name +" for "+ roundDec(dmg) + " damage" );
+		
+		let bones_broken = Math.round(roll_range(0,dmg+15)/5)+1
+		bones_broken = Math.min(10, bones_broken);		
+		if(bones_broken==1)
+			fightMsg.events.push(attacker.name + " breaks "+ bones_broken + " bone in " +defender.name + "'s body");
+		else
+			fightMsg.events.push(attacker.name + " shatters "+ bones_broken + " bones in " +defender.name + "'s body, crippling them");
+		
+		let eff_data = {"fightBonus":[0.8,-0.02], "rangeBonus":[-20,0], "moveSpeedB":[0.6,-0.05], "dmgReductionB":[1,0.01]};
+		let temp_effect = new StatusEffect("broken bones", bones_broken, roll_range(3, 3+bones_broken), eff_data)
+		temp_effect.icon = "🦴"
+		defender.inflict_status_effect(temp_effect)
+		attacker.statusMessage = "suplexs " + defender.name;
+		defender.statusMessage = "suplexed and crippled by " + attacker.name;
+		if(defender.health<=0){
+			defender.death = "suplexed to death by " + attacker.name;
+		}
+	}
+	
+	kill(attacker, defender, counter, fightMsg){
+		defender.death = "suplexed to death by " + attacker.name;
+		attacker.statusMessage = "suplexes " + defender.name + " to death";
 	}
 }
 

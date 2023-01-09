@@ -86,7 +86,20 @@ class Char {
 		this.lastFight=0;
 		this.oobTurns=0;
 		
-		//_______________text_______________
+		//attack and defend actions for the current fight, resets every fight
+		//set to none to disable attacking for the CURRENT FIGHT ONLY
+		this.attack_action = "";
+		this.defend_action = "";
+		
+		//_______________states_______________
+		this.unaware = false;
+		this.incapacitated = false;
+		//if the player can fight back when attacked, lasts the entire turn
+		this.fight_back = true;
+		
+		//ignores terrain
+		this.ignore_terrain = false;
+				
 		//action message to be displayed
 		this.statusMessage = "";
 		//if their current action is complete
@@ -110,6 +123,7 @@ class Char {
 		this.fight_target = "";
 		this.follow_target = "";
 		this.ally_target = "";
+		this.steal_target = "";
 		
 		this.danger_score = 0;
 		
@@ -129,15 +143,7 @@ class Char {
 		//unused					
 		this.recentlySeen = [];
 		this.goal = "";
-
-		this.unaware = false;
-		this.incapacitated = false;
-		//if the player can fight back when attacked
-		this.fight_back = true;
-		
-		//ignores terrain
-		this.ignore_terrain = false;
-		
+				
 		this.death = "Cast in the name of God, Ye Guilty";
 		this.dead = false;
 		
@@ -744,6 +750,8 @@ class Char {
 		this.unaware = false;
 		this.incapacitated = false;
 		this.fight_back = true;
+		this.attack_action = "";
+		this.defend_action = "";
 		this.statusMessage = "";
 		this.interrupted = false;
 		

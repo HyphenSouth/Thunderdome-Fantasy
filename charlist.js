@@ -12,31 +12,38 @@ minori
 var charlist_test = [
 	{
 		"name": "Liru",
-		"img": "https://cdn.myanimelist.net/images/characters/4/54606.jpg"
+		"img": "https://cdn.myanimelist.net/images/characters/4/54606.jpg",
+		"attr": [
+			"makochi"
+		]
 	},
 	{
 		"name": "Pachira",
-		"img": "https://cdn.myanimelist.net/images/characters/4/54605.jpg"
-	},
-	{
-		"name": "Uma",
-		"img": "https://cdn.myanimelist.net/images/characters/5/54607.jpg"
-	},
-	{
-		"name": "Aiko",
-		"img": "https://cdn.myanimelist.net/images/characters/16/167291.jpg"
-	},
-	{
-		"name": "Ange",
-		"img": "https://cdn.myanimelist.net/images/characters/7/329716.jpg"
-	},
-	{
-		"name": "Murato (formerly jacobs)",
-		"img": "https://static.wikia.nocookie.net/batman/images/f/f0/Bane_TDKR3.jpg",
+		"img": "https://cdn.myanimelist.net/images/characters/4/54605.jpg",
 		"attr": [
-			"bigguy"
+			"toji"
 		]
-	}
+	},
+	
+	// {
+		// "name": "Uma",
+		// "img": "https://cdn.myanimelist.net/images/characters/5/54607.jpg"
+	// },
+	// {
+		// "name": "Aiko",
+		// "img": "https://cdn.myanimelist.net/images/characters/16/167291.jpg"
+	// },
+	// {
+		// "name": "Ange",
+		// "img": "https://cdn.myanimelist.net/images/characters/7/329716.jpg"
+	// },
+	// {
+		// "name": "Murato (formerly jacobs)",
+		// "img": "https://static.wikia.nocookie.net/batman/images/f/f0/Bane_TDKR3.jpg",
+		// "attr": [
+			// "bigguy"
+		// ]
+	// }
 ]
 
 var charlist_gochiusa = [
@@ -176,9 +183,7 @@ var charlist_puchi = [
 		"img":"https://c.tenor.com/i9amW8b9cLgAAAAC/dancing-letter-letter.gif",
 		"attr":["control"]
 	},
-	
-	
 ]
 
-var charlist = charlist_puchi;
+var charlist = charlist_test;
 // var charlist = charlist_bkt;

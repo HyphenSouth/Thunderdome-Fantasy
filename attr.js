@@ -873,13 +873,14 @@ class Witch extends Attr{
 	}
 }
 
+class Bocchi extends Attr{}
 
-
-
-
-
-
-
+class BoccEmotion extends StatusEffect{
+	constructor(duration){
+		super("bocc",1,duration);
+		this.icon = setEffIcon('./icons/dorcelessness.gif');
+	}
+}
 
 
 

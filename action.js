@@ -24,8 +24,7 @@ class Action{
 		
 		//priority when planning
 		//used for continuous actions
-		this.action_priority = action_priority;	
-		
+		this.action_priority = action_priority;		
 		
 		this.interrupted = false;
 		
@@ -477,7 +476,8 @@ class FightAction extends Action{
 				
 		//calculate damage for both fighters
 		// this.target.opponents.push(this);
-		fight_target(this.player, this.target);
+		// fight_target(this.player, this.target);
+		fight_target_new(this.player, this.target);
 		this.player.lastActionState = "fighting";
 		this.player.energy -= 20;
 		/*
@@ -574,3 +574,5 @@ class ForageAction extends Action{
 		}	
 	}
 }
+
+class StealAction extends Action{}
