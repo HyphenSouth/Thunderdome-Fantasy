@@ -433,13 +433,13 @@ class Char {
 	}	
 		
 	//action planning
-	setPlannedAction(action, actionPriority, actionClass, data={}){
-		if(actionPriority<this.actionPriority){
+	setPlannedAction(action, actionPriority, actionClass, data={}, force=false){
+		if(actionPriority<this.actionPriority && !force){
 			log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);
 			return false
 		}			
 		//chance to replace if priority is same
-		if(actionPriority==this.actionPriority){
+		if(actionPriority==this.actionPriority && !force){
 			if(Math.random()>=0.05)
 				return false
 			log_message(this.name +"'s "+ this.plannedAction +" cannot be replaced with " +action, 0);

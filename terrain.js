@@ -69,8 +69,7 @@ function create_terrain(type, x, y){
 			}
 			else{
 				newTerrain = new MtnTerrain(x, y)
-			}
-			
+			}			
 			break;
 		case "none":
 			newTerrain = new Terrain('none', x, y)
@@ -83,6 +82,21 @@ function create_terrain(type, x, y){
 			break;
 	}
 	return newTerrain;
+}
+
+class CustomMap{
+	constructor(name){
+		this.name = name;
+	}
+	end_update(){
+		terrainUpdate();
+	}	
+	start_update(){}
+	game_start(){}
+	forageOdds(player, item_type, odds){
+		return odds;
+	}
+	
 }
 
 class Terrain {
@@ -128,7 +142,11 @@ class Terrain {
 
 	calc_bonuses(player){}
 	turn_end_effects(player){}
-	
+	forageOdds(player, item_type, odds){
+		if(customMap)
+			return customMap.forageOdds(player, item_type, odds);
+		return odds;
+	}
 	destroy(){
 		// log_message("removed "+ this.x +" "+this.y)
 		this.div.remove();

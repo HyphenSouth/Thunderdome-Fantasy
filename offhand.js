@@ -5,6 +5,7 @@ function get_offhand_odds(tP){
 	if(!doll && tP.get_status_effect("hellbound")=="")
 		offhandOdds.push(["doll",5]);
 	offhandOdds = tP.apply_all_calcs('itemOdds', offhandOdds, {'item_type':'off'})
+	offhandOdds = getTerrain(tP.x, tP.y).forageOdds(tP, 'off', offhandOdds);
 	return offhandOdds;
 }
 
@@ -43,11 +44,13 @@ class Offhand extends Item{
 	}
 	
 	replace_offhand(new_item){
+		if(!this.replacable)
+			return false;
 		this.player.offhand=new_item;
 		new_item.equip(this.player);
-		this.player=""
 		return true;
 	}
+	
 	unequip(){
 		this.destroy();
 		return true;
@@ -101,8 +104,9 @@ class Bomb extends Offhand {
 	}	
 	use(){
 		let tempBomb = new BombEntity(this.player.x, this.player.y, this.player);
-		tempBomb.draw();
-		doodads.push(tempBomb);
+		// tempBomb.draw();
+		// doodads.push(tempBomb);
+		createDoodad(tempBomb);
 		this.destroy()
 		// this.player.offhand="";
 		// this.player="";
@@ -119,8 +123,9 @@ class Bomb extends Offhand {
 					pushMessage(this.player, this.player.name + "'s bomb is knocked out of their hands by "+oP.name);
 					tempBomb = new BombEntity(this.player.x, this.player.y,this.player);
 					tempBomb.duration=1;
-					tempBomb.draw();
-					doodads.push(tempBomb);
+					createDoodad(tempBomb);
+					// tempBomb.draw();
+					// doodads.push(tempBomb);
 					this.player.offhand="";
 					this.player="";
 				}				
@@ -136,9 +141,10 @@ class Bomb extends Offhand {
 				//drop bomb on death
 				pushMessage(this.player, this.player.name + " drops their bomb as they die");
 				tempBomb = new BombEntity(this.player.x, this.player.y,this.player);
-				tempBomb.draw();
 				tempBomb.trigger("");
-				doodads.push(tempBomb);
+				createDoodad(tempBomb);
+				// tempBomb.draw();
+				// doodads.push(tempBomb);
 				this.player.offhand="";				
 				this.player="";			
 				break;
@@ -155,8 +161,10 @@ class Trap extends Offhand {
 	}
 	use(){
 		let tempTrap = new TrapEntity(this.player.x, this.player.y,this.player);
-		tempTrap.draw();
-		doodads.push(tempTrap);
+		// tempTrap.draw();
+		// doodads.push(tempTrap);
+		
+		createDoodad(tempTrap);
 		// this.player.offhand="";
 		// this.player="";
 		this.destroy();
@@ -270,8 +278,9 @@ class Vape extends Offhand{
 							attacker.statusMessage = "attacks "+ tD.name;
 						}
 					}
-					tempDecoy.draw();
-					doodads.push(tempDecoy);
+					// tempDecoy.draw();
+					// doodads.push(tempDecoy);
+					createDoodad(tempDecoy);
 					this.use()			
 				}
 				break;
@@ -297,8 +306,9 @@ class Campfire extends Offhand{
 	use(){
 		let tempCamp = new CampfireEntity(this.player.x, this.player.y,this.player);
 		tempCamp.duration = roll_range(8,12);
-		tempCamp.draw();
-		doodads.push(tempCamp);
+		// tempCamp.draw();
+		// doodads.push(tempCamp);
+		createDoodad(tempCamp);
 		this.destroy();
 	}
 	effect(state, data={}){
@@ -335,8 +345,9 @@ class Mirror extends Offhand{
 					pushMessage(this.player, oP.name + " breaks "+this.player.name+"'s scrying mirror");
 					this.icon = setItemIcon("./icons/mirror_broken1.png");
 					let tempMirror = new MirrorEntity(this.player.x, this.player.y,this.player);
-					tempMirror.draw();
-					doodads.push(tempMirror);
+					// tempMirror.draw();
+					// doodads.push(tempMirror);
+					createDoodad(tempMirror);
 				}				
 				break;
 			case "planAction":
@@ -527,6 +538,7 @@ class MeatShield extends Offhand {
 		this.uses = max_duration;
 		this.tradable = false;
 		this.stealable = false;
+		this.replacable = false;
 	}
 	
 	equip(wielder){
@@ -764,6 +776,7 @@ class Doll extends Offhand{
 		this.target = "";
 		this.tradable = false;
 		this.stealable = false;
+		this.replacable = false;
 		this.turns = 0;
 	}
 	

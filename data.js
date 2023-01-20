@@ -31,6 +31,7 @@ var attr_data = {
 	"elfen": Elfen,
 	"lucy": Lucy,
 	"witch": Witch,
+	"bocc": Bocc,
 }
 
 //weapon
@@ -263,5 +264,17 @@ var food_data = {
 		"icon":"🍙",
 		"uses": [3,7],
 		"heal": 5		
+	},
+	"soup" : {
+		"icon":"🥣",
+		"uses": 1,
+		"heal": 12,
+		"energy_heal": 2		
+	},
+	"pizza" : {
+		"icon":"🍕",
+		"uses": 8,
+		"heal": 3		
 	}
 }
+

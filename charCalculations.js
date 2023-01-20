@@ -440,7 +440,7 @@ function doodadCheck(tP){
 }
 
 //calculate damage
-function rollDmg(tP, oP){
+function rollDmg_old(tP, oP){
 	if(tP.fightDmgB<0){
 		tP.fightDmgB=0;
 	}
@@ -457,7 +457,7 @@ function rollDmg(tP, oP){
 	return dmg;
 }
 
-function attack(attacker, defender, counter, fightMsg){
+function attack_old(attacker, defender, counter, fightMsg){
 	let dmg = 0;
 	let dmg_type="unarmed"	
 	
@@ -492,7 +492,7 @@ function attack(attacker, defender, counter, fightMsg){
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
 }
 
-function fight_target(tP,oP){
+function fight_target_old(tP,oP){
 	//tp has the initiative 
 	tP.div.addClass("fighting");
 	tP.tblDiv.addClass("fighting");

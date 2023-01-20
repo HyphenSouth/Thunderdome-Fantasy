@@ -814,6 +814,9 @@ class Skulled extends StatusEffect{
 		}
 	}
 }
+
+//ignores terrain
+//gives random dodge chance
 class Flight extends StatusEffect{
 	constructor(duration){
 		super("flight", 1, duration);
@@ -823,10 +826,10 @@ class Flight extends StatusEffect{
 		this.rangeBonus = 24;
 		//actions that allow flying
 		this.flight_actions = [MoveAction, FightAction, AllianceAction]
-		this.new_flight = true;
+		this.flight_time = 0; 
 		this.dodge_chance = 40;
 		this.fall_chance = 60;
-		this.attack_dodged = false;
+		// this.attack_dodged = false;
 	}
 	afflict(player){
 		this.player=player;
@@ -840,28 +843,24 @@ class Flight extends StatusEffect{
 		super.wear_off()
 	}
 	
-	dodge(oP, fightMsg){
-		let target = getRandomCoords('terrain')
-		this.player.moveToTarget(target[0] , target[1]);
-		if(fightMsg.events)
-			fightMsg.events.push(this.player.name + ' flies out of the way of '+oP.name + "'s attack")
-		this.player.statusMessage = "dodges "+oP.name+" attack";
-		this.player.fight_back = false;
-		this.player.currentAction.turn_complete = true;
-		this.attack_dodged = true;
-	}
-	
 	effect(state, data={}){	
 		let oP='';	
 		switch(state){
+			case "turnStart":
+				super.effect("turnStart",data);
+				this.flight_time++;
+				break;
+			case "fightStart":
+				if(roll_range(1,100)<=this.dodge_chance){
+					log_message('dodge')
+					this.player.defend_action = new FlightDodgeAttack(this.player, this);
+				}
+				break;
 			case "defend":
 				oP = data.opponent;
 				let fightMsg = data.fightMsg;
-				if(roll_range(1,100)<=this.dodge_chance){
-					log_message('fly dodge')
-					this.dodge(data.opponent, data.fightMsg)	
-				}
-				else if(roll_range(1,100)<=this.fall_chance){
+				//knocked out
+				if(roll_range(1,100)<=this.fall_chance){
 					if(fightMsg.events)
 						fightMsg.events.push(this.player.name + ' knocked out of the sky by '+oP.name)
 					let fall_dmg = roll_range(10,50);
@@ -887,8 +886,8 @@ class Flight extends StatusEffect{
 					this.wear_off()
 				}
 				break;
-			//check for flight action
 			case "doActionBefore":
+				//check if action disables flying
 				let action = data.action
 				let flight_continue = false;
 				this.flight_actions.forEach(function(a){
@@ -917,42 +916,59 @@ class Flight extends StatusEffect{
 						if(this.new_flight)
 							this.player.statusMessage = "takes flight to safety"
 						break;
-				}				
-				this.new_flight=false;
+				}
 				break;
-			case "fightEnd":
-				oP = data.opponent;
-				if(this.attack_dodged)
-					this.player.statusMessage = "flies out of the way of "+oP.name+" attack";
-				this.attack_dodged = false;
-				this.player.fight_back = true;
-				break;
+			// case "fightEnd":
+				// oP = data.opponent;
+				// if(this.attack_dodged)
+					// this.player.statusMessage = "flies out of the way of "+oP.name+" attack";
+				// this.attack_dodged = false;
+				// this.player.fight_back = true;
+				// break;
 			default:
 				super.effect(state, data)
 				break;
 		}
 	}
-	effect_calc(state, x, data={}){
-		switch(state){
-			case "dmgCalcOut":
-				log_message('fly dmg out')
-				if(this.attack_dodged){
-					x=0;
-				}
-				break;
-			case "dmgCalcIn":
-				log_message('fly dmg in')
-				if(this.attack_dodged){
-					x=0;
-				}		
-				break;
-			case "newStatus":
-				log_message('fly dodge status effect')
-				if(this.attack_dodged)
-					x=false;		
-				break;
-		}
-		return x
+}
+
+class FlightDodgeAttack extends CombatAction{
+	constructor(player, attr){
+		super("flight dodge", player, false, 6);
+		this.player = player;
+		this.attr = attr;
+		this.dodged_atk = '';
+	}
+	
+	get_priority_score(action){
+		if(action)
+			this.dodged_atk = action;
+		return this.priority;
+	}
+	
+	execution_fail(action, attacker, defender, counter, fightMsg){
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' unable to dodge ' + attacker.name + "'s " + action.display_name);
+	}
+	
+	fight_target(attacker, defender, counter, fightMsg){
+		let dash_target = getRandomCoords('terrain')
+		this.player.moveToTarget(dash_target[0] , dash_target[1]);
+		if(fightMsg.events){
+			if(this.dodged_atk)
+				fightMsg.events.push(defender.name + ' flies out of the way of ' + attacker.name + "'s " + this.dodged_atk.display_name);	
+			else
+				fightMsg.events.push(this.player.name + ' flies out of the way of '+attacker.name + "'s attack");
+		}	
+		attacker.statusMessage = "tries to attack "+defender.name + " but misses";
+		if(this.dodged_atk)
+			defender.statusMessage = "dodges " + attacker.name + "'s " + this.dodged_atk.display_name
+		else
+			defender.statusMessage = "dodges "+attacker.name+" attack";
+		
+		// defender.fight_back = false;
+		defender.attack_action = "none";
+		defender.currentAction.turn_complete = true;
 	}
 }
 
@@ -1214,6 +1230,7 @@ class Chopped extends StatusEffect{
 				}
 				break;
 			case "doActionAfter":
+				//remove equipment
 				if(this.arms_chopped>0){
 					if(this.player.offhand)
 						this.player.unequip_item("off")
@@ -1221,12 +1238,13 @@ class Chopped extends StatusEffect{
 				if(this.arms_chopped>1){
 					if(this.player.weapon)
 						this.player.unequip_item("wep")
-				}	
+				}
 				if(this.player.get_status_effect('flight'))
 					return;
 				if(this.legs_chopped<1)
 					return;
 				switch(this.player.lastActionState){
+					//change movement text
 					case "moving":
 						if(this.legs_chopped==1){
 							this.player.statusMessage = "hops"

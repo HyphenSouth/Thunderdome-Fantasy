@@ -11,9 +11,9 @@ class Toji extends Attr{
 		
 		//powerup variables
 		this.powered = false;
-		this.max_power_duration = 75000;
+		this.max_power_duration = 75;
 		this.power_duration = 0;
-		this.max_power = 30000;
+		this.max_power = 50;
 		this.power = 0;
 		
 		//cooldown variables
@@ -33,11 +33,11 @@ class Toji extends Attr{
 		this.power = this.max_power;
 		this.power_duration = this.max_power_duration;
 		
-		this.sightBonus = 5;
+		this.sightBonus = 10;
 		this.visibilityB = 30;		
-		this.fightBonus = 1.1;
-		this.dmgReductionB = 0.6;		
-		this.intimidationBonus=10;
+		this.fightBonus = 1.2;
+		this.dmgReductionB = 0.5;		
+		this.intimidationBonus=20;
 	}
 	
 	power_down(){
@@ -49,9 +49,9 @@ class Toji extends Attr{
 		
 		this.sightBonus = 0;
 		this.visibilityB = 0;		
-		this.fightBonus = 0.9;
-		this.moveSpeedB = 0.8;
-		this.dmgReductionB = 1.1;
+		this.fightBonus = 0.8;
+		this.moveSpeedB = 0.75;
+		this.dmgReductionB = 1.2;
 		this.intimidationBonus=0;
 	}
 	
@@ -143,43 +143,21 @@ class Toji extends Attr{
 					return
 				}						
 				break;
-			/*
-			case "defend":
+			case "fightStart":
 				if(!this.powered)
 					return
-				log_message('toji defend')
-				if(this.power<TOJI_DODGE_COST){
-					this.power-=1;
-					return
-				}
-				//dodge based on hp left
-				let dodge_chance = 600;
-				dodge_chance *= (1.5-(this.player.health/this.player.maxHealth))
-				if(data.counter)
-					dodge_chance+=25
-				if(roll_range(1,100)<=dodge_chance){
-					log_message('dodge')
-					this.dodge(data.opponent, data.fightMsg)	
-				}								
-				break;
-			*/
-			case "fightStart":
-				// if(!this.powered)
-					// return
-				let dodge_chance = 600;
+				let dodge_chance = 5;
 				dodge_chance *= (1.5-(this.player.health/this.player.maxHealth))
 				if(!data.attacker)
 					dodge_chance+=25
+				if(this.player.awareOfPlayer(data.opponent))
+					dodge_chance+=40
 				if(roll_range(1,100)<=dodge_chance){
 					log_message('dodge')
 					this.player.defend_action = new TojiDodgeAttack(this.player, this);	
 				}								
 				break;
 			case "fightEnd":
-				// if(this.attack_dodged)
-					// this.player.statusMessage = "dodges "+data.opponent.name+" attack";
-				// this.attack_dodged = false;
-				// this.player.fight_back = true;
 				break;
 		}
 		if(this.powered && this.power<=0)
@@ -188,23 +166,6 @@ class Toji extends Attr{
 	
 	effect_calc(state, x, data={}){
 		switch(state){
-			case "dmgCalcOut":
-				log_message('toji dmg out')
-				// if(this.attack_dodged){
-					// x=0;
-				// }
-				break;
-			case "dmgCalcIn":
-				log_message('toji dmg in')
-				// if(this.attack_dodged){
-					// x=0;
-				// }
-				break;
-			case "newStatus":
-				log_message('toji dodge status effect')
-				// if(this.attack_dodged)
-					// x=false;		
-				break;
 			case "moveDistCalc":
 				if(!this.powered)
 					return x
@@ -212,11 +173,9 @@ class Toji extends Attr{
 					return x;
 				if(!(this.player.currentAction instanceof MoveAction))
 					return x
-				// if(this.player.currentAction instanceof TojiDashAction)
-					// return x		
 				if(this.player.currentAction instanceof TojiDashAction){
 					return TOJI_SUPER_DASH_DIST
-				}			
+				}
 				if(0.6<Math.random()){
 					this.dashed = true;
 					x = TOJI_DASH_DIST
@@ -228,21 +187,7 @@ class Toji extends Attr{
 		}
 		return x
 	}
-	
-	dodge(oP, fightMsg){
-		let target = getRandomCoords('terrain')
-		this.player.moveToTarget(target[0] , target[1], TOJI_DASH_DIST);
-		if(fightMsg.events)
-			fightMsg.events.push(this.player.name + ' dashes away from '+oP.name + "'s attack")
-		this.player.statusMessage = "dodges "+oP.name+"'s attack";
-		this.player.fight_back = false;
-		this.player.currentAction.turn_complete = true;
-		// this.attack_dodged = true;
-		this.power -= TOJI_DODGE_COST
-		if(this.power<=0)
-			this.power_down();
-	}
-	
+		
 	stat_html(){
 		let html= super.stat_html()
 		if(this.on_cooldown)

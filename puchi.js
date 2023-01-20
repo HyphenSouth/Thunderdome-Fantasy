@@ -12,8 +12,7 @@ class Harukasan extends Attr{
 			if(this.gremlins.length<MAX_GREMLINS){				
 				// log_message('harukasan multiply')
 				let tempCreature = new Gremlin(this.player.x + roll_range(-20,20), this.player.y + roll_range(-20,20),this.player, this);
-				tempCreature.draw();
-				doodads.push(tempCreature);
+				createDoodad(tempCreature);
 				this.gremlins.push(tempCreature);
 			}
 		}
@@ -134,8 +133,9 @@ class Gremlin extends MovableEntity{
 		if(this.multiply_delay<=0 && getTerrainType(this.x, this.y) == "water"){
 			if(this.attr.gremlins.length<MAX_GREMLINS){		
 				let tempCreature = new Gremlin(this.x + roll_range(-10,10), this.y + roll_range(-10,10), this.owner, this.attr);
-				tempCreature.draw();
-				doodads.push(tempCreature);
+				createDoodad(tempCreature);
+				// tempCreature.draw();
+				// doodads.push(tempCreature);
 				this.attr.gremlins.push(tempCreature);
 			}
 		}		
@@ -204,8 +204,9 @@ class Io extends Attr{
 	fire_beam(target){
 		let power = Math.min(Math.max(this.deko_charge/this.deko_fire_charge,1), 5)			
 		let tempBeam = new DekoBeamEntity(this.player.x, this.player.y, power, this.player, this.owner, target);
-		tempBeam.draw();
-		doodads.push(tempBeam);
+		// tempBeam.draw();
+		// doodads.push(tempBeam);
+		createDoodad(tempBeam);
 		tempBeam.activate()
 		this.deko_charge = 0;
 		this.player.statusMessage = "fires a deko beam at "+ target.name
@@ -368,10 +369,12 @@ class DekoBeamEntity extends Doodad{
 			let rand_num = roll_range(Math.min(this.line.p1[0],this.line.p2[0]),Math.max(this.line.p1[0],this.line.p2[0]));
 			let rand_x = rand_num + (roll_range(-25,25));
 			let rand_y = this.line.getY(rand_num) + (roll_range(-25,25));
-			let tempFire = new FireEntity(rand_x, rand_y, "")
-			tempFire.draw()
+			let tempFire = new FireEntity(rand_x, rand_y, "");
 			tempFire.duration = 2;
-			doodads.push(tempFire);	
+			createDoodad(tempFire);
+			// tempFire.draw();			
+			// doodads.push(tempFire);
+			
 		}
 	}
 	
@@ -937,86 +940,11 @@ class Makochi extends Attr{
 		super("makochi", player);
 		this.has_info = true;
 		this.meter = 50;
-		this.max_meter = 0;
-		this.special = '';
+		this.max_meter = 100;
+		// this.special = '';
 		this.fightBonus = 1.1;
 	}
-	
-	//breaks bones
-	suplex_attack(target, fightMsg){
-		if(playerDist(this.player, target)>SUPLEX_RANGE)
-			return
-		
-		let dmg = roll_range(10,50);
-		
-		target.take_damage(dmg, this.player, "unarmed", fightMsg)
-		fightMsg.events.push(this.player.name + " suplexs "+ target.name +" for "+ roundDec(dmg) + " damage" );
-		
-		let bones_broken = Math.round(roll_range(0,dmg+15)/5)+1
-		bones_broken = Math.min(10, bones_broken);		
-		if(bones_broken==1)
-			fightMsg.events.push(this.player.name + " breaks "+ bones_broken + " bone in " +target.name + "'s body");
-		else
-			fightMsg.events.push(this.player.name + " shatters "+ bones_broken + " bones in " +target.name + "'s body, crippling them");
-		
-		let eff_data = {"fightBonus":[0.8,-0.02], "rangeBonus":[-20,0], "moveSpeedB":[0.6,-0.05], "dmgReductionB":[1,0.01]};
-		let temp_effect = new StatusEffect("broken bones", bones_broken, roll_range(3, 3+bones_broken), eff_data)
-		temp_effect.icon = "🦴"
-		target.inflict_status_effect(temp_effect)
-		this.player.statusMessage = "suplexs " + target.name;
-		target.statusMessage = "suplexed and crippled by " + this.player.name;
-		if(target.health<=0){
-			target.death = "suplexed to death by " + this.player.name;
-		}
-		this.meter=0;
-	}
-	
-	//throws target
-	throw_attack(target, fightMsg){
-		if(playerDist(this.player, target)>THROW_RANGE)
-			return
-		let dmg = roll_range(25,60);
-		target.take_damage(dmg, this.player, "unarmed", fightMsg)
-		fightMsg.events.push(this.player.name + " throws "+ target.name +" for "+ roundDec(dmg) + " damage" );
-		
-		//throw target in random direction
-		let end_x = 0;
-		let end_y = 0;
-		let rand_angle = 0;
-		let tries = 5;
-		do {
-			rand_angle = roll_range(0,359);
-			end_x = Math.cos(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + target.x;
-			end_y = Math.sin(degToRad(rand_angle))*(MAKOCHI_THROW_DIST) + target.y;
-			tries--;
-		} while (tries > 0 && !inBoundsCheck(end_x + target.x,end_y + target.y));
-		target.moveToCoords(end_x, end_y)
-		
-		//aoe
-		let tP= this.player;
-		players.forEach(function(oP){
-			if(oP==target)
-				return
-			if(playerDist(target, oP)<50){
-				oP.take_damage(roll_range(1,10), tP, "unarmed");
-				oP.currentAction.turn_complete = true;
-				oP.statusMessage = "hit by a thrown " + target.name;
-				pushMessage(oP, oP.name + " hit by a thrown " + target.name)
-				if(oP.health<=0){
-					tP.kills++;
-					oP.death = "killed by a thrown " + target.name;
-				}
-			}
-		});
-		
-		this.player.statusMessage = "throws " + target.name;
-		target.statusMessage = "thrown  by " + this.player.name;
-		if(target.health<=0){
-			target.death = "thrown to death by " + this.player.name;
-		}
-		this.meter=0;
-	}
-	
+
 	effect(state, data={}){	
 		switch(state){
 			case "takeDmg":
@@ -1031,41 +959,22 @@ class Makochi extends Attr{
 				break;
 			case "fightStart":
 				if(this.meter>=this.max_meter){
-					/*
+
 					let special_attack = [['',2]]
 					if(playerDist(this.player, data.opponent)<=SUPLEX_RANGE)
 						special_attack.push(['suplex',4]);
 					if(playerDist(this.player, data.opponent)<=THROW_RANGE)
 						special_attack.push(['throw',8]);
-					this.special = roll(special_attack);
-					*/
-					// this.player.attack_action = new MakochiSuplexAttack(this.player, this);
-					this.player.attack_action = new MakochiThrowAttack(this.player, this);
+					let special = roll(special_attack);
+					if(special=='throw')
+						this.player.attack_action = new MakochiThrowAttack(this.player, this);
+					if(special=='suplex')
+						this.player.attack_action = new MakochiSuplexAttack(this.player, this);					
 				}
 				break;
 		}
 	}
-	/*
-	effect_calc(state, x, data={}){
-		switch(state){
-			case "dmgCalcOut":
-				if(!this.special)
-					break;
-				if(x<=0)
-					break;
-				if(this.meter<this.max_meter)
-					break;
-				if(x<=0)
-					break;
-				if(this.special=='suplex')
-					this.suplex_attack(data.opponent, data.fightMsg)
-				else if(this.special=='throw')
-					this.throw_attack(data.opponent, data.fightMsg)
-				break;
-		}
-		return x;
-	}
-	*/
+
 	stat_html(){
 		let html= super.stat_html()
 		
@@ -1108,6 +1017,8 @@ class MakochiThrowAttack extends CombatAction{
 		}
 		
 		let dmg = roll_range(25, 50);
+		dmg = dmg * defender.dmgReductionB;
+		
 		defender.take_damage(dmg, attacker, "unarmed", fightMsg)
 		fightMsg.events.push(attacker.name + " throws "+ defender.name +" for "+ roundDec(dmg) + " damage" );
 		
@@ -1146,7 +1057,7 @@ class MakochiThrowAttack extends CombatAction{
 		if(defender.health<=0){
 			defender.death = "thrown to death by " + attacker.name;
 		}
-		this.meter=0;	
+		this.attr.meter=0;	
 	}
 	
 	kill(attacker, defender, counter, fightMsg){
@@ -1177,6 +1088,7 @@ class MakochiSuplexAttack extends CombatAction{
 		}
 		
 		let dmg = roll_range(10, 40);
+		dmg = dmg * defender.dmgReductionB;
 		
 		defender.take_damage(dmg, attacker, "unarmed", fightMsg)
 		fightMsg.events.push(attacker.name + " suplexs "+ defender.name +" for "+ roundDec(dmg) + " damage" );
@@ -1197,6 +1109,7 @@ class MakochiSuplexAttack extends CombatAction{
 		if(defender.health<=0){
 			defender.death = "suplexed to death by " + attacker.name;
 		}
+		this.attr.meter=0;
 	}
 	
 	kill(attacker, defender, counter, fightMsg){
@@ -1242,8 +1155,9 @@ class YukipoDigAction extends Action{
 	}
 	perform(){
 		let tempTrap = new YukipoTrapEntity(this.player.x, this.player.y,this.player, this.attr);
-		tempTrap.draw();
-		doodads.push(tempTrap);
+		// tempTrap.draw();
+		// doodads.push(tempTrap);
+		createDoodad(tempTrap);
 		this.attr.holes.push(tempTrap);
 		this.player.statusMessage = "digs"
 		this.player.lastActionState = "digging"
@@ -1675,8 +1589,9 @@ class ChibikiSummonAction extends Action{
 	perform(){
 		let critter_type = roll([['crocodile',4],['monkey',3],['snake',4],['elephant',3],])
 		let tempCritter = new Critter(critter_type, this.player.x + roll_range(-20,20), this.player.y + roll_range(-20,20),this.player, this.attr);
-		tempCritter.draw();
-		doodads.push(tempCritter);
+		// tempCritter.draw();
+		// doodads.push(tempCritter);
+		createDoodad(tempCritter);
 		this.attr.critter = tempCritter;
 		
 		this.player.statusMessage = "summons a " + critter_type;
@@ -1710,11 +1625,11 @@ class Critter extends MovableEntity{
 		let dmg = roll_range(this.dmg[0],this.dmg[1])		
 		if(dmg>tP.health)
 			dmg = tP.health;
-		log_message(this.name + " attacks " + tP.name + " for " + dmg)
+		log_message(this.name + " attacks " + tP.name + " for " + roundDec(dmg));
 		tP.take_damage(dmg, this, 'unarmed')
 		if(tP.currentAction.name)
 			tP.currentAction.entity_attacked(this)
-		pushMessage(tP, tP.name + this.atkMsg + ' for '+ dmg+' damage');
+		pushMessage(tP, tP.name + this.atkMsg + ' for '+ roundDec(dmg) +' damage');
 		let eff_data = {}
 		let temp_eff = "";
 		switch(this.name){
@@ -1800,8 +1715,7 @@ class PiyoFlight extends Flight{
 		this.attr.moveSpeedB = 1;
 		super.afflict(player)
 	}
-	wear_off(){
-		
+	wear_off(){		
 		this.attr.flying=false;
 		this.attr.moveSpeedB = 0.9;
 		super.wear_off()

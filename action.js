@@ -3,8 +3,6 @@ class Action{
 		this.name = name;
 		this.player = player;	
 		
-		//turns the action will last for
-		this.turns = turns;
 		
 		//if the action is finished for the turn
 		this.turn_complete = false;	
@@ -22,6 +20,8 @@ class Action{
 		this.entity_cancellable = true;
 		
 		
+		//turns the action will last for
+		this.turns = turns;
 		//priority when planning
 		//used for continuous actions
 		this.action_priority = action_priority;		
@@ -39,9 +39,11 @@ class Action{
 		}
 		else{
 			this.player.action_priority = this.player.action_priority;
-			this.turn_complete=false;			
+			this.turn_complete=false;
 		}
 	}
+	
+	action_planning(){}
 	
 	//performing action
 	perform(){
@@ -477,7 +479,7 @@ class FightAction extends Action{
 		//calculate damage for both fighters
 		// this.target.opponents.push(this);
 		// fight_target(this.player, this.target);
-		fight_target_new(this.player, this.target);
+		fight_target(this.player, this.target);
 		this.player.lastActionState = "fighting";
 		this.player.energy -= 20;
 		/*
@@ -491,7 +493,7 @@ class FightAction extends Action{
 
 class ForageAction extends Action{
 	constructor(player, data){
-		super("forage", player, 2, 7);
+		super("forage", player, 2, 10);
 		this.forage_state=''
 		this.foraged_item=''
 		this.success_prob=[["success",900],["fail",100],["poisoned",1],["aids",0]]

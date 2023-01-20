@@ -1,5 +1,5 @@
 //calculate damage
-function rollDmg_new(tP, oP){
+function rollDmg(tP, oP){
 	if(tP.fightDmgB<0){
 		tP.fightDmgB=0;
 	}
@@ -12,7 +12,7 @@ function rollDmg_new(tP, oP){
 	return dmg;
 }
 
-function attack_new(attacker, defender, counter, fightMsg){
+function attack(attacker, defender, counter, fightMsg){
 	let dmg = 0;
 	let dmg_type="unarmed"	
 	
@@ -33,7 +33,7 @@ function attack_new(attacker, defender, counter, fightMsg){
 	defender.apply_all_effects("defend", {"opponent":attacker, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
 	
 	//calculate damage
-	dmg = rollDmg_new(attacker, defender);
+	dmg = rollDmg(attacker, defender);
 	
 	//apply post damage functions
 	dmg = attacker.apply_all_calcs("dmgCalcOut", dmg, {"opponent":defender, "counter":counter, "dmg_type":dmg_type, "fightMsg":fightMsg});
@@ -95,13 +95,13 @@ function launch_attack(attacker, defender, counter, fightMsg){
 		chosen = defender.defend_action;
 	}
 	else{
-		attack_new(attacker,defender, counter, fightMsg);
+		attack(attacker,defender, counter, fightMsg);
 		chosen = "";
 	}
 	return chosen;
 }
 
-function fight_target_new(tP,oP){
+function fight_target(tP,oP){
 	//tp has the initiative 
 	tP.div.addClass("fighting");
 	tP.tblDiv.addClass("fighting");
@@ -303,7 +303,7 @@ class CombatAction{
 	}
 	
 	fight_target(attacker, defender, counter, fightMsg){
-		attack_new(attacker, defender, counter, fightMsg);
+		attack(attacker, defender, counter, fightMsg);
 	}
 
 }

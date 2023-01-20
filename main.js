@@ -2,14 +2,14 @@ var players = []; 			//list of players used for the game
 var playerStatic = []; 		//static list of players
 var dedPlayers = []; 		//list of dead players
 var total_players = 0		//total players
+var turnFightLim = 3		//number of players a player can fight per turn
 var doodads = [];			//list of items
 var doodadsNum = 0;			//number of doodads spawned, used for ids
-var turnFightLim = 3		//number of players a player can fight per turn
 
 var generated = false;
 var terrain = [];			//2d array for terrain objects
-var riverSpawns = [];		//rivers?
-var mapSize = 1000;			//diameter of the map. 
+var mapSize = 1000;			//diameter of the map.
+var customMap = "";
 
 var interval = 1500;		//time between turns
 var initDone = false;		//if initialization of the game is done
@@ -20,7 +20,7 @@ var hour = 8;				//the hour of the day
 var iconSize = 24;			//the size of each icon
 var moralNum = {"Chaotic":0,"Neutral":0,"Lawful":0};		//dict for moral
 var personalityNum = {"Evil":0,"Neutral":0,"Good":0};		//dict for personality
-var terrainDeath = 3; 		//Max num who can fall off a cliff	
+var terrainDeath = 3; 		//Max num who can fall off a cliff
 
 var dirArr = [[0,1],[1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1]]; 	//some array to go through the directions i guess
 
@@ -31,14 +31,15 @@ var events = [];
 
 var globalAggro = 0;
 var dangerSize = 0;		//size of the restricted zone
-var dangerActive=false
+var dangerActive=false;
 var safeSize = mapSize/2 -dangerSize; //radius of safe zone
 var event_length = 130	//max amount of events displayed
 var page_num = 0;
+var game_started = false;
 
 var error_count = 0;
 window.onerror = function(error) {
-	error_count++;    
+	error_count++;
 	$('#error').css({'display':"block"});
 	$('#error').text(error_count);
 };
@@ -66,7 +67,7 @@ $(document).ready(function(){
 		}
 		fr.readAsText(this.files[0]);
 		let fileType = this.files[0].type
-		
+
 	})
 	Init();
 });
@@ -79,7 +80,7 @@ var marginTop = 0;
 //converts element coordinates to game coordinates
 function elementToGameCoords(coords){
 	x = coords[0] - marginLeft;
-	x = x/mapXratio;	
+	x = x/mapXratio;
 	y = coords[1] - marginTop;
 	y = y/mapYratio;
 	return [x,y]
@@ -97,7 +98,7 @@ function getMapClickPosition(e) {
     // yPosition = e.clientY / mapYratio;
 	xPosition = e.clientX;
     yPosition = e.clientY;
-	
+
 	// console.log(elementToGameCoords([xPosition, yPosition]))
 }
 //initialize the start screen
@@ -119,8 +120,8 @@ function Init(){
 	}
 	// $('#danger').css('visibility', 'visible');
 	$('#danger').height($('#map').height()-10)
-	$('#danger').width($('#map').width()-10)	
-	
+	$('#danger').width($('#map').width()-10)
+
 	$('#effects').height($('#map').height());
 	$('#effects').width($('#map').width());
 
@@ -159,9 +160,9 @@ function loadPlayersTxt(player_txt){
 		if(player_data_lst[0]){
 			let img_txt=""
 			if(player_data_lst.length>=2){
-				img_txt = player_data_lst[1] 
+				img_txt = player_data_lst[1]
 			}
-			
+
 			let attr_txt = ""
 			if(player_data_lst.length>=3){
 				//process attributes
@@ -170,17 +171,17 @@ function loadPlayersTxt(player_txt){
 					if(attr!=""){
 						attr_txt = attr_txt+attr+','
 					}
-				});	
+				});
 				//remove last comma
 				attr_txt = attr_txt.substring(0, attr_txt.length-1)		//remove last comma
 			}
-			
+
 			let morals = {"R":"Random","L":"Lawful","N":"Neutral","C":"Chaotic"}
 			let moral_txt = "Random"
 			if(player_data_lst.length>=4 && (player_data_lst[3] in morals)){
 				moral_txt = morals[player_data_lst[3]]
 			}
-			
+
 			let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
 			let personalities_txt = "Random"
 			if(player_data_lst.length>=5 && (player_data_lst[4] in personalities)){
@@ -195,14 +196,14 @@ function loadPlayersTxt(player_txt){
 
 //load players from json
 function loadPlayersJson(players_obj){
-	players_obj.forEach(function(player_data, index){	
+	players_obj.forEach(function(player_data, index){
 		let attr_txt = ""
 		if(player_data.attr){
 			player_data.attr.forEach(function(attr){
 				if(attr!=""){
 					attr_txt = attr_txt+attr+','
 				}
-			});	
+			});
 			//remove last comma
 			attr_txt = attr_txt.substring(0, attr_txt.length-1)
 		}
@@ -211,7 +212,7 @@ function loadPlayersJson(players_obj){
 		if(player_data.moral && (player_data.moral in morals)){
 			moral_txt = morals[player_data.moral]
 		}
-		
+
 		let personalities = {"R":"Random","G":"Good","N":"Neutral","E":"Evil"}
 		let personalities_txt = "Random"
 		if(player_data.personality && (player_data.personality in personalities)){
@@ -247,10 +248,10 @@ function saveResults(filename = ''){
 	result_str = 'alive\n';
 	//living players
 	players.forEach(function(tP){
-		result_str = result_str + 
-					 '0,' + 
-					 tP.name + ',' + 
-					 tP.kills + '\n';				
+		result_str = result_str +
+					 '0,' +
+					 tP.name + ',' +
+					 tP.kills + '\n';
 	});
 	result_str = result_str + 'dead\n'
 	placement = playerStatic.length - dedPlayers.length;
@@ -258,18 +259,18 @@ function saveResults(filename = ''){
 	for(let i=dedPlayers.length-1; i>=0; i--){
 		dP = dedPlayers[i];
 		result_str = result_str +
-					 placement + ',' + 
-					 dP.name + ',' + 
-					 dP.kills + ',' + 
+					 placement + ',' +
+					 dP.name + ',' +
+					 dP.kills + ',' +
 					 dP.death + '\n';
 		placement++;
 	}
-	
+
 	log_message(result_str)
 	if(filename == ''){
 		let date = new Date();
-		filename = 	date.getDate() + '_' + 
-					(date.getMonth()+1) + '_' + 
+		filename = 	date.getDate() + '_' +
+					(date.getMonth()+1) + '_' +
 					date.getFullYear() + '_' +
 					date.getHours() + ':' + date.getMinutes()+
 					'_results'
@@ -321,7 +322,7 @@ function savePlayersTxt(){
 	let target_file = ""
 	target_file = $('#save_file').val();
 	// log_message(save_txt)
-	if(target_file!="" && data!=""){	
+	if(target_file!="" && data!=""){
 		let blob = new Blob([data],{type: "text/plain;charset=utf-8"});
 		let a = document.createElement('a');
 		a.download = target_file+".csv";
@@ -350,14 +351,14 @@ function savePlayersJson(){
 			}
 			if($(this).find('.personality').val()[0]!='R'){
 				char_obj.personality = $(this).find('.personality').val()[0];
-			}				
+			}
 			char_list_data.push(char_obj);
 		}
 	});
-	
+
 	let target_file = ""
 	target_file = $('#save_file').val();
-	if(target_file!="" && char_list_data!=""){	
+	if(target_file!="" && char_list_data!=""){
 		let blob = new Blob([JSON.stringify(char_list_data)],{type: "text/plain;charset=utf-8"});
 		let a = document.createElement('a');
 		a.download = target_file+".json";
@@ -397,7 +398,7 @@ function startGame(){
 			x = Math.floor(Math.random() * mapSize);
 			y = Math.floor(Math.random() * mapSize);
 		} while(!safeTerrainCheck(x,y)); //make sure it is in bounds
-		
+
 		let tempChar = "";
 		//create player object
 		if(charlist[i]){
@@ -412,7 +413,7 @@ function startGame(){
 				moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
 			else
 				moral = charlist[i][3]
-			
+
 			let personality=""
 			if(charlist[i][4]=="" || charlist[i][4]=="Random")
 				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
@@ -423,7 +424,7 @@ function startGame(){
 			if(attr_lst.indexOf('control')>=0 && maxControl>controlledPlayers.length){
 				tempChar = new ControlledChar(charlist[i][0],charlist[i][1],x,y, moral, personality);
 				controlledPlayers.push(tempChar);
-			}				
+			}
 			else
 				tempChar = new Char(charlist[i][0],charlist[i][1],x,y, moral, personality);
 			*/
@@ -456,7 +457,7 @@ function startGame(){
 			if(tP==oP){
 				tP.opinions[oP.id] = 0
 			}
-			else{			
+			else{
 				if(tP.personality == oP.personality){
 					//same personality
 					tP.opinions[oP.id] = base_opinion + 50
@@ -470,13 +471,16 @@ function startGame(){
 			}
 		});
 	});
+	if(customMap)
+		customMap.game_start();
 	console.log('loading complete')
-	startScripts();
+	game_started = true;
+	onStart();
 	//set up auto play
 	setInterval(timer,interval);
 }
 
-function startScripts(){
+function onStart(){
 	// globalAggro=5000;
 	// createDangerZone(50);
 	// playerStatic[0].health=0;
@@ -493,8 +497,11 @@ function startScripts(){
 	// $('#effects').append(
 		// "<img id='ai_img' src='icons/ai.png' style='opacity:0.4; position:absolute; bottom:0px; transform: scale(0.3) translate(-120%, 130%); '></img>"
 	// )
-	globalAggro=5000;
-	createDangerZone(500);
+	// globalAggro=5000;
+	// createDangerZone(500);
+	// playerStatic[0].equip_item(create_weapon('ancient'));
+	generateJibunWo();
+	customMap.game_start();
 }
 
 //keyboard inputs
@@ -504,10 +511,12 @@ document.addEventListener('keydown', (e) => {
 	if (!e.repeat){
 		switch(e.code){
 			case "Space":
-				turn()
+				if(game_started)
+					turn();
 				break;
 			case "KeyP":
-				hidePlayers();
+				if(game_started)
+					hidePlayers();
 				break;
 		}
 	}
@@ -539,18 +548,22 @@ function turn(){
 			$('#map').css('background','rgb(0,60,0)');
 			break;
 	}
+
+	if(customMap)
+		customMap.start_update();
+
 	//randomize the player list
 	players.sort(() => Math.random() - 0.5);
-	
+
 	// players.forEach(chara => chara.plannedAction = "");
 	// players.forEach(chara => chara.finishedAction = false);
 	//turn start
 	for(i=0; i<players.length; i++){
-		players[i].turnStart();		
-	}	
+		players[i].turnStart();
+	}
 	//plan actions
 	for(i=0; i<players.length; i++){
-		players[i].planAction();		
+		players[i].planAction();
 	}
 	/*
 	if(controlledPlayers.length>0){
@@ -574,25 +587,20 @@ function turn(){
 	});
 	//update alliances
 	allianceUpdate();
-	
+
 	//update doodads
 	doodadUpdate();
-	
-	//update terrain
-	for(let i = 0; i <= mapSize; i=i+25) {
-		if(terrain[i]){
-			for(let j = 0; j <= mapSize; j=j+25) {
-				if(terrain[i][j]){
-					terrain[i][j].update();
-				}
-			}
-		}
-	}
+
+	if(customMap)
+		customMap.end_update();
+	else
+		terrainUpdate();
+
 	//check death
 	players.forEach(function(chara,index){
 		chara.limitCheck();		//check if player is dead
 	});
-	
+
 	//progress time
 	hour++;
 	if(hour == 24){
@@ -621,6 +629,19 @@ function doodadUpdate(){
 		tD.update();		//check doodads
 	});
 }
+function terrainUpdate(){
+		//update terrain
+	for(let i = 0; i <= mapSize; i=i+25) {
+		if(terrain[i]){
+			for(let j = 0; j <= mapSize; j=j+25) {
+				if(terrain[i][j]){
+					terrain[i][j].update();
+				}
+			}
+		}
+	}
+
+}
 
 //something for progressing turns
 function timer(){
@@ -644,12 +665,12 @@ function createDangerZone(terrainLayers=1){
 		dangerSize=0;
 	}
 	safeSize = mapSize/2 -dangerSize; //radius of safe zone
-	
+
 	if(!dangerActive){
 		$('#danger').css('visibility', 'visible');
 		dangerActive=true;
 	}
-	
+
 	let borderPercent= safeSize/(mapSize/2);
 	// log_message(safeSize)
 	// log_message(dangerSize)
@@ -657,7 +678,7 @@ function createDangerZone(terrainLayers=1){
 	$('#danger').width($('#map').width() * borderPercent-10)
 	$('#danger').css('margin-top', ($('#map').height() - ($('#map').height() * borderPercent))/2);
 	$('#danger').css('margin-left', ($('#map').width() - ($('#map').width() * borderPercent))/2);
-	
+
 }
 
 //check if a coordinates are in bounds and has safe terrain
@@ -720,7 +741,7 @@ function inBoundsCheck(x, y){
 	if(boundY > limit){
 		valid = false;
 	}
-	return valid;	
+	return valid;
 	*/
 }
 
@@ -744,7 +765,7 @@ function getRandomCoords(check_type='', tries=10){
 		newX = mapSize/2 + roll_range(-25,25);
 		newY = mapSize/2 + roll_range(-25,25);
 	}
-	
+
 	//get a target location to move to
 	return [newX,newY]
 }
@@ -797,7 +818,7 @@ function toggle_show_info(char_id){
 	else if(show_info_id!=char_id){
 		// $('#char_' + show_info_id).removeClass('highlight')
 		// $('#tbl_' + show_info_id).removeClass('highlight')
-		
+
 		deselect_show_info()
 		select_show_info(char_id)
 	}
@@ -811,10 +832,10 @@ function select_show_info(char_id){
 	$('#tbl_' + char_id).removeClass('highlight')
 	$('#tbl_' + char_id).addClass('selected')
 	$('#char_' + char_id).addClass('highlight')
-	
+
 	show_info_id=char_id;
 	playerStatic[show_info_id].show_main_info();
-	
+
 	$('#char_info').css('display','inline-block')
 	// $('#table').css('margin-bottom','250px')
 }
@@ -823,7 +844,7 @@ function deselect_show_info(){
 	$('#tbl_' + show_info_id).removeClass('selected')
 	$('#char_' + show_info_id).removeClass('highlight')
 	$('#char_info_container').html('');
-	
+
 	show_info_id=-1;
 	$('#char_info').css('display','none')
 	// $('#table').css('margin-bottom','50px')
@@ -863,7 +884,7 @@ function toggle_extra_info(obj){
 	//toggle off
 	else{
 		deselect_extra_info()
-	}	
+	}
 }
 
 function select_extra_info(obj){
@@ -881,7 +902,7 @@ function deselect_extra_info(){
 			$('#tbl_' + member.id).removeClass('alliance')
 		})
 	}
-		
+
 	extra_info_obj=""
 }
 function display_extra_info(){
@@ -897,12 +918,12 @@ function display_extra_info(){
 	}
 	else{
 		extra_info_obj.show_info()
-	}	
+	}
 }
 
 selected_alliance_id = -1
 function toggle_selected_alliance(alliance_id){
-	if(div_clicked==false){	
+	if(div_clicked==false){
 		//no alliance selected
 		if(selected_alliance_id==-1){
 			select_alliance(alliance_id)
@@ -915,7 +936,7 @@ function toggle_selected_alliance(alliance_id){
 		//toggle off
 		else{
 			deselect_alliance()
-		}	
+		}
 	}
 	div_clicked=false
 }
@@ -928,11 +949,11 @@ function alliance_div_click(alliance_id, char_id){
 		select_alliance(alliance_id)
 	}
 	//another character selected
-	else if(show_info_id!=char_id){		
+	else if(show_info_id!=char_id){
 		deselect_show_info()
 		select_show_info(char_id)
 		player_extra_info(char_id, 'alliance')
-		deselect_alliance()		
+		deselect_alliance()
 		select_alliance(alliance_id)
 	}
 	//deselect current char
@@ -953,17 +974,17 @@ function alliance_div_click(alliance_id, char_id){
 }
 
 function select_alliance(alliance_id){
-	$('#alliance_' + alliance_id).addClass('alliance_highlight')	
+	$('#alliance_' + alliance_id).addClass('alliance_highlight')
 	selected_alliance_id = alliance_id;
 	allianceStatic[selected_alliance_id].highlight_alliance_members();
-	
+
 	selected_alliance_id = alliance_id;
 }
 function deselect_alliance(){
 	$('#alliance_' + selected_alliance_id).removeClass('alliance_highlight')
 	if(selected_alliance_id>=0 && selected_alliance_id<allianceStatic.length)
 		allianceStatic[selected_alliance_id].deselect_alliance_members()
-	
+
 	selected_alliance_id = -1;
 }
 
@@ -973,14 +994,14 @@ function infoDisplay(){
 	switch(page_num){
 		//switch to events
 		case 0:
-			$('#table').css('display','none');			
+			$('#table').css('display','none');
 			$('#messages').css('display','block');
 			$('#alliances').css('display','none');
 			page_num = 1
 			updateEvents()
 			break;
 		case 1:
-			$('#table').css('display','none');			
+			$('#table').css('display','none');
 			$('#messages').css('display','none');
 			$('#alliances').css('display','block');
 			page_num = 2
@@ -1002,17 +1023,17 @@ function updateTable(){
 	//list status
 	if(show_info_id!=-1){
 		playerStatic[show_info_id].show_main_info();
-	}		
+	}
 	if(extra_info_obj!=''){
 		display_extra_info()
 	}
-	
+
 	players.forEach(function(chara,index){
 		//prepare player data
 		//character icons
 		$("#char_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
 		$("#char_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
-		
+
 		//weapon
 		let inv_text=""
 		if(chara.weapon){
@@ -1025,33 +1046,33 @@ function updateTable(){
 		//status effect
 		let icon_status_text = "";	//char icon
 		let icon_count=0;
-		chara.status_effects.forEach(function(eff,index){		
+		chara.status_effects.forEach(function(eff,index){
 			if(icon_count<4){
 				if(eff.icon){
 					icon_status_text=icon_status_text+eff.icon;
 					icon_count++;
-				}	
+				}
 			}
 		});
 		$("#char_" + chara.id + " .charEff").html(icon_status_text);
-		
+
 	});
 
 	if(page_num == 0)
 		updateStatusTable()
 	// if(page_num == 1)
-		// updateEvents()	
+		// updateEvents()
 	if(page_num == 2)
 		updateAlliances()
-	
+
 	//turn existing messages transparent
 	$('#messages td').css('opacity','0.3');
 	$('#eventFeed').empty()
 	updateEvents()
-	
-	doodads.forEach(function(tD,index){
-		tD.draw()
-	});
+
+	// doodads.forEach(function(tD,index){
+		// tD.draw()
+	// });
 }
 
 function updateStatusTable(){
@@ -1067,10 +1088,10 @@ function updateStatusTable(){
 		}
 		//status effect
 		let status_text=""				//side bar
-		chara.status_effects.forEach(function(eff,index){		
+		chara.status_effects.forEach(function(eff,index){
 			status_text+=eff.icon;
 		});
-		
+
 		//info bar
 		$("#tbl_" + chara.id + " .healthBar").css("width",(chara.health/chara.maxHealth)*100 + "%");
 		$("#tbl_" + chara.id + " .energyBar").css("width",(chara.energy/chara.maxEnergy)*100 + "%");
@@ -1078,11 +1099,11 @@ function updateStatusTable(){
 		$("#tbl_" + chara.id + " .status").html(chara.statusMessage);
 		//kills
 		$("#tbl_" + chara.id + " .kills").text(chara.kills);
-		$("#tbl_" + chara.id + " .weapon").html(inv_text);			
+		$("#tbl_" + chara.id + " .weapon").html(inv_text);
 		$("#tbl_" + chara.id + " .effects").html(status_text);
 		// log_message(chara.name +" status txt " + status_text);
 	});
-	
+
 	dedPlayers.forEach(function(chara,index){
 		$("#tbl_" + chara.id + " .kills").text(chara.kills);
 		let inv_text=""
@@ -1093,11 +1114,11 @@ function updateStatusTable(){
 			inv_text+=chara.offhand.icon;
 		}
 		$("#tbl_" + chara.id + " .weapon").html(inv_text);
-	});	
+	});
 }
 var dayColors = ["#282828","#474747"];
 var currentDayColor=0;
-function updateEvents(){	
+function updateEvents(){
 	//add new event messages
 	let fight_count = 0;	//fight counter
 	events.forEach(function(msg,index){
@@ -1108,7 +1129,7 @@ function updateEvents(){
 			let chara = msg.chara;
 			let message = msg.message;
 			event_html = event_html + "<td style='background-color:"+ dayColors[currentDayColor]+";'><img src='" + chara.img + "'></img><span>" + message + "</span></td>"
-			feed_html = "<span style='color:white'>" + message + "</span><br>";	
+			feed_html = "<span style='color:white'>" + message + "</span><br>";
 		}
 		else{
 			let attacker = msg.attacker;
@@ -1127,7 +1148,7 @@ function updateEvents(){
 			"<div style='font-size:16px;display:inline-block'>"
 			msg.events.forEach(function(event_msg){
 				event_html = event_html + "<span style='margin-bottom:5px;display:inline-block;'>"+event_msg+"</span><br>"
-			
+
 			});
 			event_html = event_html+"</div></td>";
 			// feed_html = "<span style='color:red'>⚔️" + attacker.name + " fights " + defender.name + "</span><br>";
@@ -1150,7 +1171,7 @@ function updateEvents(){
 	if(events.length>0){
 		currentDayColor = (currentDayColor+1)%dayColors.length;
 	}
-	
+
 	//list deaths
 	dedPlayers.forEach(function(chara,index){
 		if(!chara.diedMessage){
@@ -1158,7 +1179,7 @@ function updateEvents(){
 			chara.diedMessage = "Done";
 		}
 	});
-	
+
 	events=[];
 }
 
@@ -1174,7 +1195,7 @@ function updateAlliances(){
 			if(alli.members.indexOf(member)<0){
 				$("#alliance_"+alli.id+"_char_" + member.id).remove()
 				return
-			}			
+			}
 			if($("#alliance_"+alli.id+"_char_" + member.id).length){
 				//prepare player data
 				//weapon
@@ -1187,10 +1208,10 @@ function updateAlliances(){
 				}
 				//status effect
 				let status_text=""				//side bar
-				member.status_effects.forEach(function(eff,index){		
+				member.status_effects.forEach(function(eff,index){
 					status_text+=eff.icon;
 				});
-				
+
 				//info bar
 				$("#alliance_"+alli.id+"_char_" + member.id + " .healthBar").css("width",(member.health/member.maxHealth)*100 + "%");
 				$("#alliance_"+alli.id+"_char_" + member.id + " .energyBar").css("width",(member.energy/member.maxEnergy)*100 + "%");
@@ -1198,7 +1219,7 @@ function updateAlliances(){
 				$("#alliance_"+alli.id+"_char_" + member.id + " .status").html(member.statusMessage);
 				//kills
 				$("#alliance_"+alli.id+"_char_" + member.id + " .kills").text(member.kills);
-				$("#alliance_"+alli.id+"_char_" + member.id + " .inv").html(inv_text);			
+				$("#alliance_"+alli.id+"_char_" + member.id + " .inv").html(inv_text);
 				$("#alliance_"+alli.id+"_char_" + member.id + " .effects").html(status_text);
 			}
 			else{
@@ -1206,10 +1227,10 @@ function updateAlliances(){
 				// html+=mem_html
 				$("#alliance_" + alli.id+' .alliance_members').append(mem_html)
 			}
-		});		
+		});
 	});
 	disbanded_alliances.forEach(function(alli,index){
-	});	
+	});
 }
 
 var playerDistTable = []
@@ -1222,7 +1243,7 @@ function updatePlayerDists(p1){
 			let x2 = p2.x;
 			let y2 = p2.y;
 			dist = hypD(x2-x1, y2-y1);
-		}		
+		}
 		playerDistTable[p1.id][p2.id] = dist;
 		playerDistTable[p2.id][p1.id] = dist;
 	})
@@ -1239,7 +1260,7 @@ function nearbyPlayers(x, y, dist){
 	players.forEach(function(tP,index){
 		let x2 = tP.x;
 		let y2 = tP.y;
-		let temp_dist = hypD(x2-x1, y2-y1);	
+		let temp_dist = hypD(x2-x1, y2-y1);
 		if(temp_dist<=dist){
 			temp_list.push(tP);
 		}
@@ -1247,7 +1268,40 @@ function nearbyPlayers(x, y, dist){
 	return temp_list;
 }
 
-//generates terrain 
+function loadMap(map_lst, rand_terrain=[["tree",120],["mtn",8],["water",5]]){
+	log_message('loading map');
+	for(var i = 0;i<map_lst.length;i++){
+		terrain[i*25] = [];
+		for(var j=0; j<map_lst.length;j++){
+			if(map_lst[i][j]!='' && map_lst[i][j]!=' '){
+				let temp_type = "";
+				switch(map_lst[i][j].toLowerCase()){
+					case "m":
+						temp_type = "mtn"
+						break;
+					case "t":
+						temp_type = "tree"
+						break;
+					case "w":
+						temp_type = "water"
+						break;
+					case "r":
+						temp_type = roll(rand_terrain)
+						break;
+					case "0":
+						temp_type = "rand"
+						break;						
+				}
+				;
+				let tempTerr = create_terrain(temp_type,j*25,i*25); //generate a random terrain
+				setTerrain(tempTerr);
+			}
+		}
+	}
+	log_message('map loaded');
+}
+
+//generates terrain
 function generateTerrain(){
 	//clears all terrain
 	terrain.forEach(function(terrRow,i){
@@ -1256,10 +1310,23 @@ function generateTerrain(){
 		});
 	});
 	dangerSize=0;
-	generated=false;
-	
-	riverSpawns = [];
-	
+	generated=false;	
+	customMap = '';
+	log_message('terrain generation start')
+	//get the spread terrain value
+	if(isNaN($('#txt_spreadTerrain').val())){
+		getCustomGenerator($('#txt_spreadTerrain').val())
+	}
+	else{
+		regular_generation();
+	}
+	log_message('terrain generation end')
+	if(customMap)
+		log_message('generated ' + customMap.name);
+}
+
+var riverSpawns = [];
+function regular_generation(){
 	for(var i = 0;i<=mapSize;i+=25){
 		terrain[i] = [];
 		//generate reandom terrain pieces
@@ -1268,24 +1335,26 @@ function generateTerrain(){
 			//check the current coords are in bounds
 			if(inBoundsCheck(i,j)){
 				//timerClick("terrain row " + i + " col " + j);
-				let tempTerr = create_terrain("rand",i,j); //generate a random terrain	
+				let tempTerr = create_terrain("rand",i,j); //generate a random terrain
 				setTerrain(tempTerr);
 			}
 		}
 		log_message('finished '+i);
 	}
-	generated=true;
-	//get the spread terrain value
+	
+	generated=true;	
 	log_message('terrain spread start')
 	if(Math.floor($('#txt_spreadTerrain').val()) > 0){
 		//spread the terrain for that amount
 		for(var i = 0;i<$('#txt_spreadTerrain').val();i++){
 			spreadTerrain();
 		}
-	}
+	}	
 	log_message('terrain spread end')
 	log_message('river spread start')
-	log_message(riverSpawns.length + ' rivers')
+	log_message(riverSpawns.length + ' rivers')	
+	
+	riverSpawns = [];
 	//generate river
 	riverSpawns.forEach(function(river,index){
 		//pass in the starting point for the river
@@ -1307,6 +1376,7 @@ function spreadTerrain(){
 		}
 	}
 }
+// var riverSpawns = [];		//rivers?
 //generate a river
 function generateRiver(river,recursive){
 	//pick a random direction to go in
@@ -1335,14 +1405,14 @@ function generateRiver(river,recursive){
 				newTerrain.spreadOnce = true;
 				newTerrain.river = true;
 				setTerrain(newTerrain);
-				
+
 				//generate forks
 				if(i == split && recursive){
 					generateRiver(terrain[currX][currY],false);
 					//console.log("river split");
 					//console.log(terrain[currX][currY]);
 				}
-			} 
+			}
 		}
 		//randomly change direction
 		let changeDir = Math.floor(Math.random() * 3) - 1;
@@ -1353,6 +1423,49 @@ function generateRiver(river,recursive){
 			dir = 7;
 		//console.log(dir);
 		currX += dirArr[dir][0]*25;
-		currY += dirArr[dir][1]*25;			
+		currY += dirArr[dir][1]*25;
 	}
 }
+
+function generateFull(){
+	for(var i = 0;i<=mapSize;i+=25){
+		terrain[i] = [];
+		//generate reandom terrain pieces
+		for(var j =0;j<=mapSize;j+=25){
+			//timerClick("terrain bound check row " + i + " col " + j);
+			//check the current coords are in bounds
+			if(inBoundsCheck(i,j)){
+				//timerClick("terrain row " + i + " col " + j);
+				let temp_type = roll([["tree",120],["mtn",8],["water",5]]);
+				let tempTerr = create_terrain(temp_type,i,j); //generate a random terrain
+				setTerrain(tempTerr);
+			}
+		}
+		log_message('finished '+i);
+	}
+}
+
+function getCustomGenerator(generator){
+	generator = generator.replace(' ','');
+	generator = generator.toLowerCase();
+	log_message(generator)
+	if(generator.startsWith('jibunwo')){
+		generateJibunWo();
+	}
+	else if(generator=='full'){
+		generateFull();
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -3,6 +3,13 @@ function setDoodadIcon(icon){
 	return '<img src="'+icon+'"></img>';
 }
 
+function createDoodad(doodad){
+	doodad.id = doodadsNum;
+	doodadsNum++;
+	doodad.draw();
+	doodads.push(doodad);
+}
+
 //any item that appears on the map
 class Doodad {
 	constructor(name, x,y,owner){
@@ -12,8 +19,9 @@ class Doodad {
 		this.owner = owner;
 		this.icon = "❓"
 		
-		this.id = doodadsNum;
-		doodadsNum++;
+		// this.id = doodadsNum;
+		// doodadsNum++;	
+		this.id = -1;
 		
 		//trigger radius
 		this.triggerRange = 25;
@@ -25,6 +33,7 @@ class Doodad {
 		this.max_triggers = 9999 //maximum triggers per turn
 		this.dead_trigger = false; //whether dead players can trigger
 	}
+	
 	draw(){
 		let doodDiv = $('#doodad_' + this.id);
 		if(!doodDiv.length){
@@ -35,9 +44,9 @@ class Doodad {
 			doodDiv = $('#doodad_' + this.id);
 			this.div = doodDiv;
 		}
-		else{
-			this.div.html(this.icon);
-		}
+		// else{
+			// this.div.html(this.icon);
+		// }
 	}
 	
 	//look for players in range
@@ -229,10 +238,11 @@ class CampfireEntity extends Doodad{
 	}
 	expire(){
 		log_message(this.name+" expires");
-		let tempFire = new FireEntity(this.x, this.y,"")
-		tempFire.draw()
+		let tempFire = new FireEntity(this.x, this.y,"");
 		tempFire.duration = roll_range(2,4);
-		doodads.push(tempFire);		
+		// tempFire.draw();
+		// doodads.push(tempFire);		
+		createDoodad(tempFire);
 		this.destroy();
 	}
 	trigger(trigger_player){
@@ -415,8 +425,9 @@ class DecoyEntity extends MovableEntity{
 
 function spawn_duck(x,y){
 	let tempDuck = new FuckDuck(x, y);
-	tempDuck.draw();
-	doodads.push(tempDuck);
+	// tempDuck.draw();
+	// doodads.push(tempDuck);
+	createDoodad(tempDuck);
 }
 
 class FuckDuck extends MovableEntity{

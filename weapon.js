@@ -20,6 +20,7 @@ function get_weapon_odds(tP){
 		// weaponOdds.push(["spicy",5000]);
 	}
 	weaponOdds = tP.apply_all_calcs('itemOdds', weaponOdds, {'item_type':'wep'})
+	weaponOdds = getTerrain(tP.x, tP.y).forageOdds(tP, 'wep', weaponOdds);
 	return weaponOdds;
 }
 /*
@@ -82,9 +83,10 @@ class Weapon extends Item{
 	}
 	
 	replace_wep(new_weapon){
+		if(!this.replacable)
+			return false;
 		this.player.weapon=new_weapon;
 		new_weapon.equip(this.player);
-		this.player=""
 		return true;
 	}
 	
@@ -475,6 +477,7 @@ class Nanasatsu extends Weapon {
 		this.prev_owners=0;
 		this.tradable = false;
 		this.stealable = false;
+		this.replacable = false;
 	}
 	equip(wielder){
 		super.equip(wielder);
@@ -493,9 +496,7 @@ class Nanasatsu extends Weapon {
 		}
 		return true;
 	}	
-	replace_wep(new_weapon){
-		return false;
-	}
+
 	effect(state, data={}){
 		let dmg=0;
 		let oP="";
@@ -600,6 +601,7 @@ class Spicy extends Weapon {
 		this.display_name = ("ol' Spicy Shinkai Makai");
 		this.tradable = true;
 		this.stealable = false;
+		this.replacable = false;
 	}
 	equip(wielder){
 		super.equip(wielder);
@@ -607,9 +609,7 @@ class Spicy extends Weapon {
 		this.player.statusMessage = "<span style='color:red'>found the OL' SPICY SHINKAI MAKAI</span>";
 		return true;
 	}	
-	replace_wep(new_weapon){
-		return false;
-	}
+
 	effect(state, data={}){
 		let dmg=0;
 		let oP="";
@@ -624,17 +624,18 @@ class Spicy extends Weapon {
 				}
 				break;
 			case "attack":
+				this.player.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
+				break;		
+			case "dealDmg":
 				oP=data['opponent'];
 				//set self on fire
 				let tP_fire = new Burn(2,1,"")
 				tP_fire.death_msg = "couldn't handle the ol' spicy shinkai makai"
 				this.player.inflict_status_effect(tP_fire)
-				/*				
+				
 				//set opponent on fire
 				let oP_fire = new Burn(5,3,this.player)
-				oP.inflict_status_effect(oP_fire)
-				*/
-				this.player.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
+				oP.inflict_status_effect(oP_fire)	
 				break;			
 			default:
 				super.effect(state, data);
@@ -644,12 +645,6 @@ class Spicy extends Weapon {
 	
 	effect_calc(state, x, data={}){
 		switch(state){
-			case "dmgCalcOut":
-				let oP=data['opponent'];
-				//set opponent on fire
-				let oP_fire = new Burn(5,3,this.player)
-				oP.inflict_status_effect(oP_fire)
-				break;
 			case "newStatus":
 				//charm immunity
 				let eff = data["eff"]
@@ -753,7 +748,10 @@ class Flamethrower extends Weapon{
 				// super.effect("attack", data);
 				oP = data['opponent']
 				this.player.statusMessage = "attacks " + oP.name + " with a " +this.name;
-				/*
+				this.use();
+				break;
+			case "dealDmg":
+				oP = data['opponent'];
 				//set opponent on fire
 				let oP_fire = new Burn(3,5,this.player)
 				oP.inflict_status_effect(oP_fire)
@@ -771,6 +769,7 @@ class Flamethrower extends Weapon{
 						unfortunate_victim.inflict_status_effect(aoe_fire)
 					}
 				});	
+				/*
 				//set ground on fire
 				if(getTerrainType(oP.x, oP.y) !="water" && Math.random()<0.5){
 					let ground_fire = new FireEntity(oP.x, oP.y,this.player);
@@ -778,45 +777,14 @@ class Flamethrower extends Weapon{
 					doodads.push(ground_fire)
 				}
 				*/
-				this.use();
+			
 				break;
 			default:
 				super.effect(state, data);
 				break;
 		}
 	}
-	effect_calc(state, x, data={}){
-		switch(state){
-			case "dmgCalcOut":
-				let oP = data['opponent']
-				//set opponent on fire
-				let oP_fire = new Burn(3,5,this.player)
-				oP.inflict_status_effect(oP_fire)
-				
-				//aoe fire
-				let aoe_radius = Math.min(playerDist(this.player, oP), this.rangeBonus);
-				//get nearby opponents
-				let nearby_lst = oP.nearbyPlayers(aoe_radius);
-				let temp_wep = this;
-				nearby_lst.forEach(function(unfortunate_victim,index){
-					//cannot hit wielder
-					if(unfortunate_victim != temp_wep.player && Math.random()<0.8){
-						log_message("stray fire " + unfortunate_victim.name);
-						let aoe_fire = new Burn(1,2,temp_wep.player)
-						unfortunate_victim.inflict_status_effect(aoe_fire)
-					}
-				});	
-				//set ground on fire
-				if(getTerrainType(oP.x, oP.y) !="water" && Math.random()<0.5){
-					let ground_fire = new FireEntity(oP.x, oP.y,this.player);
-					ground_fire.draw();
-					doodads.push(ground_fire)
-				}
-				break;
-		}
-		return x
-	}
-	
+
 	stat_html(){
 		let html = 	super.stat_html()+
 		"<span class='desc'>"+
@@ -910,6 +878,8 @@ class Ancient extends Weapon{
 				
 				//cast
 				this.player.fightDmgB *= this.dmg_data[spell[0]]
+				if(this.last_spell[1]=='barrage')
+					this.player.fightDmgB *= this.aoe_dmg
 
 				this.last_spell = spell
 				/*
@@ -984,26 +954,7 @@ class Ancient extends Weapon{
 				break;
 			case "dealDmg":
 				oP=data['opponent'];
-				let dmg=data['damage'];			
-				if(this.last_spell[0]=='blood'){
-					//heal on hit
-					log_message(this.player.name + " BLOOD attack")
-					// log_message(this.player.health + " before");
-					log_message(dmg);
-					this.player.health += Math.pow(dmg,0.66);
-					// log_message(this.player.health + " after");
-				}
-				break;
-			default:
-				super.effect(state, data);
-				break;
-		}
-	}
-	
-	effect_calc(state, x, data={}){
-		switch(state){
-			case "dmgCalcOut":
-				let oP=data['opponent'];
+				let dmg=data['damage'];
 				//spell effects
 				switch(this.last_spell[0]){
 					case 'smoke':
@@ -1017,10 +968,18 @@ class Ancient extends Weapon{
 					case 'ice':
 						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.player))
 						break;
-				}
+					case 'blood':
+						//heal on hit
+						log_message(this.player.name + " BLOOD attack")
+						// log_message(this.player.health + " before");
+						log_message(dmg);
+						this.player.health += Math.pow(dmg,0.66);
+						// log_message(this.player.health + " after");
+						break;						
+				}			
+				
 				//aoe attack
 				if(this.last_spell[1]=='barrage'){
-					this.player.fightDmgB *= this.aoe_dmg
 					let hits = 0;
 					let nearby_lst = oP.nearbyPlayers(this.aoe_radius);
 					for(let i=0; i<nearby_lst.length; i++){
@@ -1070,10 +1029,12 @@ class Ancient extends Weapon{
 					}
 				}
 				break;
+			default:
+				super.effect(state, data);
+				break;
 		}
-		return x;
 	}
-	
+		
 	//blood barrage breaks if aoe also targets the target
 	show_info(){
 		let item_info = 

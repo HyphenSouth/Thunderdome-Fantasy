@@ -157,7 +157,11 @@ class TeaAction extends Action{
 		this.attr = data.attr
 	}
 	perform(){
-		this.attr.tea();
+		// this.attr.tea();
+		this.player.energy += this.player.maxEnergy*0.5;
+		this.player.health += this.player.maxHealth*0.3;
+		this.player.lastActionState = "tea";
+		this.player.statusMessage = "Stops to drink tea";
 	}
 }
 
@@ -581,13 +585,6 @@ class Band extends Attr{
 				}
 				super.effect(state,data);
 				break;
-			/*
-			case "attack":
-				if(this.player.weapon.name=="guitar"){
-					this.player.fightDmgB *= this.guitar_dmg;
-				}
-				break;
-			*/
 		}
 	}
 	effect_calc(state, x, data={}){
@@ -628,8 +625,7 @@ class Kurt extends Band{
 				if(this.player.weapon instanceof Shotgun){
 					this.player.health = 0;
 					this.player.death = "shoots himself in the face";
-				} 
-				
+				}				
 				super.effect(state,data);
 				break;
 			default:
@@ -649,8 +645,6 @@ class Kurt extends Band{
 		return x
 	}
 }
-
-
 
 class FunnyWagon extends Attr{
 	constructor(player){
@@ -676,7 +670,7 @@ class FunnyWagon extends Attr{
 			case "doActionAfter":
 				if(data.action instanceof MoveAction){
 					let move_dist = hypD(this.player.x - this.start_point[0], this.player.y - this.start_point[1])
-					log_message('FUNNY '+move_dist)
+					// log_message('FUNNY '+move_dist)
 					if(move_dist>30){
 						let move_line = new Line({"p1":this.start_point,"p2":[this.player.x, this.player.y]})
 						let fire_count = 1 + move_dist/15
@@ -684,9 +678,10 @@ class FunnyWagon extends Attr{
 							let rand_x = roll_range(this.start_point[0], this.player.x);
 							let rand_y = move_line.getY(rand_x)
 							let tempFire = new FireEntity(rand_x, rand_y, this.player);
-							tempFire.draw();
 							tempFire.duration = 2;
-							doodads.push(tempFire);	
+							createDoodad(tempFire);
+							// tempFire.draw();
+							// doodads.push(tempFire);	
 						}
 						this.player.change_img(this.fire_img);
 						this.player.change_name("🔥" + this.original_name + "🔥");
@@ -745,7 +740,6 @@ class Elfen extends Attr{
 			oP.statusMessage = "has thier " + limb + " chopped off by " + this.player.name;		
 		}	
 	}
-	
 }
 
 class Lucy extends Elfen{
@@ -791,7 +785,7 @@ class Lucy extends Elfen{
 		}
 		this.lucy_meter=0;
 	}
-	
+	//increase lucy meter when dealing and taking damage
 	effect(state, data={}){
 		switch(state){			
 			case "turnStart":
@@ -873,14 +867,368 @@ class Witch extends Attr{
 	}
 }
 
-class Bocchi extends Attr{}
-
-class BoccEmotion extends StatusEffect{
-	constructor(duration){
-		super("bocc",1,duration);
-		this.icon = setEffIcon('./icons/dorcelessness.gif');
+class Bocc extends Attr{
+	constructor(player){
+		super("bocc", player);
+		this.dorce = 50;
+		this.dorce_tier = 0;
+		this.last_dorce_change = 0;
+		this.original_img = this.player.img;
+		this.has_info = true;
+	}	
+	
+	calc_bonuses(){
+		
+	}
+	
+	dorce_change(tier){
+		if(this.last_dorce_change<=0)
+			return;
+		if(this.dorce_tier==tier)
+			return;
+		switch(tier){
+			case -1:				
+				this.player.change_img('https://cdn.discordapp.com/attachments/998843166138572821/1064740232974565446/bocc-1.gif')
+				pushMessage(this.player, this.player.name + " is feeling absolutely dorceful");
+				break;
+			case 0:
+				this.player.change_img(this.original_img)
+				pushMessage(this.player, this.player.name + "'s dorce levels are back to normal");
+				break;
+			case 1:
+				this.player.change_img('https://cdn.discordapp.com/attachments/998843166138572821/1064740233289142272/bocc1.gif')
+				pushMessage(this.player, this.player.name + " loses their dorce");
+				break;
+			case 2:
+				this.player.change_img('https://cdn.discordapp.com/attachments/998843166138572821/1064740233658237018/bocc2.gif')
+				pushMessage(this.player, this.player.name + " experiences a servere lack of dorce");
+				break;
+			case 3:
+				this.player.change_img('https://cdn.discordapp.com/attachments/998843166138572821/1064740234039922789/bocc3.gif')
+				pushMessage(this.player, this.player.name + " IS DANGEROUSLY DORCELESS");
+				break;
+		}
+		this.dorce_tier = tier;
+		this.last_dorce_change = 0;
+	}
+	
+	effect(state, data={}){
+		let nearby = [];
+		let tP = this.player;
+		switch(state){
+			case "opAware":
+				this.dorce += 2;
+				break;
+			case "surroundingCheck":
+				nearby = this.player.nearbyPlayers(100);				
+				let delta_dorce = -(40 + 5 * this.dorce_tier);
+				nearby.forEach(function(oP){
+					if(tP==oP)
+						return
+					let dist = playerDist(tP,oP);
+					if(dist<=25)
+						delta_dorce+= 40;
+					else if(dist<=50)
+						delta_dorce+= 15;
+					else if(dist<150)
+						delta_dorce+= 5;	
+				});
+				
+				if(this.player.lastActionState == "sleeping")
+					delta_dorce -= 10;				
+				if(this.player.lastActionState == "awaken")
+					delta_dorce -= 50;
+				
+				if(this.player.danger_score>100)
+					delta_dorce += 40;
+				
+				if(this.player.health/this.player.maxHealth<0.3)
+					delta_dorce += 10;
+				if(this.player.health/this.player.maxHealth<0.1)
+					delta_dorce += 50;
+				
+				if(this.last_dorce_change <= 3)
+					delta_dorce = delta_dorce/2
+				this.dorce+=delta_dorce;
+				this.last_dorce_change++;				
+				break;
+			case "planAction":
+				if(this.dorce_tier>=2)
+					if(roll_range(0,100)<30+10*this.dorce_tier)
+						this.player.setPlannedAction("bocc move", 6, BoccDorcelessMove)
+				break;
+			case "defend":
+				this.dorce+=40;
+				break;
+			case "takeDmg":
+				this.dorce+= Math.round(data.damage);
+				break;
+			case "turnEnd":
+				//limit dorce
+				this.dorce = Math.min(this.dorce,500);
+				this.dorce = Math.max(this.dorce,-250);				
+				
+				//change dorce tiers
+				if(this.dorce<0)
+					this.dorce_change(-1);	
+				else if(this.dorce<100)
+					this.dorce_change(0);
+				else if(this.dorce<200)
+					this.dorce_change(1);
+				else if(this.dorce<350)
+					this.dorce_change(2);	
+				else
+					this.dorce_change(3);
+				
+				let autism_dist = 0;
+				//spawn bocchinokos
+				switch(this.dorce_tier){
+					case -1:
+						if(this.player.energy<20)
+							this.player.energy+=15;
+						break;	
+					case 1:
+						autism_dist = 25;
+						break;
+					case 2:
+						autism_dist = 75;
+						break;
+					case 3:
+						autism_dist = 150;
+						if(roll_range(0,100)<30){
+							let temp_bocc = new Bocchinoko(this.player.x,this.player.y);
+							createDoodad(temp_bocc);
+							this.dorce-=20;
+						}
+						break;
+				}
+				//cause autisms
+				let tA = this;
+				if(autism_dist>0){
+					nearby = this.player.nearbyPlayers(autism_dist);
+					nearby.forEach(function(oP){
+						if(oP==tP)
+							return
+						oP.inflict_status_effect(new BoccAutism(roll_range(1,1+tA.dorce_tier*3), roll_range(1, tA.dorce_tier*2)));
+					});
+				}
+				break;
+		}
+	}
+	
+	stat_html(){
+		let html= super.stat_html()+
+		"<span>Dorce:"+(-1*this.dorce)+"</span><br>"
+		return html;
 	}
 }
+//move dorcelessly in circles
+class BoccDorcelessMove extends MoveAction{
+	constructor(player, data){
+		super(player,{});
+		//turns the action will last for
+		
+		this.name = "bocc move";
+		this.turns = 4*roll_range(1,4);
+		this.action_priority = 7;
+		this.start_x = this.player.x;
+		this.start_y = this.player.y;
+		//get a random point in the move cycle
+		this.cycle = roll_range(1,4);
+		this.reverse = 1;
+		if(Math.random()<0.5)
+			this.reverse = -1;
+	}
+	
+	perform(){
+		if((this.turns-1)%4==0){
+			this.targetX = this.start_x;
+			this.targetY = this.start_y;
+		}
+		else{
+			switch(this.cycle){
+				case 1:
+					this.targetX = 0;
+					this.targetY = 500;
+					break;
+				case 2:
+					this.targetX = 500;
+					this.targetY = 1000;
+					break;
+				case 3:
+					this.targetX = 1000;
+					this.targetY = 500;
+					break;
+				case 4:
+					this.targetX = 500;
+					this.targetY = 0;
+					break;
+			}
+		}
+		super.perform();
+		this.player.statusMessage = "moves dorcelessly";
+		this.cycle+=this.reverse;
+		if(this.cycle<1)
+			this.cycle = 4;
+		if(this.cycle>4)
+			this.cycle = 1;
+	}
+}
+
+class Bocchinoko extends MovableEntity{
+	constructor(x,y,){
+		super("bocchinoko", x,y,"");
+		this.icon = setDoodadIcon("https://cdn.discordapp.com/attachments/998843166138572821/1065182111205707786/bocchinoko.png");
+		this.triggerRange = 24;
+		this.max_triggers=1;
+		this.triggerChance=10;
+		this.ownerTriggerChance = 3;
+		this.duration = 50;
+		this.moveSpeed = 20;
+		this.active=true;
+	}
+	
+	stop_text(){
+		 clearInterval(this.timer)
+	}
+	
+	show_text(div){
+		// log_message('noko noko');
+		if(div.children('div').css('display')=='none'){
+			let text_div = div.children('div');
+			text_div.css('display','block');
+			setTimeout(function(){
+				text_div.css('display','none');
+			}, 1500);
+		}
+	}
+	
+	update(){
+		if(this.active){
+			this.moveRandom();
+			super.update();
+		}
+		else
+			this.destroy();
+	}
+	
+	trigger(trigger_player){
+		let dmg = roll_range(5,10);
+		trigger_player.heal_damage(dmg, this, "food");
+		pushMessage(trigger_player, trigger_player.name + " catches a bocchinoko. It heals "+dmg+" health");
+		this.destroy();
+	}
+	
+	draw(){
+		let doodDiv = $('#doodad_' + this.id);
+		if(!doodDiv.length){
+			$('#doodads').append(			
+			"<div id='doodad_" + this.id + "' class='doodad' style='transform:translate("+(this.x/1000*$('#map').width()-iconSize/2)+"px,"+(this.y/1000* $('#map').height()-iconSize/2)+"px);'>" + 
+				"<div style='display:none; position:absolute; left:-40px; bottom:15px; font-size:10px; width:100px; color:EA9FC0;'>noko noko</div>"+
+				this.icon + 
+			"</div>"
+			);
+			doodDiv = $('#doodad_' + this.id);
+			this.div = doodDiv;
+			this.timer = setInterval(this.show_text, 5000, this.div);
+		}
+	}	
+}
+
+bocc_autism_data = {
+	'Degrence':{},
+	'Humber':{"moveSpeedB":[0,0],"dmgReductionB":[0,0], "rangeBonus":[-500,0]},
+	'Nage':{"aggroBonus":[30,30],"intimidationBonus":[30,50]},
+	'Dorcelessness':{},
+	'Andric':{"fightBonus":[0.8,0.05], "rangeBonus":[10,5]},
+	'Varination':{},
+	'Ponnish':{},
+	'Harfam':{"dmgReductionB":[0.8,0.05], "rangeBonus":[-10,-1]},
+	'Kyne':{"sightBonus":[-100,-10],"moveSpeedB":[1,0.1]},
+	'Trantiveness':{"moveSpeedB":[5,0]},
+	'Teluge':{"intimidationBonus":[-50,-5], "visibilityB":[100,0]},
+	'Onlent':{"visibilityB":[-50,-5],"rangeBonus":[300,50]},
+	'Loric':{"peaceBonus":[100,100],"fightBonus":[1.5,0.25]}
+}
+class BoccAutism extends StatusEffect{
+	constructor(duration, level, emotion='rand'){
+		super("bocc", level, duration);
+		this.icon = setEffIcon('./icons/dorcelessness.gif');
+		if(emotion=='rand')
+			this.update_emotion(this.get_random_emotion());
+		else{
+			this.update_emotion(emotion);
+		}
+		this.cooldown = 2;
+	}
+	
+	get_random_emotion(){
+		let index = roll_range(0,12)
+		let i=0;
+		let emotion = '';
+		for (const e in bocc_autism_data) {
+			if(i==index){
+				emotion = e
+				break;
+			}				
+			i++;
+		}
+		log_message(emotion);
+		if(emotion)
+			return emotion;
+		else
+			return 'Dorcelessness';
+	}
+	
+	update_emotion(emotion){
+		this.emotion = emotion;
+		this.display_name = this.emotion;
+		this.data = bocc_autism_data[this.emotion];
+		this.update_data();
+		this.cooldown = 2;
+	}
+	
+	stack_effect(new_eff){
+		// this.duration += Math.max(1, new_eff.level - this.level);
+		this.duration += 1;
+		if(new_eff.level>this.effect.level)
+			this.level=new_eff.level;	
+		// else
+			// this.level+=1;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				if(this.emotion == 'Varination'){
+					let dmg = roll_range(1,4);					
+					this.player.take_damage(dmg,this,'');
+					if(this.player.health<=0){
+						this.player.death = "varinates to death"
+					}
+				}
+				else if(this.emotion == 'Ponnish'){
+					this.player.health = roll_range(1, this.player.maxHealth);
+				}
+				// this.cooldown--;
+				// if(this.cooldown<=0){
+					// if(roll_range(0,100)<10)
+						// this.get_random_emotion();
+				// }
+				break;
+			case "planAction":
+				if(this.emotion=='Dorcelessness')
+					if(roll_range(0,100)<30+this.level)
+						this.player.setPlannedAction("bocc move", 6, BoccDorcelessMove)
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+}
+
+
 
 
 

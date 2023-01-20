@@ -51,7 +51,8 @@ var charlist_gochiusa = [
 		"name": "Kafuu Chino",
 		"img": "https://cdn.myanimelist.net/images/characters/16/244251.jpg",
 		"attr": [
-			"cunny"
+			"cunny",
+			"bocc"
 		]
 	},
 	{
@@ -185,5 +186,5 @@ var charlist_puchi = [
 	},
 ]
 
-var charlist = charlist_test;
-// var charlist = charlist_bkt;
+// var charlist = charlist_test;
+var charlist = charlist_gochiusa;

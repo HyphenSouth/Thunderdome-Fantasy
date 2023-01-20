@@ -155,8 +155,9 @@ class PaperCreateAction extends Action{
 				extra_uses = Math.min(roll_range(0,Math.round(this.attr.paper/10)), 60)
 				temp_bird.power += extra_uses;
 				this.attr.paper -= extra_uses*10;
-				temp_bird.draw();
-				doodads.push(temp_bird);
+				// temp_bird.draw();
+				// doodads.push(temp_bird);
+				createDoodad(temp_bird);
 				this.familiar = temp_bird
 				this.player.statusMessage = 'creates a paper bird'
 				break;
@@ -174,7 +175,6 @@ class PaperBow extends Weapon{
 		
 		this.rangeBonus = 30;
 		this.fightBonus = 1.2
-
 		this.uses = 6
 	}
 	effect(state, data={}){
@@ -187,7 +187,7 @@ class PaperBow extends Weapon{
 					this.uses -= 1;
 				}
 			break;
-			case "attack":
+			case "dealDmg":
 				let oP=data['opponent'];
 				oP.inflict_status_effect(new Bleed(1,this.player));
 				super.effect(state,data);
@@ -219,7 +219,7 @@ class PaperSword extends Weapon{
 					this.uses -= 1;
 				}
 				break;
-			case "attack":
+			case "dealDmg":
 				let oP=data['opponent'];
 				oP.inflict_status_effect(new Bleed(2,this.player));
 				super.effect(state,data);

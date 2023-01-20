@@ -441,8 +441,14 @@ class Item extends StatMod{
 		this.icon = "❓";
 		this.uses = 0;
 		this.player = "";
-		this.tradable = true
-		this.stealable = true
+		this.tradable = true;
+		this.stealable = true;
+		this.replacable = true;
+		this.value = 1;
+	}
+	
+	get_value(){
+		return this.value * this.uses;
 	}
 
 	equip(player){
