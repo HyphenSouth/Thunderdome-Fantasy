@@ -1,5 +1,6 @@
 function generateJibunWo(){
-	customMap = new JibunWoMap();
+	customMap = new JibunWoMap();	
+	clearTerrain();
 	loadMap(jibunwomap);
 }
 		
@@ -11,12 +12,14 @@ class JibunWoMap extends CustomMap{
 	}
 	
 	game_start(){
-		// let tempChar = players[roll_range(0, players.length-1)]
-		let tempChar = players[0];
+		let control_index = roll_range(0,players.length-1);
+		// let control_index = 0;
+		let tempChar = players[control_index];
 		tempChar.attributes.push(new GeassControl(tempChar));
 		this.control = tempChar;
+		pushMessage(tempChar, tempChar.name + " is gifted the power of kings!")
 		
-		defaultFoodOdds=[["pizza",95],["soup",5]];
+		defaultFoodOdds=[["pizza",95],["soup",5],["orange",20]];
 	}
 }
 
@@ -30,20 +33,33 @@ attack: attack target
 hand over: hand over items
 mark: marks the ground every day
 rampage: attack everything
+table: table
 */
+
 class GeassControl extends Attr{
 	constructor(player){
 		super("geass control", player);
 		this.has_info = true;
-		this.last_geass = 2;
+		this.last_geass = -1;
 		this.geass_count = 0;
+		this.geass_record = {
+			'live':0,
+			'protect':0,
+			'attack':0,
+			'mark':0,
+			'attack self':0,
+			'die':0,
+			'hand over':0,
+			'rampage':0,			
+			'table':0,			
+		};
 	}
 		
 	choose_target(geass_type){		
 		let tP = this.player;
 		let target = ''
 		// log_message(geass_type)
-		if(geass_type=='positive'){ 
+		if(geass_type=='positive'){
 			//get the player with highest opinion
 			this.player.awareOf.forEach(function(oP){
 				if(tP==oP)
@@ -88,22 +104,26 @@ class GeassControl extends Attr{
 				}
 			});
 			target = target_lst[roll_range(0, target_lst.length - 1)];
-		}		
+		}
+		if(this.player.offhand.name=='mirror' && roll_range(0,100)<100)
+			target = this.player;
 		return target;
 	}
 	
 	choose_geass(geass_type, target){
+		if(target==this.player)
+			return 'live'
 		let geass_lst = [['rampage',1]];
 		if(geass_type=='positive'){ 
-			geass_lst = [['live', 6], ['protect',15], ['mark',10], ['attack',8], ['rampage', 1], ['hand over',0]]
+			geass_lst = [['live', 6], ['protect',15], ['mark',7], ['attack',8], ['rampage', 1], ['hand over',0], ['table', 5]]
 		}
 		else if(geass_type=='negative'){			
-			geass_lst = [['die', 1], ['attack self',9], ['protect', 6], ['attack',12], ['rampage', 5], ['hand over',7], ['hand over',0]]
+			geass_lst = [['die', 1], ['attack self',9], ['protect', 6], ['attack',12], ['rampage', 5], ['hand over',7], ['hand over',0], ['table', 4]]
 		}
 		else{
-			geass_lst = [['hand over', 5],['mark', 5], ['protect', 5], ['attack',4], ['rampage', 1], ['hand over',0]]
+			geass_lst = [['hand over', 5],['mark', 5], ['protect', 5], ['attack',4], ['rampage', 1], ['hand over',0], ['table', 8]]
 		}
-		return roll(geass_lst)
+		return roll(geass_lst);
 	}
 	
 	effect(state, data={}){
@@ -112,7 +132,7 @@ class GeassControl extends Attr{
 				this.last_geass++;
 				break;
 			case "planAction":
-				if(this.player.awareOf.length>0 && this.last_geass>1 && ((roll_range(0,100) + this.geass_count*2) < (70 + this.last_geass))){
+				if((this.player.awareOf.length>0 || this.player.offhand.name=='mirror') && this.last_geass>1 && ((roll_range(0,100) + this.geass_count*2) < (75 + this.last_geass))){
 					//choose a positive, neutral, or negative geass
 					let geass_type_lst = [['positive',2],['neutral',13],['negative',5]];
 					let geass_type = roll(geass_type_lst);
@@ -131,8 +151,17 @@ class GeassControl extends Attr{
 	}
 	stat_html(){
 		let html= super.stat_html()+
+		"<span>Attack: "+this.geass_record['attack']+"</span><br>"+
+		"<span>Defend: "+this.geass_record['protect']+"</span><br>"+
+		"<span>Self Harm: "+this.geass_record['attack self']+"</span><br>"+
+		"<span>Gibs: "+this.geass_record['hand over']+"</span><br>"+
+		"<span>Dig: "+this.geass_record['mark']+"</span><br>"+
+		"<span>DIE: "+this.geass_record['die']+"</span><br>"+
+		"<span>ooops: "+this.geass_record['rampage']+"</span><br>"+
+		"<span>Table: "+this.geass_record['table']+"</span><br>"+
+		"<span>Total Geassed: "+this.geass_count+"</span><br>"+
 		"<span class='desc'>"+
-			"<span>Geassed: "+this.geass_count+"</span><br>"+
+			"<span>Jibun wooo</span><br>"+
 		"</span>"
 		return html;
 	}
@@ -144,6 +173,8 @@ class GeassCommandAction extends Action{
 		this.attr = data.attr;
 		this.target = data.target;
 		this.command = data.command;
+		if(this.target==this.player)
+			this.command = 'live';
 	}
 	perform(){
 		if(this.target.health<=0){
@@ -151,8 +182,13 @@ class GeassCommandAction extends Action{
 			this.player.lastActionState = "geass fail";
 			return;
 		}
-		if(!this.target.awareOfPlayer(this.player) || !this.player.awareOfPlayer(this.target)){
+		if((!this.target.awareOfPlayer(this.player) || !this.player.awareOfPlayer(this.target)) && this.target!=this.player){
 			this.player.statusMessage = "unable to make eye contact with " + this.target.name;
+			this.player.lastActionState = "geass fail";
+			return;
+		}
+		if(this.target==this.player&&this.player.offhand.name!='mirror'){
+			this.player.statusMessage = "unable geass themselves";
 			this.player.lastActionState = "geass fail";
 			return;
 		}
@@ -221,6 +257,10 @@ class GeassCommandAction extends Action{
 				this.player.statusMessage = "commands " + this.target.name+" to dig once a day at noon";
 				pushMessage(this.player, this.player.name + "  commands " + this.target.name+" to dig once a day at noon");
 				break;
+			case "table":
+				this.player.statusMessage = "commands " + this.target.name+" to become a table";
+				pushMessage(this.player, this.player.name + "  commands " + this.target.name+" to become a table");
+				break;
 			default:
 				this.player.statusMessage = "commands " + this.target.name+" to " + this.command;
 				pushMessage(this.player, this.player.name + " commands " + this.target.name+ " to " + this.command);
@@ -242,6 +282,7 @@ class GeassCommandAction extends Action{
 		}
 		this.player.lastActionState = "geass success";
 		this.attr.geass_count++;
+		this.attr.geass_record[this.command]++;
 		this.attr.last_geass = 0;
 	}
 }
@@ -318,6 +359,11 @@ class GeassObeyAction extends Action{
 				this.eff.dug = true;
 				this.eff.last_obey = 0;
 				break;
+			case "table":
+				this.player.statusMessage = "is a table";
+				this.player.lastActionState = "geass table";
+				this.eff.table_dur+=1;
+				break;
 		}
 	}	
 }
@@ -352,8 +398,25 @@ class GeassControlStatus extends StatusEffect{
 			this.target = data.target;
 		}else if(this.command == 'mark'){
 			this.dug = true;
+		}else if(this.command == 'table'){
+			this.table_dur = 0;
+			this.is_table = true;
 		}
 		this.last_obey = 50000;
+	}
+	
+	afflict(player){
+		super.afflict(player);
+		if(this.command=='table'){
+			this.player.unaware = true;
+			this.player.incapacitated = true;
+			this.original_name = this.player.name;
+			this.original_img = this.player.img;
+			this.player.change_name(this.player.name+' (table)');
+			this.player.change_img('https://cdn.shopify.com/s/files/1/2660/5202/products/che3rdtl_hc_1400x.jpg');
+			this.player.energy = 0;
+			this.dmgReductionB = 1.5;
+		}		
 	}
 	
 	calc_bonuses(){
@@ -374,7 +437,7 @@ class GeassControlStatus extends StatusEffect{
 				this.dmgReductionB = 1;	
 				this.fightBonus = 1;
 			}
-		}		
+		}
 		super.calc_bonuses();
 	}
 	
@@ -393,6 +456,18 @@ class GeassControlStatus extends StatusEffect{
 					if(this.player.health<0)
 						this.player.death = "dies from not being able to dig";
 				}
+				else if(this.command == 'table'){
+					if(this.is_table){
+						this.player.unaware = true;
+						this.player.incapacitated = true;
+						if(this.table_dur>=48){
+							this.player.health = 0;
+							this.player.death = "I AM THE TABLE";
+							pushMessage(this.player, this.original_name + " becomes the table")
+							this.owner.kills++;
+						}
+					}
+				}
 				break;
 			case "planAction":
 				switch(this.command){
@@ -410,9 +485,9 @@ class GeassControlStatus extends StatusEffect{
 							this.player.setPlannedAction("fight", 18,FightAction, {'target':this.player.inRangeOf[roll_range(0,this.player.inRangeOf.length-1)]});
 						break;
 					case "protect":
-						if(this.owner.last_opponent && this.player.inRangeOfPlayer(this.owner.last_opponent) && this.owner.last_opponent.health>0)
+						if(this.owner.last_opponent && this.player.inRangeOfPlayer(this.owner.last_opponent) && this.owner.last_opponent.health>0 && this.owner.last_opponent.health!=this.player)
 							this.player.setPlannedAction("fight", 10,FightAction, {'target':this.owner.last_opponent});
-						else if(this.owner.rival && this.player.inRangeOfPlayer(this.owner.rival))
+						else if(this.owner.rival && this.player.inRangeOfPlayer(this.owner.rival) && this.owner.rival!=this.player)
 							this.player.setPlannedAction("fight", 10,FightAction, {'target':this.owner.last_opponent});
 						else if(this.player.awareOfPlayer(this.owner))
 							this.player.setPlannedAction("follow", 10, FollowAction, {'target':this.owner});
@@ -438,7 +513,10 @@ class GeassControlStatus extends StatusEffect{
 							this.player.setPlannedAction("geass obey", 15, GeassObeyAction, {'eff':this,'source':this.owner,'command':"mark"});
 						}
 						break;
-
+					case "table":
+							if(this.is_table)
+								this.player.setPlannedAction("geass obey", 50, GeassObeyAction, {'eff':this,'source':this.owner,'command':"table"});
+						break;
 				}
 				break;
 			case "attack":
@@ -446,6 +524,15 @@ class GeassControlStatus extends StatusEffect{
 					this.player.fightDmgB *= 1.1;
 				if(data.opponent==this.owner)
 					this.player.fightDmgB *= 0.9;
+				break;
+			case "defend":
+				if(this.command=='table'){
+					this.is_table = false
+					this.player.unaware = false;
+					this.player.incapacitated = false;
+					this.player.change_name(this.original_name);
+					this.player.change_img(this.original_img);
+				}
 				break;
 		}
 	}

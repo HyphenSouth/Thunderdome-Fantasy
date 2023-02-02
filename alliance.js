@@ -19,7 +19,8 @@ var alliance_names = [
 	["Monkey",true],
 	["Cat",true],
 ]
-var max_alliance_count = alliance_names.length;
+// var max_alliance_count = alliance_names.length;
+var max_alliance_count = 5;
 
 function create_alliance(p1, p2){
 	unity = base_unity;

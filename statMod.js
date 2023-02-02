@@ -35,13 +35,13 @@ class StatMod{
 		this.fightBonus = 1;
 		this.dmgReductionB = 1;
 		
-		this.peaceBonus=0
-		this.aggroBonus=0
-		this.intimidationBonus=0;
+		this.peaceBonus = 0;
+		this.aggroBonus = 0;
+		this.intimidationBonus = 0;
 		
 		this.moveSpeedB = 1;
 		
-		this.player = ''
+		this.player = '';
 	}
 	
 	effect(state, data={}){}

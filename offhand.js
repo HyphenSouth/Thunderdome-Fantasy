@@ -1,5 +1,5 @@
 var off_prob = 2;
-var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",250],["vape",0],["campfire",15],["mirror",40],["Nothing",200]];
+var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",200],["campfire",15],["mirror",40],["Nothing",200]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
 	if(!doll && tP.get_status_effect("hellbound")=="")
@@ -39,6 +39,7 @@ class Offhand extends Item{
 			if("moveSpeedB" in data){this.moveSpeedB = processDataNum(data["moveSpeedB"])}
 			
 			if("uses" in data){this.uses = processDataNum(data["uses"])}
+			if("value" in data){this.value = processDataNum(data["value"])}
 			if("useStates" in data){this.useStates = data["useStates"]}
 		}		
 	}
@@ -47,7 +48,8 @@ class Offhand extends Item{
 		if(!this.replacable)
 			return false;
 		this.player.offhand=new_item;
-		new_item.equip(this.player);
+		new_item.equip(this.player);		
+		this.player = '';
 		return true;
 	}
 	
@@ -786,6 +788,8 @@ class Doll extends Offhand{
 		doll = true;
 		//set ai
 		$('#effects').append(AIDIV);
+		this.wanyuudou = new WanyuudouEntity(this.target);
+		createDoodad(this.wanyuudou);
 		return true;
 	}
 	
@@ -849,6 +853,14 @@ class Doll extends Offhand{
 		let pull_chance = 30;
 		let no_pull_chance = 100;
 		let discard_chance = 5;
+		let target_opinion = this.player.opinions[this.target.id];
+		if(target_opinion>50){
+			discard_chance+=target_opinion/10;
+			no_pull_chance+=target_opinion/2;
+		}
+		else if(target_opinion<-100){
+			pull_chance-=target_opinion/4;
+		}
 		return roll([["pull", pull_chance], ["no pull", no_pull_chance],["discard", discard_chance]])
 	}
 	
@@ -861,6 +873,7 @@ class Doll extends Offhand{
 			this.player.inflict_status_effect(new HellBound())
 			this.target.health = 0;
 			this.target.death = "gives death a try";
+			this.wanyuudou.activate();
 		}
 		this.uses = 0;
 		this.destroy();
@@ -874,9 +887,11 @@ class Doll extends Offhand{
 
 	destroy(){ 
 		super.destroy();
-		doll=false;
+		// this.wanyuudou.destroy();
+		this.wanyuudou.duration=1;
 		//remove ai
 		$('#ai_img').remove();
+		doll=false;		
 	}
 	
 	stat_html(){
@@ -890,17 +905,97 @@ class Doll extends Offhand{
 	}		
 }
 
+class WanyuudouEntity extends MovableEntity{
+	constructor(target){
+		super("wanyuudou",0,0,target);
+		this.img = 'https://cdn.discordapp.com/attachments/998843166138572821/1034708217441288222/WANYUUDOU_FIRE2.png';
+
+		this.duration=99999;
+		
+		this.triggerRange = 0;
+		this.triggerChance=0;
+		this.ownerTriggerChance = 0;
+				
+		this.moveSpeed = 0;
+		
+		let corner = roll_range(0,3);
+		let pos = roll_range(0,1000);
+		switch(corner){
+			//left
+			case 0:
+				this.moveToCoords(0, pos);
+				break;
+			//right
+			case 1:
+				this.moveToCoords(1000, pos);
+				break;
+			//top
+			case 2:
+				this.moveToCoords(pos, 0);
+				break;
+			//bottom
+			case 3:
+				this.moveToCoords(pos, 1000);
+				break;
+		}		
+		this.active=true;
+	}
+	
+	draw(){
+		// super.draw();
+		let doodDiv = $('#doodad_' + this.id)
+		if(!doodDiv.length){
+			$('#doodads').append(
+			"<div id='doodad_" + this.id + "' class='doodad round' style='border:solid 2px red; z-index:5; transform:translate(" + (this.x / 1000 * $('#map').width() - iconSize/2) + "px," + (this.y / 1000 *  $('#map').height() - iconSize/2) + "px);'>" + 
+			"</div>");
+			doodDiv = $('#doodad_' + this.id);
+			doodDiv.css('background-image',"url(" + this.img + ")");
+			this.div = doodDiv;
+		}
+		this.div.css('display','none');
+	}
+	
+	activate(){	
+		let starting_point = [this.x, this.y];
+		let move_dist = hypD(this.owner.x - starting_point[0], this.owner.y - starting_point[1])
+		let move_line = new Line({"p1":starting_point,"p2":[this.owner.x, this.owner.y]})
+		this.div.css('display','block');
+		this.moveToCoords(this.owner.x, this.owner.y);		
+		
+		let fire_count = move_dist/10 + roll_range(5,10);
+		for(let i=0; i<fire_count; i++){
+			let rand_x = roll_range(starting_point[0], this.owner.x);
+			let rand_y = move_line.getY(rand_x)
+			let tempFire = new FireEntity(rand_x, rand_y, '');
+			tempFire.duration = 2;
+			createDoodad(tempFire);
+		}	
+	}
+	
+	update(){		
+		if(this.duration<=0){
+			this.expire();
+			return;
+		}
+		this.duration--;
+	}
+}
+
 class HellBound extends StatusEffect{
 	constructor(){
 		super("hellbound", 666, 200000);
 		this.icon = setEffIcon("icons/hell.png")
 		this.intimidationBonus = 30;
-		this.dmgReductionB = 1.05
+		this.dmgReductionB = 1.05;
 	}
 	
 	effect(state, data={}){
 		let oP="";
-		switch(state){			
+		switch(state){
+			case "attack":
+				this.dmgReductionB += 0.02;
+				this.fightBonus -= 0.01;
+				break;
 			case "death":
 				this.player.death = this.player.death + " and goes to hell"
 				break;

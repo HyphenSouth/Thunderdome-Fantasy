@@ -79,6 +79,7 @@ class Weapon extends Item{
 			if("uses" in data){this.uses = processDataNum(data["uses"])}
 			
 			if("dmg_type" in data){this.dmg_type=data["dmg_type"]}
+			if("value" in data){this.value = processDataNum(data["value"])}
 		}		
 	}
 	
@@ -87,6 +88,7 @@ class Weapon extends Item{
 			return false;
 		this.player.weapon=new_weapon;
 		new_weapon.equip(this.player);
+		this.player = '';
 		return true;
 	}
 	
@@ -335,15 +337,9 @@ class Shotgun extends Weapon {
 				break;
 			case "planAction":
 				if(this.loaded_shells==0 && Math.random()<0.5)
-					this.player.setPlannedAction("reloadShotgun", 22, ShotgunReloadAction, {'shotgun':this});
+					this.player.setPlannedAction("reloadShotgun", 4, ShotgunReloadAction, {'shotgun':this});
 					// this.player.setPlannedAction("reloadShotgun", 2);
 				break;
-			/*
-			case "reloadShotgun":
-				this.reload();
-				this.player.resetPlannedAction();
-				break;
-			*/
 			case "attack":
 				oP=data['opponent'];
 				counter=data['counter'];
@@ -441,6 +437,7 @@ class ShotgunReloadAction extends Action{
 		this.player.fight_back = false;
 	}
 	
+	//immediately reload if attacked
 	attacked(oP, fightMsg){
 		//allow fighting back if the shotgun has been reloaded
 		if(this.turn_complete){
@@ -450,7 +447,7 @@ class ShotgunReloadAction extends Action{
 		super.attacked(oP, fightMsg)
 		this.perform();
 		if(fightMsg.events)
-			fightMsg.events.push(this.player.name + ' reloads their shotgun instead of fighting back')
+			fightMsg.events.push(this.player.name + ' reloads their shotgun instead of fighting back');
 		this.player.statusMessage = "reloads their shotgun instead of fighting back against "+oP.name;
 		this.player.fight_back = false;
 	}
@@ -624,6 +621,7 @@ class Spicy extends Weapon {
 				}
 				break;
 			case "attack":
+				oP=data['opponent'];
 				this.player.statusMessage = "attacks " + oP.name + " with the OL' SPICY SHINKAI MAKAI";
 				break;		
 			case "dealDmg":
@@ -636,6 +634,16 @@ class Spicy extends Weapon {
 				//set opponent on fire
 				let oP_fire = new Burn(5,3,this.player)
 				oP.inflict_status_effect(oP_fire)	
+				
+				//set ground on fire
+				if(getTerrainType(oP.x, oP.y) !="water"){
+					let ground_fire = new FireEntity(oP.x, oP.y,this.player);
+					createDoodad(ground_fire);
+				}
+				for(let i=0; i<5; i++){
+					let ground_fire = new FireEntity(this.player.x+roll_range(-30,30), this.player.y+roll_range(-30,30),this.player);
+					createDoodad(ground_fire);
+				}
 				break;			
 			default:
 				super.effect(state, data);
@@ -949,7 +957,7 @@ class Ancient extends Weapon{
 				}
 				*/
 				this.player.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
-				this.uses = this.uses-cost
+				this.uses = this.uses-cost;
 				this.use();
 				break;
 			case "dealDmg":

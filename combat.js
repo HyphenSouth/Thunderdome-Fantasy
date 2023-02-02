@@ -108,14 +108,21 @@ function fight_target(tP,oP){
 	oP.div.addClass("fighting");
 	oP.tblDiv.addClass("fighting");
 	
+	//set up fight messages
 	let fightMsg = {'fight':true, 'attacker': tP, 'defender': oP, 'events':[]}
 	events.push(fightMsg);
-	this.attack_action = "";
-	this.defend_action = "";
 	
+	//reset attack actions
+	tP.attack_action = "";
+	tP.defend_action = "";
+	oP.attack_action = "";
+	oP.defend_action = "";
+	
+	//pre fight set up
 	tP.apply_all_effects("fightStart",{"opponent":oP, "attacker":true, 'fightMsg':fightMsg});
 	oP.apply_all_effects("fightStart",{"opponent":tP, "attacker":false, 'fightMsg':fightMsg});
 	
+	//choose attack action
 	let atk = launch_attack(tP, oP, false, fightMsg);
 	
 	/*
@@ -261,7 +268,7 @@ function fight_target(tP,oP){
 	tP.lastActionState = "fighting"	
 	if(oP.currentAction)
 		oP.currentAction.attacked(tP,fightMsg);
-	oP.lastActionState = "attacked";	
+	oP.lastActionState = "attacked";
 	//update opinions
 	tP.opinions[oP.id] -= 20;
 	if(oP.moral == 'Chaotic'){
@@ -290,13 +297,14 @@ class CombatAction{
 		this.isAttack = isAttack;
 		this.priority = priority;
 	}
-	
+	//to decide which attack should have priority
 	get_priority_score(action){
 		return this.priority;
 	}
-	
+	//if overriden by another attack
 	execution_fail(action, attacker, defender, counter, fightMsg){}
 	
+	//upon killing
 	kill(attacker, defender, counter, fightMsg){
 		attacker.apply_all_effects("win",{"opponent":attacker});
 		defender.apply_all_effects("lose", {"opponent":defender});

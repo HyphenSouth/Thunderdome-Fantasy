@@ -1,5 +1,6 @@
 var attr_data = {
 	"cunny": Cunny,
+	"brat": Brat,
 	"bong": Bong,
 	"melee": Melee,
 	"ranger": Ranger,
@@ -31,6 +32,7 @@ var attr_data = {
 	"elfen": Elfen,
 	"lucy": Lucy,
 	"witch": Witch,
+	"retard": Retard,
 	"bocc": Bocc,
 }
 
@@ -41,33 +43,38 @@ var weapon_data = {
 		"dmg_type":"melee",
 		"fightBonus":1.3,
 		"uses":[4,9],
-		"class": Lance
+		"class": Lance,
+		"value": 28
 	},
 	"gun" : {
 		"icon":"🔫", 
 		"dmg_type" : "ranged",
 		"rangeBonus" : 20,
 		"fightBonus" : 1.3,
-		"uses" : 4		
+		"uses" : 4,
+		"value": 35	
 	},	
 	"bow" : {
 		"icon":"🏹", 
 		"dmg_type" : "ranged",
 		"rangeBonus" : 30,
 		"fightBonus" : 1.1,
-		"uses" : 10		
+		"uses" : 8	,
+		"value": 15	
 	},
 	"knife" : {
 		"icon":"🔪", 
 		"dmg_type" : "melee",
 		"fightBonus" : 1.1,
-		"uses" : [5,10]	
+		"uses" : [5,10]	,
+		"value": 10
 	},		
 	"guitar" : {
 		"icon":"🎸", 
 		"dmg_type" : "melee",
 		"fightBonus" : 1.5,
-		"uses" : 1
+		"uses" : 1,
+		"value": 35
 	},		
 	"wand" : {
 		"icon" : "./icons/wand.png",
@@ -75,7 +82,8 @@ var weapon_data = {
 		"dmg_type" : "magic",
 		"fightBonus" : 1.1,
 		"rangeBonus" : 24,
-		"uses" : [3,6]	
+		"uses" : [3,6],
+		"value": 20
 	}	,
 	"nanasatsu" : {
 		"icon" : "./icons/nanasatsu.png",
@@ -86,14 +94,16 @@ var weapon_data = {
 		"aggroBonus" : 500,
 		// "dmgReductionB" : 1.05,
 		"uses" : 99999,
-		"class": Nanasatsu
+		"class": Nanasatsu,
+		"value": 100
 	},
     "katana" : {
 		"icon" : "./icons/katana.png",
 		"icon_type" : "img",
 		"dmg_type":"melee",
 		"uses":[4,9],
-		"class": Katana
+		"class": Katana,
+		"value": 25
 	},
     "shotgun" : {
 		"icon" : "./icons/shotgun.png",
@@ -101,7 +111,8 @@ var weapon_data = {
 		"rangeBonus" : 25,
 		"dmg_type":"ranged",
 		"uses":[3,6],
-		"class": Shotgun
+		"class": Shotgun,
+		"value": 30
 	},
 	"spicy" : {
 		"icon" : "./icons/spicy.png",
@@ -109,7 +120,8 @@ var weapon_data = {
 		"dmg_type" : "melee",
 		"fightBonus" : 1.75,
 		"uses" : 99999,
-		"class": Spicy
+		"class": Spicy,
+		"value": 100
 	},
 	"clang" : {
 		"icon" : "./icons/clang.png",
@@ -119,7 +131,8 @@ var weapon_data = {
 		"fightBonus" : 1.35,
 		"intimidationBonus" : 20,
 		"uses" : [3,8],
-		"class": Clang	
+		"class": Clang,
+		"value": 50
 	},
 	"flamethrower" : {
 		"icon" : "./icons/flamethrower.png",
@@ -129,7 +142,8 @@ var weapon_data = {
 		"rangeBonus" : 10,
 		"fightBonus" : 0.95,
 		"uses" : 8,
-		"class": Flamethrower	
+		"class": Flamethrower,
+		"value": 25
 	},
 	"sniper" : {
 		"icon" : "./icons/sniper.png",
@@ -138,7 +152,8 @@ var weapon_data = {
 		"rangeBonus" : 40,
 		"sightBonus" : 20,
 		"uses" : 3,
-		"class": Sniper		
+		"class": Sniper,
+		"value": 25
 	},
 	"ancient" : {
 		"icon" : "./icons/ancient_staff.png",
@@ -146,19 +161,22 @@ var weapon_data = {
 		"dmg_type" : "magic",
 		"rangeBonus" : 24,
 		"uses" : 60,
-		"class": Ancient	
+		"class": Ancient,
+		"value": 1
 	},
 	"rake" : {
 		"icon" : "🧹",
 		"dmg_type" : "melee",
 		"uses" : 3,
-		"class": Rake
+		"class": Rake,
+		"value": 9
 	},
 	"cross" : {
 		"icon" : "✝️",
 		"dmg_type" : "magic",
 		"uses" : 4,
-		"class": Cross
+		"class": Cross,
+		"value": 11
 	}
 }
 
@@ -167,12 +185,14 @@ var offhand_data = {
 	"bomb" : {
 		"icon":"💣",
 		"uses": 1,
-		"class": Bomb
+		"class": Bomb,
+		"value": 30
 	},
 	"trap" : {
 		"icon":"🕳", 
 		"uses" : 1,
-		"class": Trap	
+		"class": Trap,
+		"value": 25
 	},
 	"shield" : {
 		// "icon":"🛡️",
@@ -180,14 +200,16 @@ var offhand_data = {
 		"icon_type" : "img",
 		"uses": [1,3],
 		"dmgReductionB":0.5,
-		"useStates":["defend"]
+		"useStates":["defend"],
+		"value": 15
 	},
 	"recoil" : {
 		"icon" : "./icons/recoil.png",
 		"icon_type" : "img",
 		"dmgReductionB":0.75,
 		"uses": 10,
-		"class": Recoil
+		"class": Recoil,
+		"value": 5
 	},
 	"vape" : {
 		"icon" : "./icons/vape.png",
@@ -195,25 +217,29 @@ var offhand_data = {
 		"peaceBonus":40,
 		"visibilityB":-20,
 		"uses": 1,
-		"class": Vape
+		"class": Vape,
+		"value": 0
 	},
 	"campfire" : {
 		"icon" : "./icons/campfire.png",
 		"icon_type" : "img", 
 		"uses" : 1,
-		"class": Campfire	
+		"class": Campfire,
+		"value": 25
 	},	
 	"mirror" : {
 		"icon" : "./icons/mirror.png",
 		"icon_type" : "img",
 		"uses" : 1,
-		"class": Mirror		
+		"class": Mirror,
+		"value": 40	
 	},
 	"doll" : {
 		"icon" : "./icons/doll.png",
 		"icon_type" : "img",
 		"uses" : 1,
-		"class": Doll		
+		"class": Doll,
+		"value": 100		
 	},
 }
 
@@ -222,35 +248,41 @@ var food_data = {
 	"apple" : {
 		"icon":"🍎",
 		"uses": [1,5],
-		"heal": 8
+		"heal": 8,
+		"value": 8
 	},
 	"pie" : {
 		"icon":"🥧", 
 		"uses": 1,
-		"heal": 20	
+		"heal": 20,
+		"value": 20
 	},
 	"banana" : {
 		"icon":"🍌", 
 		"uses": [2,4],
 		"heal": 8,
-		"energy_heal": 10
+		"energy_heal": 10,
+		"value": 10
 	},
 	"health_potion" : {
 		"icon":"?", 
 		"uses": [2,4],
-		"heal": 8
+		"heal": 8,
+		"value": 8
 	},
 	"str_potion" : {
 		"icon" : "./icons/str_pot.png",
 		"icon_type" : "img",
 		"uses": 1,
-		"class": StrPotion			
+		"class": StrPotion,
+		"value": 20		
 	},
 	"ebiroll" : {
 		"icon":"🦐", 
 		"uses": 1,
 		"heal": 30,
-		"class": Ebiroll	
+		"class": Ebiroll,
+		"value": 29	
 	},
 	"purple" : {
 		"icon":"./icons/purpleSweet.png", 
@@ -258,23 +290,33 @@ var food_data = {
 		"uses": [5,10],
 		"heal": 1,
 		"energy_heal": 5,
-		"class": PurpleSweet			
+		"class": PurpleSweet,
+		"value": 4			
 	},
 	"onigiri" : {
 		"icon":"🍙",
 		"uses": [3,7],
-		"heal": 5		
+		"heal": 5,
+		"value": 5
 	},
 	"soup" : {
 		"icon":"🥣",
 		"uses": 1,
 		"heal": 12,
-		"energy_heal": 2		
+		"energy_heal": 2,
+		"value": 14		
 	},
 	"pizza" : {
 		"icon":"🍕",
 		"uses": 8,
-		"heal": 3		
+		"heal": 5,
+		"value": 5		
+	},
+	"orange" : {
+		"icon":"🍊",
+		"uses": [3,10],
+		"heal": 3,
+		"value": 3		
 	}
 }
 

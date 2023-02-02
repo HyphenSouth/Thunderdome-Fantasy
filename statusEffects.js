@@ -59,13 +59,13 @@ class StatusEffect extends StatMod{
 				return false;
 				break;
 			default:
-			case 'lvlduration':
-				this.duration += Math.max(Math.round(eff.duration/2), 1);
-				this.level += Math.max(Math.round(eff.level/2), 1);
-				this.level = Math.min(this.lv_cap, this.level);
-				this.update_data();
-				return true;
-				break;
+				case 'lvlduration':
+					this.duration += Math.max(Math.round(eff.duration/2), 1);
+					this.level += Math.max(Math.round(eff.level/2), 1);
+					this.level = Math.min(this.lv_cap, this.level);
+					this.update_data();
+					return true;
+					break;
 		}
 		
 		return false;
@@ -851,6 +851,7 @@ class Flight extends StatusEffect{
 				this.flight_time++;
 				break;
 			case "fightStart":
+				//random chance to dogdge
 				if(roll_range(1,100)<=this.dodge_chance){
 					log_message('dodge')
 					this.player.defend_action = new FlightDodgeAttack(this.player, this);
@@ -899,6 +900,7 @@ class Flight extends StatusEffect{
 				}
 				break;
 			case "doActionAfter":
+				//change status text for movement
 				switch(this.player.lastActionState){
 					case "moving":
 						this.player.statusMessage = "flies"
@@ -1307,6 +1309,7 @@ class Chopped extends StatusEffect{
 	}
 }
 
+class RetardationEffect extends StatusEffect{}
 
 //class for dot effects
 class DotEffect extends StatusEffect{
@@ -1345,7 +1348,7 @@ class DotEffect extends StatusEffect{
 		if(this.owner instanceof Char){
 			html = html + "<span><b>Origin:</b>"+this.owner.name+"</span><br>"
 		}
-		html += "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>";
+		// html += "<span><b>Dmg Range:</b>"+(this.dmg_range[0])+"-"+((this.level/2)+this.dmg_range[1])+"</span><br>";
 		html = html + super.stat_html()
 		return html;
 	}
@@ -1555,6 +1558,13 @@ class Poison extends DotEffect{
 				super.effect(state, data);
 				break;
 		}
+	}
+	
+	stat_html(){
+		let html = 
+			"<span><b>Dmg Range:</b>0-"+this.max_dmg+"</span><br>";
+		html = html + super.stat_html();
+		return html;
 	}
 }
 

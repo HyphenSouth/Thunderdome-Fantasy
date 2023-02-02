@@ -482,26 +482,18 @@ function startGame(){
 
 function onStart(){
 	// globalAggro=5000;
-	// createDangerZone(50);
-	// playerStatic[0].health=0;
-	// playerStatic[3].health=0;
-	// playerStatic[4].health=0;
-	// playerStatic[5].health=0;
-	// playerStatic[6].health=0;
-	// playerStatic[7].health=0;
-	// playerStatic[8].health=0;
-	// playerStatic[9].health=0;
-	// playerStatic[10].health=0;
-	// playerStatic[12].health=0;
-	// playerStatic[13].health=0;
-	// $('#effects').append(
-		// "<img id='ai_img' src='icons/ai.png' style='opacity:0.4; position:absolute; bottom:0px; transform: scale(0.3) translate(-120%, 130%); '></img>"
-	// )
+
 	// globalAggro=5000;
 	// createDangerZone(500);
 	// playerStatic[0].equip_item(create_weapon('ancient'));
-	generateJibunWo();
-	customMap.game_start();
+	// generateJibunWo();
+	// customMap.game_start();
+	
+	// playerStatic[0].equip_item(create_weapon('spicy'));
+	// playerStatic[0].equip_item(create_offhand('doll'));
+	// playerStatic[0].equip_item(create_offhand('mirror'));
+	max_alliance_size = 0;
+	max_alliance_count = 0;
 }
 
 //keyboard inputs
@@ -1299,16 +1291,22 @@ function loadMap(map_lst, rand_terrain=[["tree",120],["mtn",8],["water",5]]){
 		}
 	}
 	log_message('map loaded');
+	generated = true;
 }
 
-//generates terrain
-function generateTerrain(){
-	//clears all terrain
+//clears all terrain
+function clearTerrain(){
 	terrain.forEach(function(terrRow,i){
 		terrRow.forEach(function(terr,j){
 			terr.destroy();
 		});
 	});
+}
+
+//generates terrain
+function generateTerrain(){
+	//clear terrain
+	clearTerrain();
 	dangerSize=0;
 	generated=false;	
 	customMap = '';

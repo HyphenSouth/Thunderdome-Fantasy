@@ -49,6 +49,22 @@ class Doodad {
 		// }
 	}
 	
+	//check if a player can trigger
+	trigger_calc(player){
+		//if dead players cannot trigger
+		if(!this.dead_trigger && player.health<=0)
+			return false
+		let trig = this.triggerChance;
+		if(player==this.owner)
+			trig=this.ownerTriggerChance;		
+		if(trig>roll_range(0,99)){
+			// log_message(tP.name +" triggered a "+tD.name);
+			//check if alive
+			return true;
+		}
+		return false;
+	}
+	
 	//look for players in range
 	update(){		
 		if(this.duration<=0){
@@ -82,6 +98,7 @@ class Doodad {
 		}
 		this.duration--;
 	}
+	
 	expire(){
 		log_message(this.name+" expires");
 		this.destroy();
@@ -262,7 +279,7 @@ class MirrorEntity extends Doodad{
 		this.icon = setDoodadIcon('./icons/mirror_broken2.png');
 		this.triggerRange = 30;
 		this.triggerChance=40;
-		this.max_triggers = 1;
+		this.max_triggers = 3;
 	}
 	
 	trigger(trigger_player){
@@ -295,6 +312,20 @@ class MirrorEntity extends Doodad{
 		trigger_player.currentAction.turn_complete = true;
 		trigger_player.currentAction.complete = true;
 		this.destroy();
+	}
+}
+
+class SupplyEntity extends Doodad{
+	constructor(x,y){
+		super("mirror",x,y,'');
+		this.icon = '📦';
+		this.triggerRange = 25;
+		this.triggerChance=20;
+		this.max_triggers = 1;
+	}
+	
+	trigger(trigger_player){
+		
 	}
 }
 
@@ -359,7 +390,7 @@ class MovableEntity extends Doodad{
 
 max_decoys=3
 decoy_count=0;
-class DecoyEntity extends MovableEntity{
+class DecoyEntityOld extends MovableEntity{
 	constructor(x,y, owner){
 		super("decoy",x,y,owner);
 		this.name = this.owner.name+"'s decoy";

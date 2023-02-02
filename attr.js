@@ -151,6 +151,36 @@ class Cunny extends Attr{
 	}
 }
 
+class Brat extends Attr{
+	constructor(player){
+		super("brat", player);
+		this.moveSpeedB = 1.5
+		this.intimidationBonus = -10
+		this.has_info = true;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "opAware":
+				let oP=data['opponent'];
+				if (Math.random() < 0.03){
+					let temp_charm = new Charm(this.player, 3);					
+					temp_charm.icon = "💢";
+					temp_charm.display_name = "Correction";
+					oP.inflict_status_effect(temp_charm);
+				}
+				break;
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()+
+		"<span class='desc'>"+
+			"<span>Damn bratty kid</span><br>"+	
+		"</span>"
+		return html;
+	}	
+}
+
 class TeaAction extends Action{
 	constructor(player, data){
 		super("tea", player);
@@ -867,6 +897,76 @@ class Witch extends Attr{
 	}
 }
 
+class Retard extends Attr{
+	constructor(player){
+		super("retard", player);
+		this.intimidationBonus = -20;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "doActionAfter":
+				if(data.action instanceof MoveAction){
+					//run into shit
+					if(roll_range(0,100)<(10*this.player.moveSpeedB)){
+						let t_type = getTerrainType(this.player.x, this.player.y);
+						switch(t_type){
+							case 'tree':
+								this.player.statusMessage = "runs into a tree like a retard";
+								this.player.health -= roll_range(1,5*this.player.moveSpeedB);
+								if(this.player.health<=0){
+									this.player.death = "cracks their head open on a tree and dies";
+								}
+								break;
+							case 'mtn':
+								this.player.statusMessage = "runs into a cliff like a retard";
+								this.player.health -= roll_range(1,10*this.player.moveSpeedB);
+								if(this.player.health<=0){
+									this.player.death = "dies of brain damage from running into walls";
+								}
+								break;
+						}
+					}
+					else{
+						//lose things
+						let lose_lst = [['no lose', 50]];
+						if(this.player.weapon)
+							lose_lst.push(['wep', 10]);
+						if(this.player.offhand)
+							lose_lst.push(['off', 10]);
+						if(lose_lst.length>1){
+							let drop_item = roll(lose_lst);
+							if(drop_item=='wep'){
+								this.player.statusMessage = "accidentally loses their " + this.player.weapon.display_name;
+								this.player.unequip_item('wep');
+							}
+							else if(drop_item=='off'){
+								this.player.statusMessage = "accidentally loses their " + this.player.offhand.display_name;
+								this.player.unequip_item('off');
+							}
+						}
+					}
+				}				
+				break;
+			case "attack":
+				if(roll_range(0,100)<20){
+					this.player.fightDmgB*=1.5;
+					if(data.fightMsg.events)
+						data.fightMsg.events.push(this.player.name + ' gets a burst of retard strength')
+				}
+				break;
+		}
+	}
+	
+	stat_html(){
+		let html= super.stat_html()+		
+		"<span class='desc'>"+
+			"<span>Uguuuu....</span><br>"+	
+		"</span>"
+		return html;
+	}
+}
+
 class Bocc extends Attr{
 	constructor(player){
 		super("bocc", player);
@@ -876,11 +976,7 @@ class Bocc extends Attr{
 		this.original_img = this.player.img;
 		this.has_info = true;
 	}	
-	
-	calc_bonuses(){
 		
-	}
-	
 	dorce_change(tier){
 		if(this.last_dorce_change<=0)
 			return;
@@ -916,6 +1012,35 @@ class Bocc extends Attr{
 		let nearby = [];
 		let tP = this.player;
 		switch(state){
+			case "turnStart":
+				if(this.dorce_tier<0){
+					this.sightBonus = roll_range(-30,100);
+					this.visibilityB = roll_range(-80,20);
+					this.rangeBonus = roll_range(-10,50);
+					this.fightBonus = roll_range(90,150)/100;
+					this.dmgReductionB = roll_range(70,110)/100;
+					this.intimidationBonus = roll_range(-20,80);
+					this.moveSpeedB = roll_range(80,150)/100;
+				}
+				else if(this.dorce_tier>1){
+					this.sightBonus = -roll_range(-30,100);
+					this.visibilityB = -roll_range(-80,20);
+					this.rangeBonus = -roll_range(-10,50);
+					this.fightBonus = roll_range(50,110)/100;
+					this.dmgReductionB = roll_range(90,130)/100;
+					this.intimidationBonus = -roll_range(-20,80);
+					this.moveSpeedB = roll_range(50,120)/100;
+				}
+				else{
+					this.sightBonus = 0;
+					this.visibilityB = 0;
+					this.rangeBonus = 0;
+					this.fightBonus = 1;
+					this.dmgReductionB = 1;
+					this.intimidationBonus = 0;
+					this.moveSpeedB = 1;
+				}
+				break;
 			case "opAware":
 				this.dorce += 2;
 				break;
@@ -937,8 +1062,7 @@ class Bocc extends Attr{
 				if(this.player.lastActionState == "sleeping")
 					delta_dorce -= 10;				
 				if(this.player.lastActionState == "awaken")
-					delta_dorce -= 50;
-				
+					delta_dorce -= 50;				
 				if(this.player.danger_score>100)
 					delta_dorce += 40;
 				
@@ -981,7 +1105,6 @@ class Bocc extends Attr{
 					this.dorce_change(3);
 				
 				let autism_dist = 0;
-				//spawn bocchinokos
 				switch(this.dorce_tier){
 					case -1:
 						if(this.player.energy<20)
@@ -995,7 +1118,8 @@ class Bocc extends Attr{
 						break;
 					case 3:
 						autism_dist = 150;
-						if(roll_range(0,100)<30){
+						if(roll_range(0,100)<30){							
+							//spawn bocchinokos
 							let temp_bocc = new Bocchinoko(this.player.x,this.player.y);
 							createDoodad(temp_bocc);
 							this.dorce-=20;
@@ -1009,8 +1133,15 @@ class Bocc extends Attr{
 					nearby.forEach(function(oP){
 						if(oP==tP)
 							return
-						oP.inflict_status_effect(new BoccAutism(roll_range(1,1+tA.dorce_tier*3), roll_range(1, tA.dorce_tier*2)));
+						oP.inflict_status_effect(new BoccAutism(roll_range(1,1+tA.dorce_tier*3), roll_range(1, tA.dorce_tier+1)));
 					});
+				}
+				break;
+			case "death":
+				//spawn multiple bocchinokos
+				for(let i=0; i<5; i++){					
+					let temp_bocc = new Bocchinoko(this.player.x + roll_range(-20,20), this.player.y + roll_range(-20,20));
+					createDoodad(temp_bocc);
 				}
 				break;
 		}
@@ -1115,7 +1246,7 @@ class Bocchinoko extends MovableEntity{
 	trigger(trigger_player){
 		let dmg = roll_range(5,10);
 		trigger_player.heal_damage(dmg, this, "food");
-		pushMessage(trigger_player, trigger_player.name + " catches a bocchinoko. It heals "+dmg+" health");
+		pushMessage(trigger_player, trigger_player.name + " catches a bocchinoko. It's damn good!");
 		this.destroy();
 	}
 	
@@ -1130,7 +1261,7 @@ class Bocchinoko extends MovableEntity{
 			);
 			doodDiv = $('#doodad_' + this.id);
 			this.div = doodDiv;
-			this.timer = setInterval(this.show_text, 5000, this.div);
+			this.timer = setInterval(this.show_text, 5000+roll_range(-1500,2000) , this.div);
 		}
 	}	
 }
@@ -1140,12 +1271,12 @@ bocc_autism_data = {
 	'Humber':{"moveSpeedB":[0,0],"dmgReductionB":[0,0], "rangeBonus":[-500,0]},
 	'Nage':{"aggroBonus":[30,30],"intimidationBonus":[30,50]},
 	'Dorcelessness':{},
-	'Andric':{"fightBonus":[0.8,0.05], "rangeBonus":[10,5]},
+	'Andric':{"fightBonus":[0.8,-0.05], "rangeBonus":[10,5]},
 	'Varination':{},
 	'Ponnish':{},
-	'Harfam':{"dmgReductionB":[0.8,0.05], "rangeBonus":[-10,-1]},
+	'Harfam':{"dmgReductionB":[0.8,-0.05], "rangeBonus":[-10,-1]},
 	'Kyne':{"sightBonus":[-100,-10],"moveSpeedB":[1,0.1]},
-	'Trantiveness':{"moveSpeedB":[5,0]},
+	'Trantiveness':{"moveSpeedB":[4,0]},
 	'Teluge':{"intimidationBonus":[-50,-5], "visibilityB":[100,0]},
 	'Onlent':{"visibilityB":[-50,-5],"rangeBonus":[300,50]},
 	'Loric':{"peaceBonus":[100,100],"fightBonus":[1.5,0.25]}
@@ -1191,8 +1322,16 @@ class BoccAutism extends StatusEffect{
 	stack_effect(new_eff){
 		// this.duration += Math.max(1, new_eff.level - this.level);
 		this.duration += 1;
-		if(new_eff.level>this.effect.level)
-			this.level=new_eff.level;	
+		if(new_eff.level>this.effect.level){
+			this.level=new_eff.level;
+			this.update_data();
+		}
+		else{
+			if(roll_range(0,100)<10 && this.level<10){
+				this.level++;
+				this.update_data();
+			}
+		}		
 		// else
 			// this.level+=1;
 	}
@@ -1200,31 +1339,94 @@ class BoccAutism extends StatusEffect{
 	effect(state, data={}){
 		switch(state){
 			case "turnStart":
-				if(this.emotion == 'Varination'){
+				if(this.emotion == 'Degrence'){
+					this.player.health = roll_range(1, this.player.maxHealth);
+				}
+				else if(this.emotion == 'Varination'){
 					let dmg = roll_range(1,4);					
 					this.player.take_damage(dmg,this,'');
 					if(this.player.health<=0){
 						this.player.death = "varinates to death"
 					}
 				}
-				else if(this.emotion == 'Ponnish'){
-					this.player.health = roll_range(1, this.player.maxHealth);
+				else if(this.emotion == 'Dorcelessness'){
+					this.sightBonus = -roll_range(-30,130);
+					this.visibilityB = -roll_range(-100,20);
+					this.rangeBonus = -roll_range(-10,70);
+					this.fightBonus = roll_range(50,120)/100;
+					this.dmgReductionB = roll_range(90,150)/100;
+					this.intimidationBonus = -roll_range(-20,80);
+					this.moveSpeedB = roll_range(50,120)/100;
+					this.update_data();
 				}
 				// this.cooldown--;
 				// if(this.cooldown<=0){
 					// if(roll_range(0,100)<10)
 						// this.get_random_emotion();
 				// }
+				super.effect("turnStart");
 				break;
 			case "planAction":
 				if(this.emotion=='Dorcelessness')
 					if(roll_range(0,100)<30+this.level)
 						this.player.setPlannedAction("bocc move", 6, BoccDorcelessMove)
 				break;
+			case "dealDmg":
+				if(this.emotion=='Ponnish'){
+					let dmg=data['damage'];
+					this.player.health += dmg*0.03*this.level;
+				}
 			default:
 				super.effect(state, data);
 				break;
 		}
+	}
+	stat_html(){
+		let html= super.stat_html() +
+			"<span class='desc'>"		
+		switch(this.emotion){
+			case 'Degrence':
+				html += "<span>health go up health go down</span><br>";
+				break;
+			case 'Humber':
+				html += "<span>IM FUCKING INVINCIBLE</span><br>";
+				break;
+			case 'Nage':
+				html += "<span>I AM NAAAAAAAAAAAAAAAAAAAAGE</span><br>";
+				break;
+			case 'Dorcelessness':			
+				html += "<span>FNBJ&$htyjT2Q3R23r%AWE^hFKUYJHsdaABAA</span><br>";
+				break;
+			case 'Andric':
+				html += "<span>loooooooooooooooooooooooong</span><br>";
+				break;
+			case 'Varination':
+				html += "<span>varinate varinate varinate</span><br>";
+				break;
+			case 'Ponnish':
+				html += "<span>FEEEEEEEED</span><br>";
+				break;
+			case 'Harfam':
+				html += "<span>o my arms...</span><br>";
+				break;
+			case 'Kyne':
+				html += "<span>i cant sneed....</span><br>";
+				break;
+			case 'Trantiveness':
+				html += "<span>FASTER</span><br>";
+				break;
+			case 'Teluge':
+				html += "<span>ummmm ahhh ummmmmmmmmmmmmmmmm</span><br>";
+				break;
+			case 'Onlent':
+				html += "<span>huh huh huh huh huh huh huh huh</span><br>";
+				break;
+			case 'Loric':
+				html += "<span>:)))))))))))))))))</span><br>";
+				break;
+		}
+		html += "</span>";
+		return html;
 	}
 }
 
