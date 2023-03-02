@@ -326,6 +326,11 @@ function create_food(food_name, player=''){
 }
 
 function create_attr(attr_name, player){
+	attr_args = [];
+	if(attr_name.includes('|')){
+		attr_args = attr_name.split('|',2)[1].split('|');
+		attr_name = attr_name.split('|',2)[0];
+	}
 	switch(attr_name){
 		case "nenene":
 			let nenenames = ['Nenene']
@@ -354,7 +359,7 @@ function create_attr(attr_name, player){
 			let fine_names = [
 				'Ryouko','Fine'
 			]
-			return new ProfileSwap('fine', player, fine_imgs,fine_names, true, true, false);
+			return new ProfileSwap('fine', player, fine_imgs, fine_names, true, true, false);
 			break;
 		case "puchi":
 			let puchi_imgs = [
@@ -385,7 +390,7 @@ function create_attr(attr_name, player){
 				'Smol Fart',
 				'Io',
 				'Chihya',				
-				'Chicchan',				
+				'Chicchan',		
 				'Chibiki',				
 				'PiyoPiyo'		
 			]
@@ -428,9 +433,12 @@ function create_attr(attr_name, player){
 			break;
 		default:
 			if(attr_name in attr_data){
-				return new attr_data[attr_name](player)
+				if(attr_args.length>0){
+					return new attr_data[attr_name](player, ...attr_args);
+				}
+				return new attr_data[attr_name](player);
 			}
-			return new Attr(attr_name, player)
+			return new Attr(attr_name, player);
 			break;
 	}
 }
@@ -450,7 +458,8 @@ class Item extends StatMod{
 	get_value(){
 		return this.value * this.uses;
 	}
-
+	
+	
 	equip(player){
 		this.player = player;
 		// this.player.lastAction = "found " + this.name;
@@ -476,8 +485,20 @@ class Item extends StatMod{
 		"</div>"
 				
 		$('#extra_info_container').html(item_info);
+	}	
+	
+	drop(){
+		let coords = [500,500];
+		if(this.player)
+			coords = [this.player.x, this.player.y];		
+		let uneq = this.unequip();
+		if(uneq && this.tradable){
+			let drop = new DroppedItemEntity(coords[0], coords[1], this);
+			createDoodad(drop);
+		}
+		return uneq;
 	}
-
+	
 	destroy(){
 		if(extra_info_obj==this){
 			deselect_extra_info()

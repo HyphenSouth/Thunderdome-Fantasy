@@ -4,8 +4,7 @@ var spicy = true;
 var defaultWeaponOdds = [
 	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],["guitar",18],
 	["katana", 25], ["shotgun", 25], ["sniper",20],
-	["clang",10], ["flamethrower",20], ["ancient", 25],
-	["Nothing",400]
+	["clang",10], ["flamethrower",20], ["ancient", 25]
 ];
 
 function get_weapon_odds(tP){
@@ -83,17 +82,29 @@ class Weapon extends Item{
 		}		
 	}
 	
-	replace_wep(new_weapon){
+	replace_wep(new_item, drop=false){
 		if(!this.replacable)
 			return false;
-		this.player.weapon=new_weapon;
-		new_weapon.equip(this.player);
-		this.player = '';
+		let tP = this.player;
+		let uneq = false;
+		if(drop){
+			uneq = this.drop();
+		}
+		else{
+			uneq = this.unequip();
+		}
+		if(!uneq)
+			return false;
+		tP.weapon=new_item;
+		new_item.equip(tP);
 		return true;
 	}
-	
+
 	unequip(){
-		this.player="";
+		this.destroy();
+		if(this.player)
+			this.player.weapon = '';
+		this.player = '';		
 		return true;
 	}
 
@@ -143,7 +154,8 @@ class Weapon extends Item{
 	}
     destroy(){
 		log_message(this.player.name +"'s " + this.name+" breaks");
-		this.player.weapon = "";   
+		this.player.weapon = ""; 
+		//deselect
 		super.destroy();
 	}
 	
@@ -890,72 +902,7 @@ class Ancient extends Weapon{
 					this.player.fightDmgB *= this.aoe_dmg
 
 				this.last_spell = spell
-				/*
-				//spell effects
-				switch(spell[0]){
-					case 'smoke':
-						oP.inflict_status_effect(new Smoke(4, 5, this.player))
-						break;
-					case 'shadow':
-						let temp_blind = new StatusEffect('blind', 7, roll_range(4,6), {"sightBonus":[-100,-10]}, false, this.player)
-						temp_blind.icon = "👁️"
-						oP.inflict_status_effect(temp_blind)
-						break;
-					case 'ice':
-						oP.inflict_status_effect(new Frozen(3,roll_range(2,5), this.player))
-						break;
-				}
-				//aoe attack
-				if(spell[1]=='barrage'){
-					this.player.fightDmgB *= this.aoe_dmg
-					let hits = 0;
-					for(let i=0; i<nearby_lst.length; i++){
-						let dmg = 0
-						let aoe_target = nearby_lst[i]
-						if(aoe_target!=this.player && aoe_target.health >0 && Math.random()<0.6){
-							switch(spell[0]){
-								case 'smoke':
-									dmg = roll_range(1, 5)
-									oP.inflict_status_effect(new Smoke(2, 5, this.player))
-									break;
-								case 'shadow':
-									dmg = roll_range(1, 10)
-									let temp_blind = new StatusEffect('blind', 5, roll_range(1,2), {"sightBonus":[-100,-10]}, false, this.player)
-									temp_blind.icon = "👁️"
-									aoe_target.inflict_status_effect(temp_blind)
-									break;
-								case 'blood':
-									dmg = roll_range(1, 8)
-									log_message(this.player.name + " BLOOD aoe attack")
-									this.player.health += Math.pow(dmg,0.66);
-									break;
-								case 'ice':
-									dmg = roll_range(1, 15)		
-									aoe_target.inflict_status_effect(new Frozen(1,roll_range(1,2), this.player))
-									break;
-							}
-							aoe_target.take_damage(dmg, this.player, 'magic')
-							//on hit
-							if(aoe_target.health <=0){
-								aoe_target.death="killed by "+this.player.name+"'s "+ spell[0] + " " + spell[1];
-								pushMessage(aoe_target, "killed by  "+this.player.name+"'s "+ spell[0] + " " + spell[1]);
-								this.player.kills++;
-							}
-							else{
-								aoe_target.statusMessage = "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]
-								pushMessage(aoe_target, "hit by "+this.player.name+"'s "+ spell[0] + " " + spell[1]);
-							}
-							// aoe_target.finishedAction = true;
-							// aoe_target.resetPlannedAction();
-							aoe_target.currentAction.turn_complete = true;
-							hits++;
-						}
-						if(hits>=8){
-							break;
-						}
-					}
-				}
-				*/
+				
 				this.player.statusMessage = "casts " + spell[0] + " " + spell[1] + " on " + oP.name;
 				this.uses = this.uses-cost;
 				this.use();

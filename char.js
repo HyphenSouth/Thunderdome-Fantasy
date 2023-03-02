@@ -59,6 +59,9 @@ class Char {
 		this.moveSpeed = mapSize / 40;		
 		this.moveSpeedB = 1
 		
+		//range for stealing
+		this.stealRange = 40;
+		
 		//_______________kills_______________
 		//number of kills
 		this.kills = 0;
@@ -84,6 +87,8 @@ class Char {
 		this.actionPriority = 0;
 		this.lastSlept=0;
 		this.lastFight=0;
+		this.totalFights=0;
+		this.totalAttacks=0;
 		this.oobTurns=0;
 		
 		//attack and defend actions for the current fight, resets every fight
@@ -200,8 +205,6 @@ class Char {
 		this.peaceB=0
 		this.intimidation = 0;
 		
-		// good = less damage dealt and taken
-		// evil = more damage dealt and taken
 		if(this.personality == 'Good'){
 			// this.fightDmgB = 0.8;
 			// this.dmgReductionB = 0.8;
@@ -213,7 +216,13 @@ class Char {
 			this.intimidation += 20;
 		}
 		this.intimidation += this.kills * 5
-
+		/*
+		if(this.weapon)
+			this.intimidation += 10
+		if(this.offhand)
+			this.intimidation += 5
+		*/
+		
 		//chaotic = more likely to be aggro
 		//lawful = more likely to be peaceful
 		// if(this.moral == 'Lawful')
@@ -313,10 +322,18 @@ class Char {
 	}
 	
 	//equipping an item
-	equip_item(item){
+	//value is the difference in value the new item needs to be to repalce the old item
+	equip_item(item, replace='all', value=0, drop=0){
+		let drop_item = false;
+		if(roll_range(1,100)<=drop)
+			drop_item = true;
 		if(item instanceof Weapon){
 			if(this.weapon){
-				return this.weapon.replace_wep(item);
+				if(replace=='all')
+					return this.weapon.replace_wep(item, drop_item);
+				else if(replace =='value')
+					if(item.get_value() - this.weapon.get_value() > value)
+						return this.weapon.replace_wep(item, drop_item);
 			}
 			else{
 				this.weapon=item;
@@ -326,7 +343,11 @@ class Char {
 		}
 		else if(item instanceof Offhand){
 			if(this.offhand){
-				return this.offhand.replace_offhand(item);
+				if(replace=='all')
+					return this.offhand.replace_offhand(item, drop_item);
+				else if(replace =='value')
+					if(item.get_value() - this.offhand.get_value() > value)
+						return this.offhand.replace_offhand(item, drop_item);
 			}
 			else{
 				this.offhand=item;
@@ -335,31 +356,52 @@ class Char {
 			}
 		}
 		else{
-			if(item=='Nothing')
+			if(item=='Nothing' || item =='')
 				return false
+			//attempting to equip character speicific items
 			this.apply_all_effects("equipItem",{'item':item})
 			return false;
 		}
 	}	
 	
 	//unequipping an item
-	unequip_item(slot){
+	unequip_item(slot, drop=0){
 		if(slot=="wep"){
 			if(this.weapon){
-				if(this.weapon.unequip()){
-					this.weapon=""
-					return true;
+				//drop
+				if(roll_range(1,100)<=drop){
+					 if(this.weapon.drop()){
+						this.weapon="";
+						return true;
+					}
+					return false;
 				}
-				else{return false;}
+				else{
+					if(this.weapon.unequip()){
+						this.weapon="";
+						return true;
+					}
+					return false;
+				}
 			}
 		}
 		if(slot=="off"){
 			if(this.offhand){
-				if(this.offhand.unequip()){
-					this.offhand=""
-					return true;
+				//drop
+				if(roll_range(1,100)<=drop){
+					 if(this.offhand.drop()){
+						this.offhand="";
+						return true;
+					}
+					return false;
 				}
-				else{return false;}
+				else{
+					if(this.offhand.unequip()){
+						this.offhand="";
+						return true;
+					}
+					return false;
+				}
 			}
 		}
 	}
@@ -500,11 +542,13 @@ class Char {
 		this.danger_score = this.get_danger_level();
 		
 		this.follow_target = "";
-		this.fight_target = "";		
+		this.fight_target = "";	
+		this.steal_target = "";
 		this.ally_target = "";
 		if(this.awareOf.length>0){
 			this.follow_target = this.choose_follow_target();
 			this.fight_target = this.choose_fight_target();		
+			this.steal_target = this.choose_steal_target();		
 			this.ally_target = this.choose_alliance_target();	
 		}
 		
@@ -568,14 +612,15 @@ class Char {
 		}
 		let tP = this;
 		nearby.forEach(function(oP){
-			let player_danger_score = get_player_danger_score(tP,oP)
-			danger_score += player_danger_score
-			if(player_danger_score>200)
-				danger_score += 50
+			let player_danger_score = get_player_danger_score(tP,oP);
+			danger_score += player_danger_score;
+			if(player_danger_score>100)
+				danger_score += 30;
 		});
 		
 		if(nearby.length>0)
-			danger_score = danger_score/Math.min(nearby.length,5)
+			danger_score = danger_score/Math.min(nearby.length,5);
+		
 		//terrain
 		if(!this.ignore_terrain)
 			danger_score += (Math.pow(3,getTerrain(x,y).danger)-1)*12
@@ -687,7 +732,7 @@ class Char {
 					target_score = score;
 				}
 			}	
-		});	
+		});
 		log_message(this.name + ' ' + follow_type + ' ' + target.name + ' ' + target_score)
 		return target;
 	}
@@ -697,7 +742,7 @@ class Char {
 		if(this.inRangeOf.length==0){
 			return ""
 		}
-		let tP = this
+		let tP = this;
 		let target_lst = [['',Math.min(this.peaceB/3,200)]]
 		
 		this.inRangeOf.forEach(function(oP){
@@ -706,12 +751,33 @@ class Char {
 			//calculate aggro score
 			let score = get_fight_score(tP,oP);
 			if(score>0)
-				target_lst.push([oP,score])
+				target_lst.push([oP,score]);
 		});
 		if(target_lst.length==0){
 			return
 		}
 		log_message(this.name + ' fight')
+		log_message(target_lst)
+		let target = roll(target_lst)
+		return target;
+	}
+	
+	choose_steal_target(){
+		let tP = this;
+		let target_lst = [['',30]]
+		
+		this.nearbyPlayers(this.stealRange).forEach(function(oP){
+			if(tP==oP)
+				return
+			//calculate aggro score
+			let score = get_steal_score(tP,oP);
+			if(score>0)
+				target_lst.push([oP,score]);
+		});
+		if(target_lst.length==0){
+			return
+		}
+		log_message(this.name + ' steal')
 		log_message(target_lst)
 		let target = roll(target_lst)
 		return target;
@@ -854,8 +920,31 @@ class Char {
 				}*/
 				this.setPlannedAction('fight', 6, FightAction, {'target':this.fight_target})
 			}
-			if(!fight_target)
-				log_message('no target found')
+
+		}
+		
+		//steal
+		if(this.steal_target){
+			let stealChance = 10;
+			let noStealChance = 40;	
+			
+			if(this.moral=='Chaotic')
+				stealChance+= 70;
+			else if(this.moral=='Lawful')
+				noStealChance+= 30;
+			
+			if(!this.weapon && this.steal_target.weapon)
+				stealChance += 20;
+			if(!this.offhand && this.steal_target.offhand)
+				stealChance += 20;
+			
+			if(this.energy/this.maxEnergy<0.5)
+				stealChance += 10;
+						
+			if(roll([['steal',stealChance],['no steal',noStealChance]]) == 'steal'){
+				this.setPlannedAction('steal', 5, StealAction, {'target':this.steal_target})
+			}
+
 		}
 		
 		//move away from danger
@@ -869,7 +958,6 @@ class Char {
 			this.setPlannedAction("playerEscape", 6, PlayerEscapeAction)
 			log_message('player escape')
 		}
-		
 		
 		//continue with current action if there is one
 		if(this.currentAction.name){
@@ -947,7 +1035,9 @@ class Char {
 		this.tblDiv.removeClass("allyEvent");
 		
 		this.div.find('.charText').removeClass('sleep');
-		this.tblDiv.removeClass('sleep');		
+		this.tblDiv.removeClass('sleep');
+		
+		this.tblDiv.removeClass("steal");
 				
 		//set action
 		if(!this.currentAction.name){
@@ -995,7 +1085,7 @@ class Char {
 			this.currentAction.turn_end()		
 				
 		if(!this.ignore_terrain && getTerrain(this.x,this.y)){
-			getTerrain(this.x,this.y).turn_end_effects(this)
+			getTerrain(this.x,this.y).turn_end_effects(this);
 		}
 		if(this.health > 0)
 			this.apply_all_effects("turnEnd");		
@@ -1063,11 +1153,11 @@ class Char {
 		targetX = targetX / mapSize * $('#map').width() - iconSize/2;
 		targetY = targetY / mapSize * $('#map').height() - iconSize/2;
 
-		
 		//update icons on map
 		let charDiv = $('#char_' + this.id);
 		charDiv.css({transform:"translate(" + targetX + "px," + targetY + "px)"},function(){});
 		log_message(this.name +" moves to (" +this.x +","+ this.y+")", 1);
+		//update the distance table
 		updatePlayerDists(this)
 	}
 	
@@ -1327,7 +1417,8 @@ class Char {
 			"<span>In Range: "+this.inRangeOf.length+"</span><br>"+
 			"<span>Followers: "+this.followers.length+"</span><br>"+
 			"<span>Attackers: "+this.opponents.length+"</span><br>"+
-			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"
+			"<span>Last Opponent: "+this.last_opponent.name +"</span><br>"+
+			"<span>Total Fights: "+this.totalFights+"("+this.totalAttacks+")</span><br>"
 			
 			// "<span>Attackable: "+this.attackable.length+"</span><br>"
 		/*

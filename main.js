@@ -408,6 +408,7 @@ function startGame(){
 			attr_lst = [...new Set(attr_txt.split(","))];
 			let filtered_attr = []
 
+			//set personality and morals
 			let moral = ""
 			if(charlist[i][3]=="" || charlist[i][3]=="Random")
 				moral = roll([['Chaotic',1],['Neutral',2],['Lawful',1]]);
@@ -419,6 +420,8 @@ function startGame(){
 				personality =  roll([['Evil',1],['Neutral',2],['Good',1]]);
 			else
 				personality = charlist[i][4]
+			
+			//set attributes
 			//controlled players
 			/*
 			if(attr_lst.indexOf('control')>=0 && maxControl>controlledPlayers.length){
@@ -494,6 +497,9 @@ function onStart(){
 	// playerStatic[0].equip_item(create_offhand('mirror'));
 	max_alliance_size = 0;
 	max_alliance_count = 0;
+	players.forEach(function(oP){
+		oP.inflict_status_effect(new Skulled(10000))
+	});
 }
 
 //keyboard inputs
@@ -1051,20 +1057,20 @@ function updateTable(){
 	});
 
 	if(page_num == 0)
-		updateStatusTable()
+		updateStatusTable();
 	// if(page_num == 1)
 		// updateEvents()
 	if(page_num == 2)
-		updateAlliances()
+		updateAlliances();
 
 	//turn existing messages transparent
 	$('#messages td').css('opacity','0.3');
 	$('#eventFeed').empty()
-	updateEvents()
+	updateEvents();
 
-	// doodads.forEach(function(tD,index){
-		// tD.draw()
-	// });
+	doodads.forEach(function(tD,index){
+		tD.draw();
+	});
 }
 
 function updateStatusTable(){

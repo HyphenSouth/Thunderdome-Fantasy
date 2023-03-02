@@ -44,9 +44,9 @@ class Doodad {
 			doodDiv = $('#doodad_' + this.id);
 			this.div = doodDiv;
 		}
-		// else{
-			// this.div.html(this.icon);
-		// }
+		else{
+			this.div.html(this.icon);
+		}
 	}
 	
 	//check if a player can trigger
@@ -99,10 +99,14 @@ class Doodad {
 		this.duration--;
 	}
 	
+	//when timer runs out
+	//destroy by default
 	expire(){
 		log_message(this.name+" expires");
 		this.destroy();
 	}
+	//when triggered
+	//destroy by default
 	trigger(trigger_player){
 		this.destroy();
 	}
@@ -147,13 +151,13 @@ class BombEntity extends Doodad{
 		oP.take_damage(dmg, this, "explosive")
 		//killed the player
 		if(oP.health <= 0){
-			this.owner.kills++;
+			if(this.owner)
+				this.owner.kills++;
 			if(oP == this.owner){
 				oP.death = "blown up by their own bomb";
 				pushMessage(oP, oP.name + " blown up by their own bomb");
 			} else {
 				oP.death = "blown up by " + this.owner.name;
-				this.owner.kills++;
 				pushMessage(oP, oP.name + " blown up by " + this.owner.name);
 			}
 		}
@@ -173,7 +177,7 @@ class BombEntity extends Doodad{
 
 	trigger(trigger_player){
 		this.icon="💥";
-		if(trigger_player == this.owner){
+		if(this.owner && trigger_player == this.owner){
 			pushMessage(trigger_player, trigger_player.name + " triggered their own bomb");
 		}
 		else if(trigger_player!=""){
@@ -315,17 +319,43 @@ class MirrorEntity extends Doodad{
 	}
 }
 
+
+function spawn_supplies(count){
+	for(i=0; i<count; i++){
+		createDoodad(new SupplyEntity(500+roll_range(-300,300), 500+roll_range(-300,300)));
+	}
+}
 class SupplyEntity extends Doodad{
 	constructor(x,y){
-		super("mirror",x,y,'');
+		super("supply",x,y,'');
 		this.icon = '📦';
 		this.triggerRange = 25;
-		this.triggerChance=20;
+		this.triggerChance=50;
+		this.max_triggers = 1;
+		this.duration = roll_range(10,30);
+	}
+	
+	trigger(trigger_player){
+		let item = get_random_item(trigger_player,roll([['wep',1],['off',1]]));
+		if(trigger_player.equip_item(item, 'value', -10, 60))
+			pushMessage(trigger_player, trigger_player.name+" found " + item.name +" in a supply box");
+	}
+}
+
+class DroppedItemEntity extends Doodad{
+	constructor(x, y, item){
+		super("item",x,y,'');
+		this.item = item;
+		this.icon = item.icon;
+		this.triggerRange = 25;
+		this.triggerChance = 20;
 		this.max_triggers = 1;
 	}
 	
 	trigger(trigger_player){
-		
+		let item = get_random_item(trigger_player,roll([['wep',1],['off',1]]));
+		if(trigger_player.equip_item(item, 'value', -5))
+			pushMessage(trigger_player, trigger_player.name+" finds " + item.name +"  on the ground");
 	}
 }
 
@@ -434,6 +464,9 @@ class DecoyEntityOld extends MovableEntity{
 			doodDiv = $('#doodad_' + this.id);
 			doodDiv.css('background-image',"url(" + this.img + ")");
 			this.div = doodDiv;
+		}
+		else{
+			this.div.html(this.icon);
 		}
 	}
 	

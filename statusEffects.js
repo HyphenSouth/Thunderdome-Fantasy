@@ -798,12 +798,12 @@ class Skulled extends StatusEffect{
 				if(tP.offhand && tP.offhand.stealable){
 					let temp_off = tP.offhand
 					tP.unequip_item("off");
-					oP.equip_item(temp_off)
+					oP.equip_item(temp_off, 'value', -5)
 				}
 				if(tP.weapon && tP.weapon.stealable){
 					let temp_wep = tP.weapon
 					tP.unequip_item("wep");
-					oP.equip_item(temp_wep)
+					oP.equip_item(temp_wep, 'value', -5)
 				}
 				oP.health += 5;
 				oP.energy += 20;
@@ -843,7 +843,7 @@ class Flight extends StatusEffect{
 		super.wear_off()
 	}
 	
-	effect(state, data={}){	
+	effect(state, data={}){
 		let oP='';	
 		switch(state){
 			case "turnStart":
@@ -931,6 +931,14 @@ class Flight extends StatusEffect{
 				super.effect(state, data)
 				break;
 		}
+	}
+	
+	stat_html(){
+		let html= super.stat_html() +
+		"<span class='desc'>"+
+			"<span>They fly now</span><br>"+
+		"</span>"		
+		return html;
 	}
 }
 
@@ -1359,7 +1367,7 @@ class Burn extends DotEffect{
 		super("burn", level, duration, owner, "fire", "burnt to a crisp");
 		this.icon="🔥";
 		this.dmg_range = [1,1.5] //base damage range at level 1
-		this.visibilityB =10;
+		this.visibilityB = 20;
 	}
 	
 	calc_dmg(){

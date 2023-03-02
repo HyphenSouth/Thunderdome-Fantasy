@@ -487,7 +487,6 @@ class FightAction extends Action{
 			this.death = "exhausted to death from fighting";
 			this.die();
 		}*/
-		
 	}
 }
 
@@ -515,13 +514,17 @@ class ForageAction extends Action{
 				case "success":
 					this.player.statusMessage = "forage success";
 					this.player.lastActionState = "forage success";
-					this.forage_state='success'
+					this.forage_state='success';
 					//randomly find a weapon
 					let type_prob = [];
-					if(!this.player.weapon)
+					if(!this.player.weapon){
 						type_prob.push(["wep", wep_prob])
-					if(!this.player.offhand)
+						type_prob.push(["Nothing", wep_prob])
+					}
+					if(!this.player.offhand){
 						type_prob.push(["off", off_prob])
+						type_prob.push(["Nothing", off_prob])
+					}
 					let loot_type=roll(type_prob);
 					this.foraged_item = get_random_item(this.player,loot_type)
 					if(this.foraged_item){
@@ -529,11 +532,11 @@ class ForageAction extends Action{
 						this.player.tblDiv.addClass("forage");
 						if(loot_type == 'wep'){
 							this.player.lastActionState = "forage weapon";
-							this.forage_state='wep'
+							this.forage_state='wep';
 						}
 						if(loot_type == 'off'){
 							this.player.lastActionState = "forage offhand";
-							this.forage_state='off'
+							this.forage_state='off';
 						}
 					}
 					//restore health and energy
@@ -577,4 +580,164 @@ class ForageAction extends Action{
 	}
 }
 
-class StealAction extends Action{}
+class StealAction extends Action{
+	constructor(player, data){
+		super("steal", player);
+		this.target = data.target;
+		this.energy_cost = 10;
+	}
+	
+	perform(){
+		//add red fighting border
+		// this.player.div.addClass("fighting");
+		
+		//no target planned
+		if(!this.target){
+			// this.player.lastAction = "fighting fail";
+			this.player.statusMessage = "has no one to steal from";
+			this.player.lastActionState = "steal null";
+			return;
+		}
+		if(this.player.inAlliance(this.target))
+			this.player.alliance.unity -= 100;
+		
+		//if target is already dead
+		if(this.target.health<=0){
+			this.player.statusMessage = "tries to loot the corpse of " + this.target.name;
+			this.player.lastActionState = "steal dead";
+			return;
+		}
+			
+		//make sure target is still in range
+		let dist = playerDist(this.player, this.target);
+		if(this.player.stealRange < dist){
+			this.player.statusMessage = "tries to rob "+ this.target.name +" but they escape"
+			this.player.lastActionState = "stealing range fail";
+			return;
+		}				
+		
+		/*
+		//nothing to steal
+		if(steal_item_lst.length==0){
+			this.player.statusMessage = "has nothing to steal from " + this.target.name;
+			this.player.lastActionState = "steal nothing";
+			return;
+		}
+		*/
+		
+		//try to steal
+		let steal_result = steal_from_target(this.player, this.target);
+		if(steal_result=='success' || steal_result=='success seen'){			
+			//figure out what can be stolen
+			let wep_score = 0;
+			if(this.target.weapon && this.target.weapon.stealable){
+				wep_score = this.target.weapon.get_value();
+				if(this.player.weapon){
+					if(this.player.weapon.replacable)
+						wep_score = wep_score - this.player.weapon.get_value() + 20;
+					else
+						wep_score = 0;
+				}
+			}
+			let off_score = 0;
+			if(this.target.offhand && this.target.offhand.stealable){
+				off_score = this.target.offhand.get_value();
+				if(this.player.offhand){
+					if(this.player.offhand.replacable)
+						off_score = off_score - this.player.offhand.get_value() + 20;
+					else
+						off_score = 0;
+				}
+			}
+			let steal_item_lst = [['supplies', 5]];
+			
+			if(wep_score>0)
+				steal_item_lst.push(['wep',wep_score])	
+			if(off_score>0)
+				steal_item_lst.push(['off',off_score])
+			
+			log_message(this.target.name +" steal list "+steal_item_lst)
+			
+			let steal_item_type = roll(steal_item_lst)
+			this.player.statusMessage = "steals from " + this.target.name;
+			switch(steal_item_type){
+				case "wep":
+					let stolen_wep = this.target.weapon;
+					if(this.target.unequip_item('wep')){
+						this.player.equip_item(stolen_wep);
+						this.player.statusMessage = "steals " + this.target.name +"'s "+stolen_wep.name;
+						this.player.lastActionState = "steal wep";
+						pushMessage(this.player, this.player.name + " steals " + this.target.name +"'s "+stolen_wep.name);
+					}
+					else{
+						this.player.statusMessage = "unable to steal " + this.target.name +"'s "+stolen_wep.name;
+						this.player.lastActionState = "steal wep fail";
+					}
+					break;
+				case "off":
+					let stolen_off = this.target.offhand;
+					if(this.target.unequip_item('off')){
+						this.player.equip_item(stolen_off);
+						this.player.statusMessage = "steals " + this.target.name +"'s "+stolen_off.name;
+						this.player.lastActionState = "steal off";
+						pushMessage(this.player, this.player.name + " steals " + this.target.name +"'s "+stolen_off.name);
+					}
+					else{
+						this.player.statusMessage = "unable to steal " + this.target.name +"'s "+stolen_off.name;
+						this.player.lastActionState = "steal off fail";
+					}
+					break;
+				case "supplies":
+					this.player.statusMessage = "steals some supplies from " + this.target.name;
+					this.player.lastActionState = "steal supplies";
+					this.player.health += roll_range(0,5);
+					this.player.energy += roll_range(2,10);
+					break;
+			}
+			this.player.tblDiv.addClass("steal");
+			if(steal_result=='success seen'){
+				this.target.opinions[this.player.id] -= 30;
+				this.player.statusMessage += " and barely escapes"; 
+			}
+		}
+		else if(steal_result=='caught'){
+			//caught
+			this.player.statusMessage = "caught trying to steal from " + this.target.name;
+			this.player.lastActionState = "steal caught";
+			this.target.opinions[this.player.id] -= 50;
+		}else if(steal_result=='caught attack'){
+			//caught
+			this.player.statusMessage = "caught trying to steal from " + this.target.name + " and gets smacked";
+			this.player.lastActionState = "steal caught attack";
+			this.target.opinions[this.player.id] -= 60;
+			this.player.opinions[this.target.id] -= 10;
+			pushMessage(this.target, this.target.name + " smacks "+ this.player.name +" for trying to steal from them");			
+			this.player.health -= roll_range(1,10);
+			if(this.player.health<=0){
+				this.target.kills++;
+				this.player.death = "killed for daring to steal from " + this.target.name;
+			}
+		}
+		else {
+			//unsuccessful
+			this.player.statusMessage = "unable to steal from " + this.target.name;
+			this.player.lastActionState = "steal fail";
+		}		
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

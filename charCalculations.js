@@ -151,8 +151,6 @@ function get_follow_score(tP,oP, follow_type){
 		score += roll_range(-20, 20)
 	}
 	
-	if(tP.prevTarget == oP)
-		score += 100
 	if(tP.inAlliance(oP))
 		score += 100
 			
@@ -163,6 +161,9 @@ function get_follow_score(tP,oP, follow_type){
 	return score;
 }
 
+//get a score for how much a tp wants to fight op
+//score will be used in a weighted roll
+//only those with a positive score will be rolled
 function get_fight_score(tP, oP){
 	if(tP==oP)
 		return 0
@@ -171,18 +172,13 @@ function get_fight_score(tP, oP){
 	if(!tP.inRangeOfPlayer(oP))
 		return 0
 	
-	let score = 100;
+	let score = 50;
 	score = score - (tP.opinions[oP.id]);
-	score = score - (oP.intimidation * 3);
+	// score = score - (oP.intimidation * 3);
 	score = score + tP.aggroB / 4;
 	score = score - tP.peaceB / 5;
 	
-	if(tP.inAlliance(oP)){
-		score -= (tP.alliance.unity-80)
-		if(tP.moral=='Chaotic')
-			score += 10
-	}
-	
+	//add scores based on previous interactions
 	if(oP == tP.rival)
 		score += 100;
 	
@@ -192,33 +188,63 @@ function get_fight_score(tP, oP){
 	if(oP == tP.last_opponent)
 		score += 20;
 	
-	if(tP.personality == oP.personality){
-		//same personality
-		score += roll_range(-10, 50)
-	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
-		//opposing personality
-		score += roll_range(-50, 10)
-	}
-	else{
-		score += roll_range(-20, 20)
-	}
-	
-	if(tP.personality =='Evil'){
-		score += (0.5-(oP.health/oP.maxHealth))*40
-	}
-	else if(tP.personality =='Good'){
-		score += ((oP.health/oP.maxHealth)-0.5)*20
-	}
-	
 	if(tP.lastAction instanceof FightAction){
 		if(tP.lastAction.target == oP)
-			score +=30
+			score +=50
 	}
 	else if(tP.lastAction instanceof FollowAction){
 		if(tP.lastAction.target == oP && tP.opinions[oP.id]<0)
 			score +=30
 	}
+	
+	if(tP.inAlliance(oP)){
+		score -= (tP.alliance.unity-80)
+		if(tP.moral=='Chaotic')
+			score += 10
+	}
 		
+	if(tP.personality == oP.personality){
+		//same personality
+		score += roll_range(-80, 10)
+	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+		//opposing personality
+		score += roll_range(-10, 80)
+	}
+	else{
+		score += roll_range(-40, 40)
+	}
+	
+	/*
+	if(tP.personality == 'Evil'){
+		score += (0.5-(oP.health/oP.maxHealth))*40
+	}
+	else if(tP.personality =='Good'){
+		score += ((oP.health/oP.maxHealth)-0.5)*20
+	}
+	*/
+	
+	//health difference
+	score += (oP.health - tP.health);
+	//low health
+	if(oP.health /oP.maxHealth<0.2){
+		score -= 40;
+	}
+	
+	score -= get_player_danger_score(tP,oP)/2;
+	
+	/*
+	//lawful target more threatening players
+	if(tP.moral == 'Lawful'){
+		score += get_player_danger_score(tP,oP)/2;
+		score += oP.opponents.length * 10;
+	}
+	//chaotic target less dangerous players
+	else if(tP.moral == 'Chaotic'){
+		score -= get_player_danger_score(tP,oP)/2;
+		score += (oP.health - tP.health)*1.5;
+	}
+	*/
+	
 	// if(tP.prevTarget == oP)
 		// score += 20
 			
@@ -227,6 +253,128 @@ function get_fight_score(tP, oP){
 	//check if oP forces tP to aggro
 	score = oP.apply_all_calcs("aggroCalcOthers", score, {"opponent":tP});
 	return Math.round(score)
+}
+
+function get_steal_score(tP, oP){
+	if(tP==oP)
+		return 0
+	if(!tP.awareOfPlayer(oP))
+		return 0
+	if(!tP.inRangeOfPlayer(oP))
+		return 0
+	
+	let score = -50;
+	score = score - (tP.opinions[oP.id]);
+	
+	//add scores based on previous interactions
+	if(oP == tP.rival)
+		score += 30;
+	
+	if(oP.weapon && oP.weapon.stealable)
+		score += oP.weapon.get_value();	
+	if(oP.offhand.stealable)
+		score += oP.offhand.get_value();	
+	
+	if(tP.lastAction instanceof FollowAction){
+		if(tP.lastAction.target == oP && tP.opinions[oP.id]<0)
+			score +=30
+	}
+	
+	if(oP.steal_target==tP)
+		score -= 30;
+	
+	if(tP.inAlliance(oP)){
+		score -= (tP.alliance.unity-80)
+		if(tP.moral=='Chaotic')
+			score += 10
+	}
+		
+	if(tP.personality == oP.personality){
+		//same personality
+		score += roll_range(-60, 20)
+	} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+		//opposing personality
+		score += roll_range(-20, 60)
+	}
+	else{
+		score += roll_range(-40, 40)
+	}
+	
+	if(oP.unaware)
+		score += 40;
+	if(oP.incapacitated)
+		score += 20;
+	
+	score -= get_player_danger_score(tP,oP);
+			
+	//check if tP has special aggro effects
+	score = tP.apply_all_calcs("stealCalc", score, {"opponent":oP});
+	//check if oP forces tP to aggro
+	score = oP.apply_all_calcs("stealCalcOthers", score, {"opponent":tP});
+	return Math.round(score)
+	
+}
+
+//how much of a threat tP poses to oP
+function get_player_danger_score(tP, oP){
+	if(tP==oP)
+		return 0
+	if(!tP.inAlliance(oP)){	
+		player_danger_score = -5;
+		player_danger_score += oP.intimidation;
+				
+		/*
+		if(tP.opinions[oP.id]>250)
+			player_danger_score-=30
+		else if(tP.opinions[oP.id]<-250)
+			player_danger_score+=10
+		*/
+		
+		//opinion multiplier
+		player_danger_score *= 1 - (tP.opinions[oP.id]/200)
+		
+		//change danger score based on tp and op health
+		if(player_danger_score > 0){
+			player_danger_score *= (1 + (oP.health/oP.maxHealth))
+			//player_danger_score *= (2 - (tP.health/tP.maxHealth))
+		}				
+		else{
+			player_danger_score *= (2 - oP.health/oP.maxHealth)	
+			//player_danger_score *= (1 + (tP.health/tP.maxHealth))
+		}
+		
+		if(oP.weapon)
+			player_danger_score *= 1.2
+		if(oP.offhand)
+			player_danger_score *= 1.1
+		//player_danger_score += 10 * Math.max(1-(tP.opinions[oP.id]/100), 0.01)		
+	}
+	else{
+		/*
+		//alliance members
+		player_danger_score = -20		
+		player_danger_score -= oP.intimidation/5
+		player_danger_score -= tP.opinions[oP.id]/10
+		player_danger_score -= tP.alliance.unity/10
+		
+		if(oP.weapon)
+			player_danger_score -= 10
+		if(oP.offhand)
+			player_danger_score -= 5
+		
+		if(player_danger_score > 0)
+			player_danger_score *= (2 - oP.health/oP.maxHealth)
+		else
+			player_danger_score *= (1 + (oP.health/oP.maxHealth))	
+		*/
+	}
+	if(oP==tP.last_opponent)
+		player_danger_score += 50;
+	player_danger_score = tP.apply_all_calcs('playerDangerCalc', player_danger_score, {'opponent':oP})
+	player_danger_score = oP.apply_all_calcs('playerDangerCalcOther', player_danger_score, {'opponent':tP})
+
+	return player_danger_score
+	// console.log(oP.name + ' ' +player_danger_score)
 }
 
 function get_ally_score(tP, oP){
@@ -315,18 +463,20 @@ function opinion_calc(tP, oP){
 		tP.opinions[tP.id] = 0;
 		return
 	}
-	if(tP.awareOfPlayer(oP) || roll_range(0,100) < 25){
-		if(tP.personality == oP.personality){
-			//same personality
-			tP.opinions[oP.id] += roll_range(-5, 15)
-		} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
-			//opposing personality
-			tP.opinions[oP.id] += roll_range(-15, 5)
+	if(tP.awareOfPlayer(oP)){
+		if(Math.abs(tP.opinions[oP.id]) < 150 && roll_range(0,100)<25){
+			if(tP.personality == oP.personality){
+				//same personality
+				tP.opinions[oP.id] += roll_range(-5, 15)
+			} else if (tP.personality != 'Neutral' && oP.personality != 'Neutral'){
+				//opposing personality
+				tP.opinions[oP.id] += roll_range(-15, 5)
+			}
+			else{
+				tP.opinions[oP.id] += roll_range(-10, 10)
+			}
 		}
-		else{
-			tP.opinions[oP.id] += roll_range(-10, 10)
-		}
-		
+		/*
 		//concentrate opinions around 40 to 80
 		if(tP.moral=='Chaotic'){
 			if(Math.abs(tP.opinions[oP.id])<40){
@@ -347,18 +497,24 @@ function opinion_calc(tP, oP){
 				tP.opinions[oP.id] -= 20;		
 			}					
 		}
+		*/
 		/*
 		if(oP==tP.last_opponent){
 			tP.opinions[oP.id] -= 20;
 		}
 		*/
 	}
+	else{
+		if(roll_range(0,100)<25){
+			tP.opinions[oP.id] *= 0.9;
+		}
+	}
 	if(tP.inAlliance(oP)){
 		tP.alliance.calc_opinions(tP, oP)
 	}
 
 	//decrease opinions over time
-	if(tP.lastFight > 30){
+	if(tP.lastFight > 50){
 		tP.opinions[oP.id] -= Math.max(tP.opinions[oP.id] * Math.min(roll_range(30,tP.lastFight)/600,0.25), 50)
 		// tP.opinions[oP.id] -= Math.round(roll_range(0, tP.lastFight)/20)
 	}
@@ -372,60 +528,65 @@ function opinion_calc(tP, oP){
 		tP.opinions[oP.id] = min_opinion
 }
 
-function get_player_danger_score(tP, oP){
-	if(tP==oP)
-		return 0
-	if(!tP.inAlliance(oP)){	
-		player_danger_score = 5	
-		player_danger_score += oP.intimidation - tP.intimidation/2
-				
-		if(oP.weapon)
-			player_danger_score += 10
-		if(oP.offhand)
-			player_danger_score += 5
+//calculates the outcome of tp trying to steal from op
+function steal_from_target(tP, oP){
+	//random chance to fail
+	if(roll_range(1,100)<5)
+		return 'failure';
+	
+	if(oP.ignore_terrain)
+		return 'failure';
+	
+	if(oP.unaware)
+		return 'success';
 		
-		if(tP.opinions[oP.id]>250)
-			player_danger_score-=30
-		else if(tP.opinions[oP.id]<-250)
-			player_danger_score+=10
-		
-		if(player_danger_score > 0){
-			player_danger_score *= (1 + (oP.health/oP.maxHealth))
-			player_danger_score *= (2 - (tP.health/tP.maxHealth))
-		}				
-		else{
-			player_danger_score *= (2 - oP.health/oP.maxHealth)	
-			player_danger_score *= (1 + (tP.health/tP.maxHealth))
-		}
-		player_danger_score += 10 * Math.max(1-(tP.opinions[oP.id]/100), 0.01)		
+	tP.calc_bonuses();
+	oP.calc_bonuses();
+	
+	let tP_roll = 100;
+	let oP_roll = 50;
+	
+	// tP_vis = tP.visibilityB + tP.visibility;
+	// tP_roll += (100 - tP_vis);
+	tP_roll -= tP.visibilityB;
+	
+	// oP_sight = oP.sightRange+oP.sightRangeB;
+	// oP_roll += (oP_sight - 200);
+	oP_roll += oP.sightRangeB;
+	
+	if(!oP.awareOfPlayer(tP))
+		oP_roll -= 20;
+	
+	if(oP.attack_target==tP)
+		tP_roll -= 30;
+	
+	if(oP.opponents.length>1)
+		oP_roll += 5*oP.opponents.length;
+	
+	tPr = roll_range(0,tP_roll);
+	oPr = roll_range(0,oP_roll);
+	
+	log_message(tP.name + ' steal roll ' +tPr+','+ oPr);
+	if(tPr>oPr){
+		if((tPr-oPr)*tP.moveSpeedB < 20)
+			return 'success seen';
+		else
+			return 'success';
 	}
 	else{
-		//alliance members
-		player_danger_score = -20		
-		player_danger_score -= oP.intimidation/5
-		player_danger_score -= tP.opinions[oP.id]/10
-		player_danger_score -= tP.alliance.unity/10
-		
-		if(oP.weapon)
-			player_danger_score -= 10
-		if(oP.offhand)
-			player_danger_score -= 5
-		
-		if(player_danger_score > 0)
-			player_danger_score *= (2 - oP.health/oP.maxHealth)
-		else
-			player_danger_score *= (1 + (oP.health/oP.maxHealth))				
-	}
-	if(oP==tP.last_opponent)
-		player_danger_score += 50;
-	player_danger_score = tP.apply_all_calcs('playerDangerCalc', player_danger_score, {'opponent':oP})
-	player_danger_score = oP.apply_all_calcs('playerDangerCalcOther', player_danger_score, {'opponent':tP})
-				
-	return player_danger_score
-	// console.log(oP.name + ' ' +player_danger_score)
+		if(oP.incapacitated)
+			return 'caught';
+		if(roll_range(1,50) < (oPr-tPr)*oP.moveSpeedB)
+			return 'caught attack'
+		return 'caught'
+	}	
+	return 'success';
 }
 
+
+/*
 function doodadCheck(tP){
+	log_message('doodadcheck')
 	doodads.forEach(function(tD,index){
 		let dist = hypD(tP.x - tD.x, tP.y - tD.y);
 		if(dist <= tD.triggerRange){
@@ -438,7 +599,7 @@ function doodadCheck(tP){
 		}
 	});
 }
-
+*/
 //calculate damage
 function rollDmg_old(tP, oP){
 	if(tP.fightDmgB<0){
@@ -486,7 +647,7 @@ function attack_old(attacker, defender, counter, fightMsg){
 	fightMsg.events.push(attacker.name + " deals "+ roundDec(dmg)+ " damage to " + defender.name);
 	attacker.apply_all_effects("dealDmg", {"opponent":defender, "damage":dmg, "dmg_type":dmg_type, "fightMsg":fightMsg });
 	// defender.health -= dmg;
-	defender.take_damage(dmg, attacker, dmg_type, fightMsg)
+	defender.take_damage(dmg, attacker, dmg_type, fightMsg);
 	
 	attacker.exp += dmg;
 	log_message(attacker.name + " deals " + dmg + " damage to "+ defender.name);
@@ -656,3 +817,9 @@ function fight_target_old(tP,oP){
 	// log_message(tP.opponents)
 	// log_message(oP.opponents)
 }
+
+
+
+
+
+

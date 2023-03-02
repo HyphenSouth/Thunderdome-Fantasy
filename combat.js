@@ -260,9 +260,12 @@ function fight_target(tP,oP){
 	//update some stuff
 	tP.last_opponent = oP;
 	tP.opponents.push(oP);
+	tP.totalFights++;
+	tP.totalAttacks++;
 	
 	oP.last_opponent = tP;
 	oP.opponents.push(tP);	
+	oP.totalFights++;
 	
 	//set action states
 	tP.lastActionState = "fighting"	

@@ -127,6 +127,14 @@
 	
 </body>
 <style>
+:root {
+  --fight_color: #FF4060;
+  --ally_color: #BAD4D0;
+  --sleep_color:#EEEE55;
+  --forage_color:#99EE55;
+  --steal_color:#AB00FF;
+}
+
 /*main*/
 html,body{
 	font-family:helvetica;
@@ -226,31 +234,35 @@ html,body{
 	/*alliance member*/
 	#table .container.alliance{
 		background-color:#474747 !important;
-		box-shadow: inset 0 0 2px #ab00ff;
+		box-shadow: inset 0 0 2px var(--ally_color);
 	}
 	/*char states*/
 	#table .container.fighting .status{
-		color:#FF4060;
+		color:var(--fight_color);
 		/*box-shadow: inset 0 0 3px #FF0000;*/
 		/*background-color:#FF000020;*/
 	}
 	#table .container.sleep .status{
-		color: #EEEE55;
-		/*box-shadow: inset 0 0 3px #EEEE55;*/
+		color: var(--sleep_color);
+		/*box-shadow: inset 0 0 3px var(--sleep_color);*/
 		/*background-color:#AAAA8020;*/
+	}	
+	#table .container.steal .status{
+		color: var(--steal_color);
 	}
 	#table .container.forage .status{
-		color: #99EE55;
+		color: var(--forage_color);
 		/*box-shadow: inset 0 0 3px #B6E375;*/
 		/*background-color:#BBEE7720;*/
 	}
+	
 	/*highlighted alliance*/
 	#alliances .container.alliance_highlight{
 		background-color:#575757 !important;
-		box-shadow: inset 0 0 4px #ab00ff;
+		box-shadow: inset 0 0 4px var(--ally_color);;
 	}
 	#table .container.allyEvent .status{
-		color: #ab00ff;
+		color: var(--ally_color);;
 	}
 	
 /*character info window*/
@@ -630,14 +642,14 @@ html,body{
 	}
 	/*alliance*/
 	.char.alliance{
-		border-color:#ab00ff;
-		color:#ab00ff;
+		border-color:var(--ally_color);;
+		color:var(--ally_color);;
 		font-weight:bold;
 		z-index:9;
 	}
 /*opinions*/
 .fought{
-	color:#FF4060;
+	color:var(--fight_color);
 }
 .seen{
 	color:#00FFFF;

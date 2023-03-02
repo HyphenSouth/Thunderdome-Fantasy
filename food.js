@@ -1,4 +1,4 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",10],["ebiroll",5],["str_potion",0],["purple",5],["onigiri",10],["soup",5],["pizza",6]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",8],["ebiroll",5],["str_potion",0],["purple",5],["onigiri",10],["soup",5],["pizza",8],["orange",9]]
 
 function get_food_odds(tP){
 	let foodOdds = defaultFoodOdds.slice();
@@ -13,6 +13,11 @@ class EatAction extends Action{
 		this.food = data['food']
 	}
 	perform(){
+		if(this.food.player!=this.player){
+			this.player.statusMessage =  "unable to eat their " +this.food.name;
+			this.player.lastActionState = "eating fail";
+			return;
+		}			
 		this.food.eat();
 		this.player.lastActionState = "eating";
 	}

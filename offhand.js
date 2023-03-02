@@ -1,5 +1,5 @@
 var off_prob = 2;
-var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",200],["campfire",15],["mirror",40],["Nothing",200]];
+var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",200],["campfire",15],["mirror",40]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
 	if(!doll && tP.get_status_effect("hellbound")=="")
@@ -44,17 +44,29 @@ class Offhand extends Item{
 		}		
 	}
 	
-	replace_offhand(new_item){
+	replace_offhand(new_item, drop = false){
 		if(!this.replacable)
 			return false;
-		this.player.offhand=new_item;
-		new_item.equip(this.player);		
-		this.player = '';
+		let tP = this.player;
+		let uneq = false;
+		if(drop){
+			uneq = this.drop();
+		}
+		else{
+			uneq = this.unequip();
+		}
+		if(!uneq)
+			return false;
+		tP.offhand=new_item;
+		new_item.equip(tP);
 		return true;
 	}
 	
 	unequip(){
 		this.destroy();
+		if(this.player)
+			this.player.offhand = '';
+		this.player = '';
 		return true;
 	}
 
@@ -95,6 +107,7 @@ class Offhand extends Item{
     destroy(){
 		log_message(this.player.name +"'s " + this.name+" breaks");
 		this.player.offhand = "";   
+		//deselect
 		super.destroy();
 	}
 	
@@ -106,12 +119,22 @@ class Bomb extends Offhand {
 	}	
 	use(){
 		let tempBomb = new BombEntity(this.player.x, this.player.y, this.player);
-		// tempBomb.draw();
-		// doodads.push(tempBomb);
 		createDoodad(tempBomb);
-		this.destroy()
-		// this.player.offhand="";
-		// this.player="";
+		this.destroy();
+	}
+	
+	drop(){
+		let coords = [500,500];
+		if(this.player)
+			coords = [this.player.x, this.player.y];		
+		let uneq = this.unequip();
+		if(uneq && this.tradable){
+			let drop = '';
+			drop = new BombEntity(coords[0], coords[1], this.player);
+			drop.duration=roll_range(1,5);
+			createDoodad(drop);
+		}
+		return uneq;
 	}
 	
 	effect(state, data={}){
@@ -208,7 +231,8 @@ class Recoil extends Offhand{
 						recoil_dmg=this.uses;
 					}
 					oP.take_damage(recoil_dmg, this, "recoil")
-					data.fightMsg.events.push(oP.name + " takes "+roundDec(recoil_dmg)+ " recoil damage from " + this.player.name);
+					if(data.fightMsg.events)
+						data.fightMsg.events.push(oP.name + " takes "+roundDec(recoil_dmg)+ " recoil damage from " + this.player.name);
 					log_message(this.player.name + " recoil on " + oP.name + " "+ recoil_dmg);
 					if(oP.health<=0){
 						oP.death = "killed by recoil damage from " + this.player.name;
@@ -337,6 +361,18 @@ class Mirror extends Offhand{
 		//tele target
 		this.target=""
 		this.broken=false;
+	}
+	
+	drop(){
+		let coords = [500,500];
+		if(this.player)
+			coords = [this.player.x, this.player.y];		
+		let uneq = this.unequip();
+		if(uneq && this.tradable){
+			let drop = new MirrorEntity(coords[0], coords[1], '');
+			createDoodad(drop);
+		}
+		return uneq;
 	}
 	
 	effect(state, data={}){
@@ -541,6 +577,7 @@ class MeatShield extends Offhand {
 		this.tradable = false;
 		this.stealable = false;
 		this.replacable = false;
+		this.value = 1000;
 	}
 	
 	equip(wielder){

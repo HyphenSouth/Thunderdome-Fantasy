@@ -181,20 +181,6 @@ class Brat extends Attr{
 	}	
 }
 
-class TeaAction extends Action{
-	constructor(player, data){
-		super("tea", player);
-		this.attr = data.attr
-	}
-	perform(){
-		// this.attr.tea();
-		this.player.energy += this.player.maxEnergy*0.5;
-		this.player.health += this.player.maxHealth*0.3;
-		this.player.lastActionState = "tea";
-		this.player.statusMessage = "Stops to drink tea";
-	}
-}
-
 //drinks tea at 3
 class Bong extends Attr{
 	constructor(player){
@@ -216,6 +202,20 @@ class Bong extends Attr{
 				}
 				break;
 		}
+	}
+}
+
+class TeaAction extends Action{
+	constructor(player, data){
+		super("tea", player);
+		this.attr = data.attr
+	}
+	perform(){
+		// this.attr.tea();
+		this.player.energy += this.player.maxEnergy*0.5;
+		this.player.health += this.player.maxHealth*0.3;
+		this.player.lastActionState = "tea";
+		this.player.statusMessage = "Stops to drink tea";
 	}
 }
 
@@ -668,7 +668,7 @@ class Kurt extends Band{
 		switch(state){
 			case "itemOdds":
 				if(data.item_type=='wep'){
-					x=[["guitar",500],["shotgun", 600]]
+					x=[["guitar",500],["shotgun", 500]]
 				}
 				break;
 		}
@@ -769,6 +769,14 @@ class Elfen extends Attr{
 			this.player.statusMessage = "chops off " + oP.name + "'s " + limb;
 			oP.statusMessage = "has thier " + limb + " chopped off by " + this.player.name;		
 		}	
+	}
+	
+	stat_html(){
+		let html= super.stat_html()+
+		"<span class='desc'>"+
+			"<span>CHOP CHOP</span><br>"+	
+		"</span>"
+		return html;
 	}
 }
 
@@ -878,7 +886,7 @@ class Witch extends Attr{
 					return;
 				if(!this.flying && (this.player.currentAction instanceof MoveAction)){
 					if(Math.random()<0.6){						
-						this.player.inflict_status_effect(new Flight(3, this));
+						this.player.inflict_status_effect(new Flight(3));
 					}
 				}					
 				break;
@@ -1431,11 +1439,117 @@ class BoccAutism extends StatusEffect{
 }
 
 
+class Snip extends Attr{
+	constructor(player, snip_img){
+		super("snip", player);
+		this.snip_img = snip_img;
+		
+		this.remade=false;
+		this.has_info = true;
+		
+		this.fightBonus = 0.95;
+		this.dmgReductionB =1.1;
+		this.moveSpeedB = 0.9;
+	}
+		
+	effect(state, data={}){
+		switch(state){
+			case "death":
+				if(!this.remade){
+					this.revive()
+				}
+			break;
+		}
+	}
+	revive(){
+		this.remade=true;
+		
+		//fake death
+		$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + this.player.img + "'></img><del>" + this.player.death + "</del></td>>");
+		this.player.death = '';
+		this.player.dead = false;
+		
+		//update status
+		this.player.statusMessage = '✂️CHARACTER DEVELOPMENT✂️';
+		pushMessage(this.player, '✂️'+this.player.name+' UNDERGOES CHARACTER DEVELOPMENT✂️');
+		
+		//change name
+		let name = "✂️" + this.player.name
+		this.player.change_name(name)
+		if(this.snip_img)
+			this.player.change_img(this.snip_img);
+		// this.player.name = name;
+		// this.player.div.find('.charText').text(name);
+		// this.player.tblDiv.find('.info div:first-child b').text(name);
+		
+		//set health
+		this.player.maxHealth = this.player.maxHealth*0.5;
+		this.player.health = this.player.maxHealth;
 
+		this.player.resetPlannedAction();
+		
+		//clear status
+		this.player.status_effects.forEach(function(eff){
+			if(eff.name!='hinamizawa'){
+				eff.wear_off();
+			}			
+		});
+		
+		//stat increase
+		this.fightBonus = 1.25;
+		this.dmgReductionB =0.9;
+		this.moveSpeedB = 2;
+		this.intimidationBonus = 20;
+	}
+}
 
-
-
-
+class Fly extends Attr{
+	constructor(player){
+		super("fly", player);		
+		this.has_info = true;
+		this.flying = false;
+		this.eff = '';
+		this.last_flight = -5;
+		this.moveSpeedB = 0.8;
+	}
+	
+	effect(state, data={}){		
+		switch(state){
+			case "turnStart":
+				if(this.eff){
+					if(this.eff.duration<=0 || this.eff.player!=this.player){
+						this.eff='';
+						this.flying = false;
+						this.last_flight = 0;
+						this.moveSpeedB = 0.8;
+					}
+				}
+				else{
+					this.last_flight++;
+				}
+				break;
+			case "doActionBefore":
+				if(!this.flying && this.last_flight>5 && (this.player.currentAction instanceof MoveAction)){
+					if(Math.random()<0.6){			
+						let flight = new Flight(20)
+						this.player.inflict_status_effect(flight);
+						this.eff = flight;
+						this.flying = true;
+						this.moveSpeedB = 1;						
+					}
+				}					
+				break;
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()
+		
+		if(this.flying)
+			html += "<span>Flying</span>"
+		
+		return html;
+	}
+}
 
 
 

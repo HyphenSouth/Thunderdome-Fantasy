@@ -34,6 +34,8 @@ var attr_data = {
 	"witch": Witch,
 	"retard": Retard,
 	"bocc": Bocc,
+	"snip": Snip,
+	"fly": Fly,
 }
 
 //weapon
@@ -132,7 +134,7 @@ var weapon_data = {
 		"intimidationBonus" : 20,
 		"uses" : [3,8],
 		"class": Clang,
-		"value": 50
+		"value": 100
 	},
 	"flamethrower" : {
 		"icon" : "./icons/flamethrower.png",
@@ -162,14 +164,14 @@ var weapon_data = {
 		"rangeBonus" : 24,
 		"uses" : 60,
 		"class": Ancient,
-		"value": 1
+		"value": 3
 	},
 	"rake" : {
 		"icon" : "🧹",
 		"dmg_type" : "melee",
 		"uses" : 3,
 		"class": Rake,
-		"value": 9
+		"value": 8
 	},
 	"cross" : {
 		"icon" : "✝️",
