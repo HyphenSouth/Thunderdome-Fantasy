@@ -1,4 +1,4 @@
-defaultFoodOdds = [["apple",10],["pie",10],["banana",8],["ebiroll",5],["str_potion",0],["purple",5],["onigiri",10],["soup",5],["pizza",8],["orange",9]]
+defaultFoodOdds = [["apple",10],["pie",10],["banana",8],["ebiroll",5],["str_potion",0],["purple",5],["onigiri",10],["soup",5],["pizza",8],["orange",9],["spaghetti",10]]
 
 function get_food_odds(tP){
 	let foodOdds = defaultFoodOdds.slice();

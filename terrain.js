@@ -9,7 +9,20 @@ var terrain_icons = {
 	"none":""
 }
 
-function setTerrain(newTerrain){
+function printTerrain(){
+	for(let x=0; x<terrain.length; x+=25){
+		let t = ''
+		for(let y=0; y<terrain.length; y+=25){
+			if(terrain[y][x])
+				t+=terrain[y][x].type[0];
+			else
+				t+='.';
+		}
+		console.log(t);
+	}
+}
+
+function setTerrain(newTerrain, draw_none=true){
 	// let roundX = Math.round(x/25)*25;
 	// let roundY = Math.round(y/25)*25;	
 	
@@ -19,7 +32,9 @@ function setTerrain(newTerrain){
 		terrain[roundX]=[]
 	}
 	terrain[roundX][roundY]=newTerrain;
-	terrain[roundX][roundY].draw();
+	if(draw_none || terrain.type!='none')
+		terrain[roundX][roundY].draw();
+	// log_message('set ' + newTerrain.type+' at ' + roundX + ','+roundY);
 }
 
 //get the terrain object at coords
@@ -30,12 +45,14 @@ function getTerrain(x,y){
 	let roundX = Math.round(x/25)*25;
 	let roundY = Math.round(y/25)*25;
 	// let tempTerrain=genericTerrain;
-	let tempTerrain = ""
+	let tempTerrain = "";
 	if(terrain[roundX]){
 		if(terrain[roundX][roundY]){
 			tempTerrain= terrain[roundX][roundY];
 		}
 	}
+	// if(tempTerrain=='')
+		// return genericTerrain;
 	return tempTerrain;
 }
 
@@ -72,13 +89,16 @@ function create_terrain(type, x, y){
 			}			
 			break;
 		case "none":
-			newTerrain = new Terrain('none', x, y)
+			newTerrain = new Terrain('none', x, y);
 			break;
 		case "rand":
 			//generate random terrain type
 			// let rand_type = roll([["tree",100],["mtn",5],["none",250],["water",5]]);
 			let rand_type = roll([["tree",120],["mtn",8],["none",250],["water",5]]);
 			newTerrain = create_terrain(rand_type, x, y)
+			break;
+		default:
+			newTerrain = new Terrain('none', x, y);
 			break;
 	}
 	return newTerrain;

@@ -406,14 +406,12 @@ Players may still attack and fight back with an empty shotgun, though it will ha
 Weak ranged weapon with a damage bonus of only x0.95, making it weaker than attacking unarmed.
 Applies a burn effect to the target causing damage over time.
 Nearby players also have a chance of being set on fire.
-Has a chance of leaving a fire entity at the location of the main target, which may set other players and the terrain on fire.
 
 <details>
 	<summary>Dev notes</summary>
 	I didn't want the burn effect locked behind a single rare weapon, so a flamethrower is a nobrainer to include.
-	Lighting the ground on fire was a bit of an impulse feature as I wanted to reuse the fire entity from the campfire.
-	Despite being weaker than normal, it is one of the more noticeable weapons. A bit too much in fact.
-	I may remove some of its current effects and move them over to the Shinkai Makai instead.
+	
+	The weapon used to also leave a fire entity on the ground. This has since been moved to the Shinkai Makai.
 	
 	I went through about 5 different designs for the sprite. None of them ended up looking very good at a small scale. 
 	The current sprite has a bright pistol design, which doesn't scream flamethrower but is far more readable.
@@ -424,12 +422,12 @@ Has a chance of leaving a fire entity at the location of the main target, which 
 	Damage Bonus: Depends on spell
 	Range Bonus: +24
 	Uses: 60 runes
-Unique magic weapon capable of casting four different Blitz spells. 
+Unique magic weapon capable of casting four different Ancient spells. 
 Spells have different damage bonuses and rune costs, and have different effects on hit.
 Each spell type also has an stronger Barrage variant that hits up to 8 additional nearby players and deals increased damage at the cost of more runes.
 Those caught in the AoE will be afflicted with weaker versions of spell effects.
 
-Below are the four spell types. Damage and rune cost listed are for the Blitz variant. 
+Below are the four spell types. Damage and rune cost listed are for the Blitz(single target) variant. 
 Barrage spells deal an additional x1.1 damage and have a x1.5 rune cost:
 
 #### Smoke
@@ -519,6 +517,7 @@ Does not lose durability and cannot be replaced.
 
 <details>
 	<summary>Dev notes</summary>
+	
 	One of the weapons ported from the original Thunderdome. Originally its functions were scattered in several files. 
 	Much of the very first update focused on putting all of those features into a single location. 
 	A lot of the current Thunderdome is still built around the framework created for this weapon.
@@ -547,6 +546,7 @@ Does not lose durability and cannot be replaced.
 
 <details>
 	<summary>Dev notes</summary>
+	
 	This was one of the original weapons I wanted to implement when first taking over the project.
 	I had to first create the status effect framework before I can start development. 
 	Once that is done, implementation was surprisingly simple.
@@ -626,13 +626,14 @@ The mirror will try to put the wielder in bounds, but is not guaranteed.
 If the destination is out of map bounds, the character is considered to have teleported into space and dies instantly.
 
 Certain characters can choose their destination. 
-These are characters with certain attributes, such as magic or demon, or characters with the Nanasatsu Tenryou.
+These are characters with certain attributes, such as magic or demon, or characters wielding the Nanasatsu Tenryou.
 There are 3 types of teleport types depending on what caused them to want to teleport: aggressive, defensive and neutral.
 The chosen teleport type will align with the player's goals.
-Nanasatsu Tenryou will teleport aggressively.
+Nanasatsu Tenryou will teleport aggressively unless the player also has a valid attribute.
 
 <details>
 	<summary>See below for details on how the destination is selected</summary>
+	
 	### Random Teleport
 	Teleport to a random location. Used by characters that cannot choose their destination.
 	
@@ -714,7 +715,7 @@ Most status effects wear off after a set duration, though some wear off based on
 ### Stacking
 If a character is inflicted with a status effect they already have, it attempts to stack.
 Stacking behaves differently based on effect. Generally there are 2 methods of stacking: 
-	- Increase the power or duration of the effect based on the power of the new effect
+	- Increase the power and/or duration of the effect based on the power of the new effect
 	- Override the current effect if it has a higher level, otherwise do nothing. This is the default stacking behavior.
 Some status effects cannot be stacked at all.
 
@@ -812,6 +813,7 @@ A damage over time effect that also provides a few stat debuffs.
 	
 ### Bleed 🩸
 	Damage per Turn: 1 to 5 (see below)
+A DoT effect that starts weak but becomes increasingly dangerous over time and especially when stacked.
 The max damage increases by x1.2 at the start of each turn.  
 This effect has no set duration. 
 Instead there is a chance for it to wear off at the start of each turn.
@@ -819,6 +821,13 @@ The chance to wear off depends on the level, starting at 30% at level 1 and decr
 
 Stacking bleed increases its damage and makes it harder to wear off.
 The both max damage and level increases by the level of the new bleed.
+<details>
+	<summary>Dev notes</summary>
+	Originally designed for the PaperMaster's unique paper items. It's supposed to represent paper cuts from their paper attacks. 
+	I based this off the Bleed effect from the Shadow Hydra boss in Adventure Quest. 
+	It was notorious for stacking bleeds that grows exponentially in power which shredded everyone's low Endurance builds back in the day.
+</details>
+
 
 </details>
 
@@ -898,7 +907,7 @@ this thing is probably getting taken out so im not writing anything for it
 ---
 
 # Meta
-Below are some general functions used in various places.
+Below are some general utility functions used in various places.
 
 **`roll_range(min, max)`**
 Chooses a random integer between `min` and `max` (inclusive)
@@ -906,11 +915,10 @@ Chooses a random integer between `min` and `max` (inclusive)
 **`roll(options)`**
 A weighted roll 
 
-**`log_message()`**
-
 **`round_dec()`**
 
-**`log_message()`**
+**`log_message(msg, msg_level=0)`**
+Displays msg in the console. You can stop them from displaying by toggling the show_msg variable, or filter them by show_level. not that i ever use these features
 
 **`hypD()`**
 

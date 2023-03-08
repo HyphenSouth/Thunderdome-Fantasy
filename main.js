@@ -497,9 +497,9 @@ function onStart(){
 	// playerStatic[0].equip_item(create_offhand('mirror'));
 	max_alliance_size = 0;
 	max_alliance_count = 0;
-	players.forEach(function(oP){
-		oP.inflict_status_effect(new Skulled(10000))
-	});
+	// players.forEach(function(oP){
+		// oP.inflict_status_effect(new Skulled(10000))
+	// });
 }
 
 //keyboard inputs
@@ -1268,32 +1268,39 @@ function nearbyPlayers(x, y, dist){
 
 function loadMap(map_lst, rand_terrain=[["tree",120],["mtn",8],["water",5]]){
 	log_message('loading map');
+	// for(var i = 0;i<map_lst.length;i++){
+		// terrain[i*25] = [];
+	// }
+	terrain=[]
 	for(var i = 0;i<map_lst.length;i++){
-		terrain[i*25] = [];
-		for(var j=0; j<map_lst.length;j++){
-			if(map_lst[i][j]!='' && map_lst[i][j]!=' '){
+		// terrain[i*25] = [];
+		for(var j=0; j<map_lst[i].length;j++){
+			// if(map_lst[i][j]!='' && map_lst[i][j]!=' '){
 				let temp_type = "";
 				switch(map_lst[i][j].toLowerCase()){
 					case "m":
-						temp_type = "mtn"
+						temp_type = "mtn";
 						break;
 					case "t":
-						temp_type = "tree"
+						temp_type = "tree";
 						break;
 					case "w":
-						temp_type = "water"
+						temp_type = "water";
 						break;
 					case "r":
-						temp_type = roll(rand_terrain)
+						temp_type = roll(rand_terrain);
 						break;
 					case "0":
-						temp_type = "rand"
-						break;						
+						temp_type = "rand";
+						break;
+					default:
+						temp_type = "none";
+						// temp_type = "water";
+						break;
 				}
-				;
 				let tempTerr = create_terrain(temp_type,j*25,i*25); //generate a random terrain
-				setTerrain(tempTerr);
-			}
+				setTerrain(tempTerr, false);
+			// }
 		}
 	}
 	log_message('map loaded');
@@ -1340,7 +1347,7 @@ function regular_generation(){
 			if(inBoundsCheck(i,j)){
 				//timerClick("terrain row " + i + " col " + j);
 				let tempTerr = create_terrain("rand",i,j); //generate a random terrain
-				setTerrain(tempTerr);
+				setTerrain(tempTerr, false);
 			}
 		}
 		log_message('finished '+i);
@@ -1446,6 +1453,7 @@ function generateFull(){
 			}
 		}
 		log_message('finished '+i);
+		generated = true;
 	}
 }
 

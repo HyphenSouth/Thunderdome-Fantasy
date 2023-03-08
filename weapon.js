@@ -2,7 +2,7 @@ var wep_prob = 3;
 var sexSword = true;
 var spicy = true;
 var defaultWeaponOdds = [
-	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],["guitar",18],
+	["knife",30],["gun",20],["lance",25],["bow",20],["wand",18],["cross",20],["rake",20],["guitar",18],["surfboard",18],
 	["katana", 25], ["shotgun", 25], ["sniper",20],
 	["clang",10], ["flamethrower",20], ["ancient", 25]
 ];
@@ -1115,6 +1115,34 @@ class Cross extends Weapon {
 	}
 }
 
-
-
-
+class Surfboard extends Weapon {
+	constructor() {
+		super("surfboard");
+		this.base_dmg = 1.05;
+		this.trigger_dmg = 1.6;
+		this.trigger_speed = 3;
+	}
+	calc_bonuses(){
+		
+		let t = getTerrainType(this.player.x, this.player.y);
+		if(t=='water'){
+			this.fightBonus = this.trigger_dmg;
+			this.moveSpeedB = this.trigger_speed;
+		}
+		else{
+			this.fightBonus = this.base_dmg;
+			this.moveSpeedB = 1;
+		}
+		super.calc_bonuses()
+	}
+	// stat_html(){
+		// let html = "<span><b>Dmg Bonus:</b>x"+this.base_dmg+"</span><br>"+
+		// "<span><b>Water Dmg Bonus:</b>x"+this.trigger_dmg+"</span><br>"+
+		// "<span><b>Water Speed Bonus:</b>x"+this.trigger_speed+"</span><br>"+
+		// "<span class='desc'>"+
+			// "<span>Damage and speed bonus on water</span><br>"+
+		// "</span>"
+		
+		// return html;
+	// }
+}

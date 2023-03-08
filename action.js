@@ -1,8 +1,7 @@
 class Action{
 	constructor(name, player, turns=1, action_priority=0){
 		this.name = name;
-		this.player = player;	
-		
+		this.player = player;
 		
 		//if the action is finished for the turn
 		this.turn_complete = false;	
@@ -90,6 +89,33 @@ class Action{
 	
 	//end of turn
 	turn_end(){}
+}
+
+class ImmobileAction extends Action{
+	constructor(name, player, turns=1, action_priority=1, statusText="immobolized", actionState="immobolized"){
+		super(name, player, turns, action_priority);
+		this.statusText = statusText;
+		this.actionState = actionState;
+		
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		
+		this.combat_interruptable = false;	
+		this.combat_cancellable = false;
+	}
+	
+	turn_start(){
+		super.turn_start()
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+	}
+
+	perform(){
+		this.player.unaware=true;
+		this.player.incapacitated=true;
+		this.player.lastActionState = this.actionState;
+		this.player.statusMessage = this.statusText;
+	}
 }
 
 class RestAction extends Action{
@@ -725,19 +751,3 @@ class StealAction extends Action{
 		}		
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

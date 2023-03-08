@@ -161,6 +161,8 @@ function get_follow_score(tP,oP, follow_type){
 	return score;
 }
 
+
+
 //get a score for how much a tp wants to fight op
 //score will be used in a weighted roll
 //only those with a positive score will be rolled

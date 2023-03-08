@@ -2,6 +2,8 @@ function generateJibunWo(){
 	customMap = new JibunWoMap();	
 	clearTerrain();
 	loadMap(jibunwomap);
+	// loadMap(blank_map);
+	generated = true;
 }
 		
 class JibunWoMap extends CustomMap{
@@ -18,6 +20,13 @@ class JibunWoMap extends CustomMap{
 		tempChar.attributes.push(new GeassControl(tempChar));
 		this.control = tempChar;
 		pushMessage(tempChar, tempChar.name + " is gifted the power of kings!")
+		
+		let stop_index = roll_range(0,players.length-1);
+		// let control_index = 0;
+		tempChar = players[stop_index];
+		tempChar.attributes.push(new GeassRolo(tempChar));
+		this.kc = tempChar;
+		pushMessage(tempChar, tempChar.name + " is gifted with King Crimson!")
 		
 		defaultFoodOdds=[["pizza",95],["soup",5],["orange",20]];
 	}
@@ -550,15 +559,86 @@ class GeassControlStatus extends StatusEffect{
 
 class GeassCanceller extends Offhand{}
 
-class GeassRolo extends Attr{}
-class GeassFreezeAction extends Action{}
-class GeassFreeze extends StatusEffect{}
+class GeassRolo extends Attr{
+	constructor(player){
+		super("geass rolo", player);		
+		this.has_info = true;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "surroundingCheck":
+				if(this.player.incapacitated)
+					return
+				if(this.player.energy<20)
+					return
+				let roll_score = this.player.danger_score/5;
+				if(this.player.inRangeOfPlayer(this.player.last_opponent))
+					roll_score += 30;
+				if(roll_range(0, 100-this.player.health) < roll_score){
+					this.activate_geass();
+				}
+				break;
+		}
+	}
+	
+	activate_geass(){
+		let tP = this.player;
+		let range = roll_range(0, 20 + tP.health + this.player.danger_score/10)
+		let stop_count = 0;
+		tP.nearbyPlayers(range + 20).forEach(function(oP){
+			stop_count++;
+			oP.inflict_status_effect(new GeassStopEff(tP));
+		});
+		// tP.statusMessage = "activates their Geass";
+		if(stop_count>0){
+			pushMessage(tP, tP.name + " skips time");
+			tP.health -= range/20 + stop_count * 3 + 1;
+			tP.energy -= 20;
+			if(tP.health<=0){
+				tP.death = "overuses their Geass and dies";
+			}
+		}
+	}
+}
 
+class GeassStopEff extends StatusEffect{
+	constructor(owner){
+		super("geass stop", 1, 1);
+		this.display_name = "Geass";
+		this.icon = setEffIcon('./icons/geass.png')
+		this.owner = owner;
+	}
+	
+	//cannot be stacked
+	stack_effect(eff){
+		return false
+	}
+	
+	effect(state, data={}){		
+		switch(state){
+			case "planAction":
+				this.player.setPlannedAction("geass stop", 19, GeassStopAction, {});
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	stat_html(){
+		let html= super.stat_html()+
+		"<span class='desc'>"+
+			"Unable to percieve time"+
+		"</span>"
 
+		return html;
+	}
+}
 
-
-
-
-
-
+class GeassStopAction extends ImmobileAction{
+	constructor(player, data){
+		super("geass stopped", player, 1, 19, 'unable to percieve time', 'geass stopped')
+	}
+}
 

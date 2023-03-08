@@ -286,21 +286,10 @@ class Trapped extends StatusEffect{
 	}	
 }
 
-class TrapEscapeAction extends Action{
+class TrapEscapeAction extends ImmobileAction{
 	constructor(player, data){		
-		super("trap escape", player, 999, 22)
+		super("trap escape", player, 999, 22, 'tried to escape a trap', 'trapped')
 		this.effect = data.effect
-		this.player.unaware=true;
-		this.player.incapacitated=true;
-		
-		this.combat_interruptable = false;	
-		this.combat_cancellable = false;
-	}
-	
-	turn_start(){
-		super.turn_start()
-		this.player.unaware=true;
-		this.player.incapacitated=true;
 	}
 	
 	perform(){
@@ -652,21 +641,10 @@ class DecoyEffect extends StatusEffect{
 	}	
 }
 
-class FrozenAction extends Action{
+class FrozenAction extends ImmobileAction{
 	constructor(player, data){		
-		super("frozen", player, data.effect.duration, 22)
+		super("frozen", player, data.effect.duration, 22, "frozen in ice", "frozen");
 		this.effect = data.effect
-		this.player.unaware=true;
-		this.player.incapacitated=true;
-		
-		this.combat_interruptable = false;	
-		this.combat_cancellable = false;
-	}
-	
-	turn_start(){
-		super.turn_start()
-		this.player.unaware=true;
-		this.player.incapacitated=true;
 	}
 
 	perform(){

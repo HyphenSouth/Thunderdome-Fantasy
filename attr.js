@@ -1551,9 +1551,35 @@ class Fly extends Attr{
 	}
 }
 
-
-
-
-
-
-
+class Petoko extends Attr{
+	constructor(player){
+		super("petoko", player);		
+		this.has_info = true;
+		this.last_stick = 0;
+		this.visibilityB = -10;
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.last_stick++;
+				break;
+			case "turnEnd":
+				if(this.player.offhand)
+					return
+				let stick_target = '';
+				let tA = this;
+				let nearby = this.player.nearbyPlayers(25);
+				nearby.forEach(function(oP){
+					if(!stick_target && roll_range(0,100)<10 + tA.last_stick/3){
+						stick_target = oP;
+					}
+				});
+				if(stick_target){
+					this.player.equip_item(new MeatShield(stick_target, 5, 24))
+					pushMessage(this.player, this.player.name + " is stuck to " + stick_target.name);
+				}
+				break;
+		}
+	}
+}

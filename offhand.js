@@ -577,7 +577,7 @@ class MeatShield extends Offhand {
 		this.tradable = false;
 		this.stealable = false;
 		this.replacable = false;
-		this.value = 1000;
+		this.value = 10000;
 	}
 	
 	equip(wielder){
@@ -741,17 +741,12 @@ class MeatShieldEff extends StatusEffect{
 	}
 }
 
-class MeatShieldAction extends Action{
+class MeatShieldAction extends ImmobileAction{
 	constructor(player, data){		
 		super("meat shield", player, 999, 50)
 		this.effect = data.effect;
 		this.owner = this.effect.owner;
 		this.item = this.effect.item;
-		
-		this.player.unaware=true;
-		this.player.incapacitated=true;
-		this.combat_interruptable = false;	
-		this.combat_cancellable = false;
 	}
 	
 	turn_start(){
@@ -770,8 +765,6 @@ class MeatShieldAction extends Action{
 			return;
 		}
 		super.turn_start()
-		this.player.unaware=true;
-		this.player.incapacitated=true;
 	}
 	
 	perform(){

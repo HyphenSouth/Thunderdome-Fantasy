@@ -36,6 +36,7 @@ var attr_data = {
 	"bocc": Bocc,
 	"snip": Snip,
 	"fly": Fly,
+	// "petoko": Petoko,
 }
 
 //weapon
@@ -179,6 +180,14 @@ var weapon_data = {
 		"uses" : 4,
 		"class": Cross,
 		"value": 11
+	},
+	"surfboard" : {
+		"icon" : "./icons/surfboard.png",
+		"icon_type" : "img",
+		"dmg_type" : "melee",
+		"uses" : [4,6],
+		"class": Surfboard,
+		"value": 20
 	}
 }
 
@@ -319,6 +328,12 @@ var food_data = {
 		"uses": [3,10],
 		"heal": 3,
 		"value": 3		
+	},
+	"spagheti" : {
+		"icon":"🍝",
+		"uses": [2,3],
+		"heal": 5,
+		"value": 5	
 	}
 }
 
