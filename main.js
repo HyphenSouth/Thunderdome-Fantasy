@@ -485,10 +485,8 @@ function startGame(){
 
 function onStart(){
 	// globalAggro=5000;
-
-	// globalAggro=5000;
 	// createDangerZone(500);
-	// playerStatic[0].equip_item(create_weapon('ancient'));
+	playerStatic[0].equip_item(create_weapon('dnagun'));
 	// generateJibunWo();
 	// customMap.game_start();
 	
@@ -519,7 +517,15 @@ document.addEventListener('keydown', (e) => {
 		}
 	}
 });
-
+mapEventID=0
+mapEvents=[]
+function create_map_event(mapEvent){
+    mapEvent.id = mapEventID
+    mapEventID++
+    mapEvents.push(mapEvent)
+}
+u = new MapEvent('terrain update')
+u.end_update = terrainUpdate
 //progress turn for each player
 function turn(){
 	if(!dayComplete){
@@ -549,7 +555,10 @@ function turn(){
 
 	if(customMap)
 		customMap.start_update();
-
+    mapEvents.forEach(function(e){
+        e.end_update();
+    });
+    
 	//randomize the player list
 	players.sort(() => Math.random() - 0.5);
 
@@ -591,8 +600,10 @@ function turn(){
 
 	if(customMap)
 		customMap.end_update();
-	else
-		terrainUpdate();
+	mapEvents.forEach(function(e){
+        e.end_update();
+    });
+	terrainUpdate();
 
 	//check death
 	players.forEach(function(chara,index){

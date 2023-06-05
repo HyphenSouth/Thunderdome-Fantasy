@@ -126,6 +126,7 @@ class Cunny extends Attr{
 	
 	effect(state, data={}){
 		switch(state){
+            //passive charm
 			case "opAware":
 				let oP=data['opponent'];
 				if (Math.random() < 0.05){
@@ -909,6 +910,7 @@ class Retard extends Attr{
 	constructor(player){
 		super("retard", player);
 		this.intimidationBonus = -20;
+        this.has_info=true;
 	}
 	
 	effect(state, data={}){
@@ -1582,4 +1584,406 @@ class Petoko extends Attr{
 				break;
 		}
 	}
+}
+
+
+class AttentionWhore extends Attr{
+	constructor(player){
+		super("attention", player);		
+		this.has_info = true;
+		this.visibilityB = 20;
+	}
+}
+
+class Chad extends Attr{
+	constructor(player){
+		super("chad", player);		
+		this.has_info = true;
+        this.intimidationBonus = 40;
+        this.visibilityB = 20;
+        this.fightBonus = 1.05
+	}
+    
+    effect(state, data={}){
+		switch(state){
+            //passive charm
+			case "opAware":
+				let oP=data['opponent'];
+				if (Math.random() < 0.05){
+					let temp_charm = new Charm(this.player, 2);
+					oP.inflict_status_effect(temp_charm);
+				}
+				break;
+		}
+	}
+	stat_html(){
+		let html= super.stat_html()+
+		"<span class='desc'>"+
+			"<span>Passive charm</span><br>"+	
+		"</span>"
+		return html;
+	}
+}
+class Chadmode extends Attr{
+	constructor(player){
+		super("chadmode", player);
+		this.has_info = true;
+        this.chadmode = false;
+        this.chad_meter = 50;
+		this.original_img = this.player.img;
+        this.chad_img = 'https://cdn.discordapp.com/attachments/998843166138572821/1110117375770120272/chadmode.jpg';
+	}
+    
+    chadmode_activate(){
+        this.player.change_img(this.chad_img);
+        this.intimidationBonus = 80;
+        this.visibilityB = 20;
+        this.fightBonus = 1.2;
+        this.dmgReductionB = 0.8;
+        this.moveSpeedB = 1.05;
+        this.chad_meter = 100;
+        pushMessage(this.player, this.player.name+" activates chadmode")
+        this.chadmode = true;
+    }
+    
+    chademode_deactivate(){
+        this.player.change_img(this.original_img);
+        this.intimidationBonus = 0;
+        this.visibilityB = 0;
+        this.fightBonus = 1;
+        this.dmgReductionB = 1;
+        this.moveSpeedB = 1;
+        this.chad_meter = 0;
+        this.chadmode = false;
+    }
+    
+    effect(state, data={}){
+		switch(state){
+            //passive charm
+			case "opAware":
+                if(!this.chadmode)
+                    return
+				let oP=data['opponent'];
+				if (Math.random() < 0.05){
+					let temp_charm = new Charm(this.player, 2);
+					oP.inflict_status_effect(temp_charm);
+				}
+				break;
+            //passive increase
+            case "turnStart":
+                if(!this.chadmode)
+                    this.chad_meter += 2;
+                else{
+                    if(this.player.lastActionState == "sleeping")
+                        this.chad_meter -= 5;
+                    else
+                        this.chad_meter -= 10;
+                }
+                break;
+            case "attack":
+                this.chad_meter += 10;
+                break;
+            case "defend":
+                this.chad_meter += 10;
+                break; 
+            case "takeDmg":
+                this.chad_meter += data.damage/2;
+                break;
+		}
+        if(this.chad_meter>=100){
+            this.chad_meter=100
+            if(!this.chadmode)
+                this.chadmode_activate();            
+        }
+        if(this.chad_meter<=0){
+            this.chad_meter=0
+            if(this.chadmode)
+                this.chademode_deactivate()
+        }
+	}
+    
+    stat_html(){
+		let html= super.stat_html() + 
+            '<b>Chad Power:</b>' + roundDec(this.chad_meter) + '<br>'
+		return html;
+	}
+}
+
+class DNAMan extends Attr{
+	constructor(player){
+		super("DNAMan", player);		
+		this.has_info = true;
+		this.attrs=[]
+		this.dna_count=0;
+        this.ded_img = 'https://cdn.discordapp.com/attachments/1012219690866712607/1097721896654614538/image.png'
+	}
+    
+    //absorb dna of opponents
+    dna_absorb(oP){
+        this.player.exp += oP.exp;
+        let tA = this
+        oP.attributes.forEach(function(attr){
+            if(!tA.player.has_attr(attr.name)){
+                // tA.player.attributes.push(create_attr(attr.name, tA.player))
+                // let temp_op_attr = {...attr}
+                let temp_op_attr = Object.assign(Object.create(Object.getPrototypeOf(attr)), attr)
+                temp_op_attr.player = tA.player;
+                tA.player.attributes.push(temp_op_attr);
+                tA.attrs.push(attr);
+            }
+        });
+        this.dna_count++;
+    }
+    
+    effect(state, data={}){
+		switch(state){
+            case "win":
+                let oP=data['opponent'];
+                this.dna_absorb(oP);
+                pushMessage(this.player, this.player.name + " absorbs " + oP.name +"'s DNA");
+                break;
+            case "death":
+                this.player.change_img(this.ded_img)
+                break;
+		}
+	}
+    
+    stat_html(){
+		let html= super.stat_html()
+        
+        html += "<span><b>DNA absorbed:</b>"+this.dna_count+"</span><br>";
+        
+        let attr_txt='<b>DNA:</b><br>'
+        this.attrs.forEach(function(attr){
+            attr_txt += "<span>"+attr.name+"</span><br>"
+        });
+        
+        html+=attr_txt;
+        
+        html += "<span class='desc'>"+
+			"<span>o my dna</span><br>"+	
+		"</span>"
+		return html;
+	}
+}
+
+class Brapper extends Attr{
+	constructor(player){
+		super("brap", player);		
+		this.has_info = true;
+        this.brap_meter = 50;
+	}
+    
+    brap(){
+        if(this.brap_meter<100)
+            return
+        let clouds = Math.round(this.brap_meter/80) + 2
+        for(let i=0; i<clouds; i++){
+            let c = new BrapCloud(this.player, this.player.x + roll_range(-25,25), this.player.y + roll_range(-25,25), this.player)
+            createDoodad(c)
+        }
+        pushMessage(this.player, this.player.name + " lets out a big stinky BRAAAAAP 🤢🤢🤢")
+        this.brap_meter = 0;
+    }
+    
+    effect(state, data={}){
+		switch(state){
+            //passive increase
+            case "turnStart":
+                this.brap_meter += 1;
+                break;
+            case "surroundingCheck":
+                if(this.player.danger_score>100)
+                    this.brap_meter += this.player.danger_score/20
+                break;
+            case "defend":
+                this.brap_meter += 10;
+                if(this.brap_meter >=100){
+                    if(roll_range(0,this.brap_meter)>40){
+                        this.brap()
+                    }
+                } 
+                break; 
+            case "takeDmg":
+                this.brap_meter += data.damage;
+                if(this.brap_meter >=100){
+                    if(roll_range(0,this.brap_meter)>40){
+                        this.brap()
+                    }
+                } 
+                break;
+            case "turnEnd":
+                if(this.brap_meter >=100){
+                    if(roll_range(0,this.brap_meter)>70){
+                        this.brap()
+                    }
+                } 
+                break;
+            case "death":
+                for(let i=0; i<3; i++){
+                    let c = new BrapCloud(this.player, this.player.x + roll_range(-25,25), this.player.y + roll_range(-25,25), this.player)
+                    createDoodad(c)
+                }
+                pushMessage(this.player, this.player.name + " explodes in a cloud of gas")
+                this.brap_meter = 0;
+                break;
+		}
+	}
+    
+    stat_html(){
+		let html= super.stat_html()
+        
+        html += "<span><b>Brap:</b>"+roundDec(this.brap_meter)+"</span><br>";
+                
+        html += "<span class='desc'>"+
+			"<span>BRAAAAAAAAAAAAAAAAAAAP</span><br>"+	
+		"</span>"
+		return html;
+	}
+}
+
+class BrapCloud extends Doodad{
+	constructor(player,x,y,owner){
+		super("brap", player);		
+		this.x = x;
+		this.y = y;
+		this.owner = owner;
+		this.icon = "☁️"
+		        
+		//trigger radius
+		this.triggerRange = 30;
+		//chance to trigger
+		this.triggerChance=10;
+		this.ownerTriggerChance = 0;
+		//how long doodad can stay out
+		this.duration=8;
+		this.max_triggers = 9999; //maximum triggers per turn
+		this.dead_trigger = false; //whether dead players can trigger
+	}
+    trigger(trigger_player){
+        let tp = new Poison(1, 4, this.owner)
+        tp.icon = '🤢';
+		trigger_player.inflict_status_effect(tp)
+	}
+}
+
+class Gambler extends Attr{
+	constructor(player){
+		super("gambler", player);		
+		this.has_info = true;
+	}
+    
+    effect_calc(state, x, data={}){
+		switch(state){
+            //passive increase
+            case "dmgCalcOut":
+                let roll = roll_range(1,6)
+                switch(roll){
+                    case 1:
+                        data.fightMsg.events.push(this.player.name + " rolls a 1 and takes damage");
+                        this.player.take_damage(5,this,'');
+                        if(this.player.health<=0){
+                            this.player.death = "loses all theri blood";
+                        }
+                        x*=0.2
+                        break;
+                    case 2:
+                        data.fightMsg.events.push(this.player.name + " rolls a 2 and deals no damage");
+                        x=0;
+                        break;
+                    case 3:
+                        data.fightMsg.events.push(this.player.name + " rolls a 3 and deals less damage");
+                        x*=0.5
+                        break;
+                    case 4:
+                        data.fightMsg.events.push(this.player.name + " rolls a 4. Safe!");
+                        break;
+                    case 5:
+                        data.fightMsg.events.push(this.player.name + " rolls a 5 and deals extra damage");
+                        x*=1.5;
+                        break;
+                    case 6:
+                        data.fightMsg.events.push(this.player.name + " rolls a 6 and steals " + data.opponent.name + "'s blood");
+                        x*=1.2
+                        this.player.health += x*0.5;
+                        break;
+                }                
+                break;
+		}
+        return x;
+	}
+       
+}
+
+class Akagi extends Attr{
+	constructor(player){
+		super("akagi", player);		
+		this.has_info = true;
+        this.intimidationBonus = 10;
+        this.aggroBonus = 20;
+        this.wins = 0;
+        this.loses = 0;
+        this.winstreak = 0;
+        this.longest_streak = 0;
+        this.dmg_mult = 1;
+	}
+    
+    /*
+    effect(state, data={}){
+		switch(state){
+            //passive increase
+            case "turnEnd":
+                this.player.health += (Math.pow(1.5, this.winstreak)-1);
+                break;
+		}
+	}  
+    */
+    calc_bonuses(){
+        this.intimidationBonus = 10 + this.winstreak*10;
+        this.aggroBonus  = 20 +  this.winstreak*20;
+        this.dmgReductionB  = 1 -  this.winstreak*0.05;
+    }
+    
+    effect_calc(state, x, data={}){
+		switch(state){
+            //passive increase
+            case "dmgCalcOut":
+                let roll = roll_range(0,99);
+                if(roll<50){
+                    data.fightMsg.events.push(this.player.name + " loses and deals no damage");
+                    this.loses++;
+                    // this.player.health-= this.winstreak*5
+                    // if(this.player.health<=0)
+                        // this.player.death = "loses all their blood";
+                    this.winstreak = 0;
+                    this.dmg_mult = 1;
+                    x=0;
+                }
+                else{
+                    this.wins++;
+                    this.winstreak++;
+                    if(this.winstreak>this.longest_streak){
+                        this.longest_streak = this.winstreak;
+                        // this.player.health += 50;
+                        pushMessage(this.player, this.player.name + " sets a new winstreak of " + this.longest_streak)
+                    }
+                    this.dmg_mult*=2;
+                    data.fightMsg.events.push(this.player.name + " wins and deals x" +this.dmg_mult +" damage");
+                    x*=this.dmg_mult;
+                }
+            break;
+        }
+        return x;
+	}
+    stat_html(){
+		let html= super.stat_html()
+        
+        html += "<span><b>Wins:</b>"+this.wins+"</span><br>";
+        html += "<span><b>Loses:</b>"+this.loses+"</span><br>";
+        html += "<span><b>Winstreak:</b>"+this.winstreak+"</span><br>";
+        html += "<span><b>Longest Streak:</b>"+this.longest_streak+"</span><br>";
+                
+		return html;
+	}
+    
 }

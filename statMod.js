@@ -431,6 +431,16 @@ function create_attr(attr_name, player){
 			]
 			return new ProfileSwap('im@s', player, idol_imgs,idol_names, true, true, false);
 			break;
+        case "birby":
+            let birdy_imgs = [
+				'https://cdn.myanimelist.net/images/characters/5/350518.jpg',
+				'https://cdn.myanimelist.net/images/characters/11/33465.jpg'				
+			]
+			let birdy_names = [
+				'Birby','Tsutomu'
+			]
+			return new ProfileSwap('birby', player, birdy_imgs, birdy_names, true, true, false);
+            break;
 		default:
 			if(attr_name in attr_data){
 				if(attr_args.length>0){

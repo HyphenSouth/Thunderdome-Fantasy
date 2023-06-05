@@ -60,7 +60,8 @@ class Char {
 		this.moveSpeedB = 1
 		
 		//range for stealing
-		this.stealRange = 40;
+		// this.stealRange = 40;
+		this.stealRange = 0;
 		
 		//_______________kills_______________
 		//number of kills

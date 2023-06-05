@@ -108,15 +108,22 @@ class CustomMap{
 	constructor(name){
 		this.name = name;
 	}
-	end_update(){
-		terrainUpdate();
-	}	
+    end_update(){}	
 	start_update(){}
 	game_start(){}
 	forageOdds(player, item_type, odds){
 		return odds;
 	}
-	
+}
+
+class MapEvent{
+    constructor(name){
+        this.name = name
+        this.id = -1
+        this.active = true
+    }
+    end_update(){}	
+	start_update(){}
 }
 
 class Terrain {

@@ -1548,19 +1548,37 @@ class Poison extends DotEffect{
 	
 	stat_html(){
 		let html = 
-			"<span><b>Dmg Range:</b>0-"+this.max_dmg+"</span><br>";
+			"<span><b>Dmg Range:</b>0-"+roundDec(this.max_dmg)+"</span><br>";
 		html = html + super.stat_html();
 		return html;
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
+class Clamped extends StatusEffect{
+	constructor(level, duration, owner){
+		super("clamp", level, duration);
+		this.icon="🗜"
+		this.moveSpeedB=0;
+		this.owner=owner;
+	}
+	
+	effect(state, data={}){
+		let oP="";
+		switch(state){
+			case "endMove":
+				this.player.statusMessage = "clamped down";
+				break;
+			default:
+				super.effect(state, data);
+				break;
+		}
+	}
+	
+	stat_html(){
+		let html= super.stat_html() +
+		"<span class='desc'>"+
+			"<span>CLAMPED</span><br>"+
+		"</span>"		
+		return html;
+	}
+}

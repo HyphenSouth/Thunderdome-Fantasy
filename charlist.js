@@ -51,22 +51,23 @@ var charlist_gochiusa = [
 		"name": "Kafuu Chino",
 		"img": "https://cdn.myanimelist.net/images/characters/16/244251.jpg",
 		"attr": [
-			"cunny",
-			"bocc"
+			"chadmode",
+			"dnaman"
 		]
 	},
 	{
 		"name": "Hoto Cocoa",
 		"img": "https://cdn.myanimelist.net/images/characters/11/242945.jpg",
 		"attr": [
-			"butai"
+			"butai",
+            "brap"
 		]
 	},
 	{
 		"name": "Tedeza Rize ",
 		"img": "https://cdn.myanimelist.net/images/characters/15/243377.jpg",
 		"attr": [
-			"toji"
+			"akagi"
 		]
 	},
 	{

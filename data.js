@@ -36,6 +36,12 @@ var attr_data = {
 	"bocc": Bocc,
 	"snip": Snip,
 	"fly": Fly,
+	"chad": Chad,
+	"chadmode": Chadmode,
+	"dnaman": DNAMan,
+	"brap": Brapper,
+	"gambler": Gambler,
+	"akagi": Akagi,	
 	// "petoko": Petoko,
 }
 
@@ -187,6 +193,22 @@ var weapon_data = {
 		"dmg_type" : "melee",
 		"uses" : [4,6],
 		"class": Surfboard,
+		"value": 20
+	},
+	"dnagun" : {
+		"icon" : "🧬",
+		"dmg_type" : "ranged",
+		"rangeBonus" : 20,
+		"fightBonus" : 1.1,
+		"uses" : 1,
+		"class": DNAGun,
+		"value": 60
+	},
+	"clamp" : {
+		"icon" : "🗜️",
+		"icon_type" : "img",
+		"dmg_type" : "melee",
+		"uses" : [4,6],
 		"value": 20
 	}
 }
