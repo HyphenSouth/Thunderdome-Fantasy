@@ -977,6 +977,33 @@ class Retard extends Attr{
 	}
 }
 
+class Saya extends Attr{
+	constructor(player){
+		super("saya", player);
+	}
+	
+	effect(state, data={}){
+		switch(state){
+			case "doActionAfter":
+				if(data.action instanceof MoveAction){
+					//run into shit
+					if(roll_range(0,100)<(10*this.player.moveSpeedB)){
+						this.player.statusMessage = "trips";
+							this.player.health -= roll_range(1,5);
+							if(this.player.health<=1){
+								this.player.health=1
+							}
+						
+					}
+					else if(roll_range(0,100)<(20)){
+						this.player.statusMessage = "sings a silly song";
+					}						
+				}				
+				break;
+		}
+	}
+}
+
 class Bocc extends Attr{
 	constructor(player){
 		super("bocc", player);
@@ -1987,3 +2014,552 @@ class Akagi extends Attr{
 	}
     
 }
+
+class Krauser extends Attr{
+	constructor(player){
+		super("krauser", player);
+		this.has_info = true;		
+		this.dmgReductionB =3;
+		
+		this.revives=0;
+		this.revive_chance=100; //percent
+		this.revival_name = 'Krauser' 
+			
+		this.revival_img = 'https://cdn.myanimelist.net/images/characters/9/251549.jpg'
+		
+	}
+	effect(state, data={}){
+		switch(state){
+			case "death":
+				if(roll_range(1,100)<=this.revive_chance)
+					this.revive()
+				else
+					this.player.death += " (for real)"
+			break;
+		}
+	}
+	revive(){
+		this.revives++;
+		this.revive_chance-=1;
+		
+		//change name
+		this.player.change_name(this.revival_name)
+		this.player.change_img(this.revival_img)
+		
+		//fake death
+		$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + this.player.img + "'></img><del>" + this.player.death + "</del></td>>");
+		this.player.death = '';
+		this.player.dead = false;
+		
+		//update status
+		pushMessage(this.player, this.player.name +' returns from hell');
+
+		
+		//set health
+		this.player.maxHealth = Math.max(this.player.maxHealth-5, 5);
+		this.player.health = this.player.maxHealth;
+
+		this.player.resetPlannedAction();
+		
+		//clear status
+		this.player.status_effects.forEach(function(eff){
+			if(eff.name!='hinamizawa'){
+				eff.wear_off();
+			}			
+		});
+		
+		//stat increase
+		this.dmgReductionB *=1.1;
+		this.intimidationBonus += 5;
+	}
+	stat_html(){
+		let html= super.stat_html()+
+			"<span><b>Deaths:</b>"+this.revives+"</span><br>"+
+			"<span><b>Death Chance:</b>"+(100-this.revive_chance)+"%</span><br>"
+		return html;
+	}
+}
+
+
+
+class Symphogear extends Attr{
+	constructor(player){
+		super("symphogear", player);		
+		this.has_info = true;
+        this.song_power = 0;
+        this.attacked = false;
+	}
+    calc_bonuses(){
+        this.intimidationBonus = 10 + this.song_power*10;
+        this.dmgReductionB  = 1 -  this.song_power*0.05;
+        // this.fightBonus  = 1 +  this.song_power*0.05;
+    }
+    
+    effect_calc(state, x, data={}){
+		switch(state){
+            //passive increase
+            case "planAction":
+                if(this.song_power<5){
+                    if(roll_range(0,100<75-5*this.song_power)){
+                       	this.player.setPlannedAction("sympho sing", 8, SymphoSingAction)
+                    }
+                }
+                break;
+            case "fightStart":
+                if(this.song_power>0){
+                    this.player.attack_action = SymphoAttack
+                }
+                break;
+            case "turnEnd":
+                if(this.attacked){
+                    this.song_power-=1;
+                }
+                this.attacked = false;
+                break;
+        }
+        return x;
+	}
+    stat_html(){
+		let html= super.stat_html()
+        
+        html += "<span><b>Power:</b>"+this.song_power+"</span><br>";
+                
+		return html;
+	}    
+}
+
+class SymphoAttack extends CombatAction{
+    constructor(player, attr){
+		super('sympho attack', player, true, 4);
+        this.attr = attr;
+	}
+	
+	fight_target(attacker, defender, counter, fightMsg){
+		attack(attacker, defender, counter, fightMsg);
+        this.attr.attacked = true;
+	}
+}
+
+
+class SymphoSingAction extends Action{
+	constructor(player, data, attr){
+		super("sing", player)
+        this.attr = attr;
+	}
+	perform(){
+		this.player.lastActionState = "singing";
+		this.attr.song_power+-1
+        nearby = this.player.nearbyPlayers(100)
+        nearby.forEach(function(oP){
+            if(roll_range(0,100)<60){
+                let temp_charm = new Charm(this.player, 3, roll_range(0,3)<2, 3);
+				oP.inflict_status_effect(temp_charm);
+            }
+        })
+		this.player.statusMessage = "sings";
+	}
+}
+
+class Jobber extends Attr{
+	constructor(player){
+		super("jobber", player);
+	}
+	effect(state, data={}){
+		switch(state){
+			case "death":
+				pushMessage(this.player, this.player.name +' jobs to death');
+			break;
+		}
+	}
+}
+
+class Poundmaxx extends Attr{
+	constructor(player){
+		super("poundmax", player);
+        this.pounds=100;
+        
+        this.has_info = true;
+		this.fightBonus = 1;
+        this.visibilityB = 30;
+        this.intimidationBonus = 15;
+        this.dmgReductionB = 0.9;
+        this.moveSpeedB = 0.8;	
+        
+	}
+    
+    update_pounds(pounds){
+        this.pounds=roundDec(this.pounds+pounds);
+        let t_pounds = this.pounds-100
+        this.visibilityB = 30+roundDec(t_pounds*0.2);
+        this.intimidationBonus = 15+roundDec(t_pounds*0.4);
+        this.dmgReductionB = Math.max(roundDec(1-(t_pounds)*0.005,2), 0.1);
+		this.fightBonus = roundDec(1+(t_pounds)*0.003,2);
+        this.moveSpeedB = Math.max(roundDec(0.8-(t_pounds)*0.002,2), 0.1);
+        
+        if(pounds>10){
+            pushMessage(this.player, this.player.name +' is poundmaxxing');
+        }
+        //update div size
+        let scale_factor = Math.round(t_pounds/5)
+        this.player.iconSize = iconSize+2*scale_factor
+        this.player.iconWidth = iconSize+scale_factor*2
+        this.player.iconHeight = iconSize+scale_factor*2
+            
+        this.player.div.width(this.player.iconWidth)
+        this.player.div.height(this.player.iconHeight)
+        this.player.div.css('border-radius',this.player.iconSize/2)
+        this.player.moveToCoords(this.player.x, this.player.y)
+    }
+    
+	effect(state, data={}){
+        let tP=this.player;
+		switch(state){
+            case "win":
+                let oP=data['opponent'];
+                pushMessage(this.player, this.player.name + " eats " + oP.name);
+                this.player.heal_damage(oP.exp*15, this, 'player')
+                this.update_pounds(oP.exp*0.5);                
+                break;
+            
+            case "doActionAfter":
+				if(data.action instanceof EatAction){
+					let eff_lv = 1;
+                    let pounds=data.action.food.heal*2;
+					if(data.action.food.name=='chicken'){
+						eff_lv = 2;
+                        pounds=pounds+20;
+					}
+					let eff_data = {
+						"fightBonus":[1,0.075],
+						"dmgReductionB":[1,-0.05],
+						"moveSpeedB":[1.1,0.1],
+						"sightBonus":[10,4],
+						// "rangeBonus":[0,5],
+						"intimidationBonus":[20,0],
+						"aggroBonus":[50,0],
+					}
+					let temp_eff = new StatusEffect("well fed", eff_lv, roll_range(5,6+eff_lv), eff_data)
+					temp_eff.icon = "😋"
+					this.player.inflict_status_effect(temp_eff)
+                    this.update_pounds(pounds);
+				}
+				break;
+			case "healDmg":
+				if(data.dmg_type=='food'){
+					this.player.health += 10;
+					this.player.energy += 5;
+				}
+				break;
+			case "planAction":
+				if(!this.player.offhand)
+					if(roll_range(0,99)<10)
+						this.player.setPlannedAction('forage', 5, ForageAction);
+				if(this.player.offhand instanceof Food)
+					if(roll_range(0,99)<50)
+						this.player.setPlannedAction("eat", 9, EatAction, {'food':this.player.offhand});
+				
+				break;
+            //gravity
+            case "turnEnd":
+                if(this.pounds>200){
+                    let gravity = Math.round((this.pounds-200)/2)
+                    //affected by gravity
+                    let nearby=this.player.nearbyPlayers(gravity+roll_range(-5,10))
+                    nearby.forEach(function(oP){
+                        let dist = playerDist(oP, tP);
+                        if(roll_range(0,dist+50)<50+gravity/2){
+                            log_message('gravity'+oP.name)                            
+                            let x_dist = roll_range(gravity/40, Math.abs(oP.x-tP.x))
+                            let y_dist = roll_range(gravity/40, Math.abs(oP.y-tP.y))
+                            let new_x=oP.x
+                            if(oP.x>tP.x){new_x = oP.x-x_dist}
+                            else{new_x = oP.x+x_dist}
+                            let new_y=oP.y
+                            if(oP.y>tP.y){new_y = oP.y-y_dist}
+                            else{new_y = oP.y+y_dist}
+                            oP.moveToCoords(new_x, new_y);                           
+                            pushMessage(oP, oP.name +" is caught in " + tP.name + "'s gravity");
+                        }
+                    });
+                }
+		}
+	}
+ 
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='off')
+					x.push(['food',200])
+				else if(data.item_type=='food')					
+					x.push(['chicken',50])
+				break;
+		}
+		return x
+	}
+
+    stat_html(){
+		let html= super.stat_html()
+        
+        html += "<span><b>Pounds:</b>"+this.pounds+"lbs</span><br>";
+                
+		return html;
+	}   
+
+}
+
+
+class FoodLover extends Attr{
+    constructor(player){
+		super("food", player);
+        this.has_info = false;
+	}
+
+	effect(state, data={}){
+        let tP=this.player;
+		switch(state){
+           
+            case "doActionAfter":
+				if(data.action instanceof EatAction){
+					let eff_lv = 1;
+                    let pounds=data.action.food.heal*2;
+					if(data.action.food.name=='chicken'){
+						eff_lv = 2;
+                        pounds=pounds+20;
+					}
+					let eff_data = {
+						"fightBonus":[1,0.075],
+						"dmgReductionB":[1,-0.05],
+						"moveSpeedB":[1.1,0.1],
+						"sightBonus":[10,4],
+						// "rangeBonus":[0,5],
+						"intimidationBonus":[20,0],
+						"aggroBonus":[50,0],
+					}
+					let temp_eff = new StatusEffect("well fed", eff_lv, roll_range(5,6+eff_lv), eff_data)
+					temp_eff.icon = "😋"
+					this.player.inflict_status_effect(temp_eff)
+                    this.update_pounds(pounds);
+				}
+				break;
+			case "healDmg":
+				if(data.dmg_type=='food'){
+					this.player.health += 10;
+					this.player.energy += 5;
+				}
+				break;
+			case "planAction":
+				if(!this.player.offhand)
+					if(roll_range(0,99)<20)
+						this.player.setPlannedAction('forage', 5, ForageAction);
+				if(this.player.offhand instanceof Food)
+					if(roll_range(0,99)<50)
+						this.player.setPlannedAction("eat", 9, EatAction, {'food':this.player.offhand});
+				break;
+		}
+	}
+
+	effect_calc(state, x, data={}){
+		switch(state){
+			case "itemOdds":
+				if(data.item_type=='off')
+					x.push(['food',100])
+				break;
+		}
+		return x
+	}
+}
+
+
+class Wide extends Attr{
+	constructor(player){
+		super("wide", player);
+        this.has_info = false;
+        this.widened=false
+	}
+    effect(state, data={}){
+        let tP=this.player;
+		switch(state){
+           
+            case "turnStart":
+                if(!this.widened){
+                    this.player.iconWidth = this.player.iconWidth+20
+                    this.player.div.width(this.player.iconWidth)
+                    this.widened=true;
+                }
+                break;
+        }
+    }
+}
+
+class Kamui extends Attr{
+	constructor(player){
+		super("kamui", player);
+        this.kamuis=1;
+        
+        this.has_info = true;
+        
+	}
+}
+
+class Maple extends Attr{
+	constructor(player){
+		super("maple", player);
+        this.dmgReductionB = 0.25;
+        this.moveSpeedB=0.2;
+        this.fightBonus=0.1;
+        this.has_info=true;
+	}
+    
+     effect(state, data={}){
+        let tP=this.player;
+        let item = data['item']
+		switch(state){           
+            case "equipItem":
+                if(item instanceof Dinh){
+                    item.uses += 100;
+                    item.spec_range +=20;
+                }
+                pushMessage(this.player, this.player.name+" is fucking invincible")
+                break;
+            case "turnStart":
+                if(this.player.offhand){
+                    if(item instanceof Dinh){
+                        this.player.offhand.spec+=5;
+                        if(this.player.offhand.spec>100)
+                            this.player.offhand.spec=100
+                    }                
+                }
+                break;
+        }
+    }
+    
+    effect_calc(state, x, data={}){
+        switch(state){
+			case "itemOdds":
+				if(data.item_type=='off')
+					x.push(['dinh', 200])
+				break;
+        }
+		return x
+	}
+}
+
+class Maple2 extends Attr{
+	constructor(player){
+		super("maple2", player);
+        this.display_name = "Maple"
+        this.dmgReductionB = 0.5;
+        this.moveSpeedB=0.5;
+        this.fightBonus=0.5;
+        this.has_info=true;
+	}
+    
+    effect(state, data={}){
+		switch(state){
+			case "turnStart":
+				this.player.health=0;
+                this.player.death = "BANNED"
+                pushMessage(this.player, this.player.name + ' BANNED FOR BUG ABUSE');
+			break;
+		}
+	}
+}
+
+class Grave extends Attr{
+	constructor(player){
+		super("grave", player);
+		this.remade=false;
+		this.has_info = true;
+		
+		this.fightBonus = 0.95;
+		this.dmgReductionB =1.1;
+		this.moveSpeedB = 0.9;
+	}
+		
+	effect(state, data={}){
+		switch(state){
+			case "death":
+				if(!this.remade){
+					this.revive()
+				}
+			break;
+		}
+	}
+	revive(){
+		this.remade=true;
+		
+		//fake death
+		$('#deathMsg tbody').prepend("<tr><td>Day " + day + " " + hour + ":00</td><td><img src='" + this.player.img + "'></img><del>" + this.player.death + "</del></td>>");
+		this.player.death = '';
+		this.player.dead = false;
+		
+		//update status
+		this.player.statusMessage = 'NECROLYZE';
+		pushMessage(this.player, this.player.name+' returns from the grave');
+		
+		//change name
+		let name = "Beyond the Grave"
+		this.player.change_name(name)
+		// this.player.name = name;
+		// this.player.div.find('.charText').text(name);
+		// this.player.tblDiv.find('.info div:first-child b').text(name);
+		
+		//set health
+		this.player.maxHealth = this.player.maxHealth*0.5;
+		this.player.health = this.player.maxHealth;
+        this.player.change_img('https://cdn.myanimelist.net/images/characters/10/80723.jpg')
+		this.player.resetPlannedAction();
+		
+		//clear status
+		this.player.status_effects.forEach(function(eff){
+			if(eff.name!='hinamizawa'){
+				eff.wear_off();
+			}			
+		});
+		
+		//stat increase
+		this.fightBonus = 1.25;
+		this.dmgReductionB =0.9;
+		this.moveSpeedB = 2;
+		this.intimidationBonus = 20;
+	}
+}
+
+/*
+class Wind extends Attr{
+	constructor(player){
+		super("wind", player);
+        this.wind=1000
+        this.moveSpeedB = 1;
+        this.has_info=true;
+	}
+    
+    effect(state, data={}){
+		switch(state){
+			case "doActionAfter":
+				if(data.action instanceof MoveAction){
+                
+
+                }                
+			break;
+		}
+	}
+}
+
+
+class Deadman extends Attr{
+	constructor(player){
+        super("deadman", player);
+        this.blood=1000
+        this.has_info=true;
+	}
+    
+    effect(state, data={}){
+		switch(state){
+			case "turnStart":
+                this.blood+=10;           
+			break;
+		}
+	}
+}
+*/

@@ -1,9 +1,9 @@
 var off_prob = 2;
-var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",200],["campfire",15],["mirror",40]];
+var defaultOffhandOdds = [["bomb",5],["trap",10],["shield",10],["recoil", 15],["food",30],["campfire",15],["mirror",20],["dinh",0]];
 function get_offhand_odds(tP){
 	let offhandOdds = defaultOffhandOdds.slice();
 	if(!doll && tP.get_status_effect("hellbound")=="")
-		offhandOdds.push(["doll",5]);
+		offhandOdds.push(["doll",0]);
 	offhandOdds = tP.apply_all_calcs('itemOdds', offhandOdds, {'item_type':'off'})
 	offhandOdds = getTerrain(tP.x, tP.y).forageOdds(tP, 'off', offhandOdds);
 	return offhandOdds;
@@ -836,7 +836,7 @@ class Doll extends Offhand{
 			if(oP_score < chosen_score){
 				chosen_score = oP_score;
 				chosen = oP;
-			}			
+			}
 		});
 		return chosen;
 	}	
@@ -846,10 +846,12 @@ class Doll extends Offhand{
 		switch(state){			
 			case "turnStart":
 				if(!this.target){
+                    pushMessage(this.player, this.player.name + " has no one to kill (no pull)");
 					this.destroy();
 					return;
 				}
 				if(this.target.dead){
+                    pushMessage(this.player, this.target.name + " dies before "+this.player.name+" can pull (no pull)");
 					this.destroy();
 				}
 				this.turns+=1;
@@ -860,7 +862,7 @@ class Doll extends Offhand{
 					this.use();
 				break;
 			case "turnEnd":
-				if(this.turns>=3){
+				// if(this.turns>=3){
 					let decision = this.decision()
 					if(decision == "pull"){
 						this.use();
@@ -868,7 +870,7 @@ class Doll extends Offhand{
 					else if (decision == "discard"){
 						this.discard();
 					}
-				}
+				// }
 				break;
 			case "death":
 				this.destroy();				
@@ -898,7 +900,12 @@ class Doll extends Offhand{
 		if(this.target){
 			// this.player.lastActionState = "doll pull";
 			this.player.statusMessage = "sends " + this.target.name + " to hell";
-			pushMessage(this.player, this.player.name + " sends " + this.target.name + " to hell");
+            if(this.turns==0){                
+                pushMessage(this.player, this.player.name + " sends " + this.target.name + " to hell (insta pull)");
+            }
+            else{
+                pushMessage(this.player, this.player.name + " sends " + this.target.name + " to hell ("+this.turns+" turns)");
+            }
 			this.player.kills++;
 			this.player.inflict_status_effect(new HellBound())
 			this.target.health = 0;
@@ -910,7 +917,7 @@ class Doll extends Offhand{
 	}
 	
 	discard(){
-		pushMessage(this.player, this.player.name + " gives up on revenge");
+		pushMessage(this.player, this.player.name + " gives up on revenge (no pull)");
 		this.uses = 0;
 		this.destroy();
 	}					
@@ -1042,4 +1049,117 @@ class HellBound extends StatusEffect{
 		"</span>"		
 		return html;
 	}	
+}
+
+class Dinh extends Offhand {
+	constructor() {
+		super("dinh");
+		this.display_name = "Dinh's Bulwark"
+        this.dmgReductionB = 0.75
+        this.moveSpeedB = 0.5
+        this.fightBonus = 0.5
+        this.spec=100;
+        this.spec_range=50;
+	}	
+    
+       
+	effect(state, data={}){
+		switch(state){
+            case "turnStart":
+                if(this.spec<100){this.spec+=10}
+                if(this.spec>100){this.spec=100}
+                break;
+            case "fightStart":
+				if(this.spec>=50 && playerDist(this.player, data.opponent)<=this.spec_range){
+                    this.player.attack_action = new DinhSpec(this.player, this);
+				}
+				break; 
+			case "takeDmg":
+				let dmg = data["damage"];
+				this.uses = roundDec(this.uses - dmg);
+                //this.spec+=roundDec(dmg/5,0);
+				if(this.uses<=0){
+					this.destroy();
+				}
+				break;
+			default:
+				super.effect(state, data)
+				break;
+		}
+	}
+    
+    stat_html(){
+		let html = 	
+		super.stat_html()+
+        "<span><b>Spec:</b>x"+this.spec+"</span><br>"+
+		"<span class='desc'>" +
+			"I hate Maple so much" +
+		"</span>"		
+		return html;
+	}		
+
+}
+
+class DinhSpec extends CombatAction{
+	constructor(player, item){
+		super("dinh spec", player, true, 4);
+		this.display_name = "Shield Bash"
+		this.player = player;
+		this.item = item;
+	}
+	
+	execution_fail(action, attacker, defender, counter, fightMsg){
+		if(fightMsg.events)
+			fightMsg.events.push(this.player.name + ' whiffs their shield attack');
+		this.item.spec-=50;
+	}
+	
+	fight_target(attacker, defender, counter, fightMsg){
+		if(playerDist(attacker, defender)>this.item.spec_range){
+			fightMsg.events.push(attacker.name + " is too slow to attack " + defender.name);
+			attacker.statusMessage = "too slow to attack " + defender.name;
+			return
+		}
+		
+		let dmg = roll_range(10, 30);
+		dmg = dmg * defender.dmgReductionB*2;
+        dmg = dmg * 2-attacker.dmgReductionB;
+        
+        if(counter==true){
+            dmg=dmg*1.05
+        }
+		
+		defender.take_damage(dmg, attacker, "melee", fightMsg)
+		fightMsg.events.push(attacker.name + " bashes "+ defender.name +" with their shield for "+ roundDec(dmg) + " damage" );
+		
+		
+		//aoe
+		let tP= attacker;
+		players.forEach(function(oP){
+			if(oP==defender || oP==attacker)
+				return
+			if(playerDist(tP, oP)<50){
+                let dmg = roll_range(1,10)
+                dmg = dmg * 2-attacker.dmgReductionB;
+				oP.take_damage(dmg, tP, "unarmed");
+				oP.currentAction.turn_complete = true;
+				oP.statusMessage = "hit by " +tP.name+ "'s shield";
+				pushMessage(oP, oP.name + " hit by " +tP.name+ "'s shield for " + dmg)
+				if(oP.health<=0){
+					tP.kills++;
+					oP.death = "killed by" +tP.name+ "'s shield"
+				}
+			}
+		});
+		attacker.statusMessage = "bashes "+defender.name +" with their Dinh's Bulwark";
+		if(defender.health<=0){
+			defender.death = "bashed to death by " + attacker.name;
+		}
+        this.item.spec-=50;
+    }
+	
+	kill(attacker, defender, counter, fightMsg){
+		defender.death = "bashed to death by " + attacker.name;
+		attacker.statusMessage = "bashes " + defender.name + " to death";
+	}
 }

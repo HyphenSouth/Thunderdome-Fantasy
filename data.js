@@ -42,6 +42,17 @@ var attr_data = {
 	"brap": Brapper,
 	"gambler": Gambler,
 	"akagi": Akagi,	
+	"jobber": Jobber,	
+	"krauser": Krauser,	
+	"poundmaxx": Poundmaxx,	
+	"food": FoodLover,	
+	"wide": Wide,	
+	"kamui": Kamui,	
+	"maple": Maple,	
+	"maple2": Maple2,	
+	"grave": Grave,	
+	"saya": Saya,	
+	"wind": Wind,	
 	// "petoko": Petoko,
 }
 
@@ -274,6 +285,13 @@ var offhand_data = {
 		"class": Doll,
 		"value": 100		
 	},
+	"dinh" : {
+		"icon" : "./icons/dinh.png",
+		"icon_type" : "img",
+		"uses" : 70,
+		"class": Dinh,
+		"value": 60		
+	},
 }
 
 //food
@@ -351,9 +369,21 @@ var food_data = {
 		"heal": 3,
 		"value": 3		
 	},
-	"spagheti" : {
+	"spaghetti" : {
 		"icon":"🍝",
 		"uses": [2,3],
+		"heal": 5,
+		"value": 5	
+	},
+	"beef stroganoff": {
+		"icon":"🍲",
+		"uses": [2,4],
+		"heal": 6,
+		"value": 5	
+	},
+	"chicken": {
+		"icon":"🍗",
+		"uses": 2,
 		"heal": 5,
 		"value": 5	
 	}

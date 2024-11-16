@@ -95,11 +95,28 @@ class Gremlin extends MovableEntity{
 		if(!doodDiv.length){
 			$('#doodads').append(
 			"<div id='doodad_" + this.id + "' class='doodad harukasan' style='transform:translate(" + (this.x / 1000 * $('#map').width() - iconSize/2) + "px," + (this.y / 1000 *  $('#map').height() - iconSize/2) + "px);'>" + 
+				"<div style='display:none; position:absolute; left:-40px; bottom:15px; font-size:12px; width:100px; color:EE0000;'><b>KAKA<b></div>"+
 				// this.name+
 			"</div>");
 			doodDiv = $('#doodad_' + this.id);
 			doodDiv.css('background-image',"url(" + this.img + ")");
 			this.div = doodDiv;
+			this.timer = setInterval(this.show_text, 5000+roll_range(-1500,2000) , this.div);
+		}
+	}
+	
+	stop_text(){
+		 clearInterval(this.timer)
+	}
+	
+	show_text(div){
+		// log_message('noko noko');
+		if(div.children('div').css('display')=='none'){
+			let text_div = div.children('div');
+			text_div.css('display','block');
+			setTimeout(function(){
+				text_div.css('display','none');
+			}, 1500);
 		}
 	}
 	

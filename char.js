@@ -155,6 +155,10 @@ class Char {
 		
 		this.div_classes = [];
 		this.tblDiv_classes = [];
+        
+        this.iconSize = iconSize;
+        this.iconWidth = iconSize;
+        this.iconHeight = iconSize;
 	}
 
 	//other players
@@ -326,43 +330,47 @@ class Char {
 	//value is the difference in value the new item needs to be to repalce the old item
 	equip_item(item, replace='all', value=0, drop=0){
 		let drop_item = false;
+        let r = false;
 		if(roll_range(1,100)<=drop)
 			drop_item = true;
 		if(item instanceof Weapon){
 			if(this.weapon){
 				if(replace=='all')
-					return this.weapon.replace_wep(item, drop_item);
+                    r = this.weapon.replace_wep(item, drop_item);		 
 				else if(replace =='value')
 					if(item.get_value() - this.weapon.get_value() > value)
-						return this.weapon.replace_wep(item, drop_item);
+						r = this.weapon.replace_wep(item, drop_item);
 			}
 			else{
 				this.weapon=item;
 				item.equip(this);
-				return true;
+				r = true;
 			}
+            if(r==true){this.apply_all_effects("equipItem",{'item':item})}
 		}
 		else if(item instanceof Offhand){
 			if(this.offhand){
 				if(replace=='all')
-					return this.offhand.replace_offhand(item, drop_item);
+					r =  this.offhand.replace_offhand(item, drop_item);
 				else if(replace =='value')
 					if(item.get_value() - this.offhand.get_value() > value)
-						return this.offhand.replace_offhand(item, drop_item);
+						r =  this.offhand.replace_offhand(item, drop_item);
 			}
 			else{
 				this.offhand=item;
 				item.equip(this);
-				return true;
+				r =  true;
 			}
+            if(r==true){this.apply_all_effects("equipItem",{'item':item})}
 		}
 		else{
 			if(item=='Nothing' || item =='')
-				return false
+				r =  false
 			//attempting to equip character speicific items
 			this.apply_all_effects("equipItem",{'item':item})
-			return false;
+			r =  false;
 		}
+        return r
 	}	
 	
 	//unequipping an item
@@ -1151,8 +1159,8 @@ class Char {
 	moveToCoords(targetX, targetY){
 		this.x = targetX;
 		this.y = targetY;
-		targetX = targetX / mapSize * $('#map').width() - iconSize/2;
-		targetY = targetY / mapSize * $('#map').height() - iconSize/2;
+		targetX = targetX / mapSize * $('#map').width() - this.iconWidth/2;
+		targetY = targetY / mapSize * $('#map').height() - this.iconHeight/2;
 
 		//update icons on map
 		let charDiv = $('#char_' + this.id);
@@ -1285,7 +1293,8 @@ class Char {
 		} 
 		//charDiv.css('left',this.x / 1000 * .95 * $('#map').width() - iconSize/2);
 		//charDiv.css('top',this.y / 1000 * .95 * $('#map').height() - iconSize/2);
-		charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width() - iconSize/2) + "px," + (this.y / mapSize *  $('#map').height() - iconSize/2) + "px)"},function(){
+		charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width() - this.iconWidth/2) + "px," + (this.y / mapSize *  $('#map').height() - this.iconHeight/2) + "px)"},function(){
+		// charDiv.css({transform:"translate(" + (this.x / mapSize * $('#map').width()) + "px," + (this.y / mapSize *  $('#map').height()) + "px)"},function(){
 		});
 	}
 	
@@ -1384,7 +1393,7 @@ class Char {
 						"<span>Dmg Taken: x"+roundDec(this.dmgReductionB)+"</span><br>"+
 						"<span>Peace/Aggro: "+Math.round(this.peaceB)+"/"+Math.round(this.aggroB)+"</span><br>"+
 						"<span>Fight Chance: "+roll_probs([['fight',fightChance],['peace',peaceChance]])[0][1]+"%</span><br>"+
-						"<span>Intimidation: "+(this.intimidation)+"</span><br>"+
+						"<span>Intimidation: "+roundDec(this.intimidation)+"</span><br>"+
 						"<span onclick='player_extra_info("+this.id+",\"more info\")'><u>More Info</u></span><br>"+
 						
 					"</div>"+

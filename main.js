@@ -486,7 +486,7 @@ function startGame(){
 function onStart(){
 	// globalAggro=5000;
 	// createDangerZone(500);
-	playerStatic[0].equip_item(create_weapon('dnagun'));
+	// playerStatic[0].equip_item(create_weapon('dnagun'));
 	// generateJibunWo();
 	// customMap.game_start();
 	
